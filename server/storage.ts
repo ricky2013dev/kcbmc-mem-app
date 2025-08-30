@@ -115,18 +115,18 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (filters?.dateFrom) {
-      conditions.push(gte(families.registrationDate, filters.dateFrom));
+      conditions.push(gte(families.visitedDate, filters.dateFrom));
     }
     
     if (filters?.dateTo) {
-      conditions.push(lte(families.registrationDate, filters.dateTo));
+      conditions.push(lte(families.visitedDate, filters.dateTo));
     }
     
     if (conditions.length > 0) {
       query = query.where(and(...conditions));
     }
     
-    const familyList = await query.orderBy(desc(families.registrationDate));
+    const familyList = await query.orderBy(desc(families.visitedDate));
     
     // Get members for each family
     const familiesWithMembers: FamilyWithMembers[] = [];
