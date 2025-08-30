@@ -48,16 +48,16 @@ const familyFormSchema = z.object({
   lifeGroup: z.string().optional(),
   supportTeamMember: z.string().optional(),
   husband: z.object({
-    koreanName: z.string().min(1, 'Korean name is required'),
-    englishName: z.string().min(1, 'English name is required'),
+    koreanName: z.string().optional(),
+    englishName: z.string().optional(),
     birthDate: z.string().optional(),
     phoneNumber: z.string().optional(),
     email: z.string().email().optional().or(z.literal('')),
     courses: z.array(z.string()),
   }),
   wife: z.object({
-    koreanName: z.string().min(1, 'Korean name is required'),
-    englishName: z.string().min(1, 'English name is required'),
+    koreanName: z.string().optional(),
+    englishName: z.string().optional(),
     birthDate: z.string().optional(),
     phoneNumber: z.string().optional(),
     email: z.string().email().optional().or(z.literal('')),
@@ -70,7 +70,40 @@ const familyFormSchema = z.object({
     gradeLevel: z.string().optional(),
     school: z.string().optional(),
   })),
-});
+}).refine(
+  (data) => {
+    // Either husband or wife Korean name must be provided
+    const hasHusbandName = data.husband.koreanName && data.husband.koreanName.trim().length > 0;
+    const hasWifeName = data.wife.koreanName && data.wife.koreanName.trim().length > 0;
+    return hasHusbandName || hasWifeName;
+  },
+  {
+    message: "Either husband's Korean name or wife's Korean name is required",
+    path: ["husband", "koreanName"], // This will show the error on the husband field
+  }
+).refine(
+  (data) => {
+    // If husband Korean name is provided, English name should also be provided
+    const hasHusbandKoreanName = data.husband.koreanName && data.husband.koreanName.trim().length > 0;
+    const hasHusbandEnglishName = data.husband.englishName && data.husband.englishName.trim().length > 0;
+    return !hasHusbandKoreanName || hasHusbandEnglishName;
+  },
+  {
+    message: "English name is required when Korean name is provided",
+    path: ["husband", "englishName"],
+  }
+).refine(
+  (data) => {
+    // If wife Korean name is provided, English name should also be provided
+    const hasWifeKoreanName = data.wife.koreanName && data.wife.koreanName.trim().length > 0;
+    const hasWifeEnglishName = data.wife.englishName && data.wife.englishName.trim().length > 0;
+    return !hasWifeKoreanName || hasWifeEnglishName;
+  },
+  {
+    message: "English name is required when Korean name is provided",
+    path: ["wife", "englishName"],
+  }
+);
 
 type FormData = z.infer<typeof familyFormSchema>;
 
