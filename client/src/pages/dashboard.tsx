@@ -372,7 +372,11 @@ export default function DashboardPage() {
                                 {family.supportTeamMember}
                               </Badge>
                             )}
-                            
+                            {family.familyCode && (
+                              <Badge variant="secondary" className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border-blue-200 font-mono font-semibold">
+                                ID: {family.familyCode}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>

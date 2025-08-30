@@ -453,6 +453,19 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     />
                     <p className={styles.fieldHint}>This field is automatically generated</p>
                   </div>
+
+                  {mode === 'edit' && family?.familyCode && (
+                    <div className={styles.fullWidth}>
+                      <Label>Family ID</Label>
+                      <Input 
+                        value={family.familyCode}
+                        readOnly
+                        className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 text-blue-800 font-mono font-semibold"
+                        data-testid="input-family-code"
+                      />
+                      <p className={styles.fieldHint}>Unique family identifier for easy reference</p>
+                    </div>
+                  )}
                   
                   <FormField
                     control={form.control}

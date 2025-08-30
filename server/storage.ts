@@ -13,6 +13,35 @@ import {
 import { db } from "./db";
 import { eq, and, or, like, gte, lte, desc } from "drizzle-orm";
 
+// Generate a human-readable family code
+function generateFamilyCode(): string {
+  const year = new Date().getFullYear().toString().slice(-2); // Last 2 digits of year
+  const month = (new Date().getMonth() + 1).toString().padStart(2, '0'); // Month 01-12
+  const randomNum = Math.floor(Math.random() * 900) + 100; // Random 3-digit number 100-999
+  return `FM${year}${month}${randomNum}`;
+}
+
+// Check if family code already exists and generate a unique one
+async function generateUniqueFamilyCode(): Promise<string> {
+  let attempts = 0;
+  const maxAttempts = 10;
+  
+  while (attempts < maxAttempts) {
+    const code = generateFamilyCode();
+    const [existing] = await db.select().from(families).where(eq(families.familyCode, code));
+    
+    if (!existing) {
+      return code;
+    }
+    
+    attempts++;
+  }
+  
+  // Fallback with timestamp if we can't generate unique code
+  const timestamp = Date.now().toString().slice(-6);
+  return `FM${timestamp}`;
+}
+
 export interface IStorage {
   // Staff operations
   getStaff(id: string): Promise<Staff | undefined>;
@@ -94,8 +123,6 @@ export class DatabaseStorage implements IStorage {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<FamilyWithMembers[]> {
-    let query = db.select().from(families);
-    
     const conditions = [];
     
     if (filters?.name) {
@@ -122,11 +149,9 @@ export class DatabaseStorage implements IStorage {
       conditions.push(lte(families.visitedDate, filters.dateTo));
     }
     
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-    
-    const familyList = await query.orderBy(desc(families.visitedDate));
+    const familyList = conditions.length > 0 
+      ? await db.select().from(families).where(and(...conditions)).orderBy(desc(families.visitedDate))
+      : await db.select().from(families).orderBy(desc(families.visitedDate));
     
     // Get members for each family
     const familiesWithMembers: FamilyWithMembers[] = [];
@@ -143,7 +168,11 @@ export class DatabaseStorage implements IStorage {
 
   async createFamily(familyData: InsertFamily, members: Omit<InsertFamilyMember, 'familyId'>[]): Promise<FamilyWithMembers> {
     const cleanedFamilyData = cleanDateFields(familyData);
-    const [family] = await db.insert(families).values(cleanedFamilyData).returning();
+    const familyCode = await generateUniqueFamilyCode();
+    const [family] = await db.insert(families).values({
+      ...cleanedFamilyData,
+      familyCode
+    }).returning();
     
     const familyMembersData = members.map(member => {
       const cleanedMember = cleanDateFields(member);

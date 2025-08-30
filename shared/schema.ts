@@ -29,6 +29,7 @@ export const staff = pgTable("staff", {
 // Families table
 export const families = pgTable("families", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyCode: varchar("family_code", { length: 20 }).unique(),
   familyName: varchar("family_name", { length: 255 }).notNull(),
   visitedDate: date("visited_date").notNull(),
   registrationDate: date("registration_date"),
@@ -87,6 +88,7 @@ export const insertStaffSchema = createInsertSchema(staff).omit({
 
 export const insertFamilySchema = createInsertSchema(families).omit({
   id: true,
+  familyCode: true,
   createdAt: true,
   updatedAt: true,
 });
