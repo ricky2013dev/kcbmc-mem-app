@@ -35,15 +35,15 @@ interface FamilyFormPageProps {
 }
 
 const familyFormSchema = z.object({
-  visitedDate: z.string().min(1, 'Visited date is required'),
-  registrationDate: z.string().min(1, 'Registration date is required'),
+  visitedDate: z.string().optional(),
+  registrationDate: z.string().optional(),
   memberStatus: z.enum(['visit', 'member', 'pending']),
-  phoneNumber: z.string().min(1, 'Phone number is required'),
+  phoneNumber: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
-  address: z.string().min(1, 'Address is required'),
-  city: z.string().min(1, 'City is required'),
-  state: z.string().min(1, 'State is required'),
-  zipCode: z.string().min(1, 'ZIP code is required'),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
   familyNotes: z.string().optional(),
   lifeGroup: z.string().optional(),
   supportTeamMember: z.string().optional(),
@@ -64,44 +64,23 @@ const familyFormSchema = z.object({
     courses: z.array(z.string()),
   }),
   children: z.array(z.object({
-    koreanName: z.string().min(1, 'Korean name is required'),
-    englishName: z.string().min(1, 'English name is required'),
+    koreanName: z.string().optional(),
+    englishName: z.string().optional(),
     birthDate: z.string().optional(),
     gradeLevel: z.string().optional(),
     school: z.string().optional(),
   })),
 }).refine(
   (data) => {
-    // Either husband or wife Korean name must be provided
+    // Family name is effectively required through the auto-generation logic
+    // At least one spouse's Korean name is needed to generate family name
     const hasHusbandName = data.husband.koreanName && data.husband.koreanName.trim().length > 0;
     const hasWifeName = data.wife.koreanName && data.wife.koreanName.trim().length > 0;
     return hasHusbandName || hasWifeName;
   },
   {
-    message: "Either husband's Korean name or wife's Korean name is required",
-    path: ["husband", "koreanName"], // This will show the error on the husband field
-  }
-).refine(
-  (data) => {
-    // If husband Korean name is provided, English name should also be provided
-    const hasHusbandKoreanName = data.husband.koreanName && data.husband.koreanName.trim().length > 0;
-    const hasHusbandEnglishName = data.husband.englishName && data.husband.englishName.trim().length > 0;
-    return !hasHusbandKoreanName || hasHusbandEnglishName;
-  },
-  {
-    message: "English name is required when Korean name is provided",
-    path: ["husband", "englishName"],
-  }
-).refine(
-  (data) => {
-    // If wife Korean name is provided, English name should also be provided
-    const hasWifeKoreanName = data.wife.koreanName && data.wife.koreanName.trim().length > 0;
-    const hasWifeEnglishName = data.wife.englishName && data.wife.englishName.trim().length > 0;
-    return !hasWifeKoreanName || hasWifeEnglishName;
-  },
-  {
-    message: "English name is required when Korean name is provided",
-    path: ["wife", "englishName"],
+    message: "Family name cannot be generated without at least one spouse's Korean name",
+    path: ["husband", "koreanName"],
   }
 );
 
@@ -407,7 +386,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     name="visitedDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Visited Date *</FormLabel>
+                        <FormLabel>Visited Date</FormLabel>
                         <FormControl>
                           <SundayDatePicker 
                             {...field} 
@@ -424,7 +403,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     name="registrationDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Registration Date *</FormLabel>
+                        <FormLabel>Registration Date</FormLabel>
                         <FormControl>
                           <SundayDatePicker 
                             {...field} 
@@ -441,7 +420,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     name="memberStatus"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Member Status *</FormLabel>
+                        <FormLabel>Member Status</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-member-status">
@@ -466,7 +445,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     name="phoneNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone Number *</FormLabel>
+                        <FormLabel>Phone Number</FormLabel>
                         <FormControl>
                           <Input 
                             {...field}
@@ -507,7 +486,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       name="address"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Address *</FormLabel>
+                          <FormLabel>Address</FormLabel>
                           <FormControl>
                             <Input 
                               {...field}
@@ -526,7 +505,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     name="city"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>City *</FormLabel>
+                        <FormLabel>City</FormLabel>
                         <FormControl>
                           <Input 
                             {...field}
@@ -544,7 +523,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     name="state"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>State *</FormLabel>
+                        <FormLabel>State</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-state">
@@ -569,7 +548,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     name="zipCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>ZIP Code *</FormLabel>
+                        <FormLabel>ZIP Code</FormLabel>
                         <FormControl>
                           <Input 
                             {...field}
@@ -658,7 +637,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     name="husband.koreanName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Korean Name *</FormLabel>
+                        <FormLabel>Korean Name</FormLabel>
                         <FormControl>
                           <Input 
                             {...field}
@@ -676,7 +655,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     name="husband.englishName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>English Name *</FormLabel>
+                        <FormLabel>English Name</FormLabel>
                         <FormControl>
                           <Input 
                             {...field}
@@ -800,7 +779,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     name="wife.koreanName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Korean Name *</FormLabel>
+                        <FormLabel>Korean Name</FormLabel>
                         <FormControl>
                           <Input 
                             {...field}
@@ -818,7 +797,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     name="wife.englishName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>English Name *</FormLabel>
+                        <FormLabel>English Name</FormLabel>
                         <FormControl>
                           <Input 
                             {...field}
@@ -974,7 +953,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                           name={`children.${index}.koreanName`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Korean Name *</FormLabel>
+                              <FormLabel>Korean Name</FormLabel>
                               <FormControl>
                                 <Input 
                                   {...field}
@@ -992,7 +971,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                           name={`children.${index}.englishName`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>English Name *</FormLabel>
+                              <FormLabel>English Name</FormLabel>
                               <FormControl>
                                 <Input 
                                   {...field}
