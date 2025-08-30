@@ -195,7 +195,7 @@ export default function DashboardPage() {
             
             <div className={styles.dateGrid}>
               <div>
-                <Label htmlFor="dateFrom">Registration Date (From)</Label>
+                <Label htmlFor="dateFrom">Visited Date (From)</Label>
                 <SundayDatePicker
                   value={filters.dateFrom}
                   onChange={(value) => setFilters(prev => ({ ...prev, dateFrom: value }))}
@@ -204,7 +204,7 @@ export default function DashboardPage() {
               </div>
               
               <div>
-                <Label htmlFor="dateTo">Registration Date (To)</Label>
+                <Label htmlFor="dateTo">Visited Date (To)</Label>
                 <SundayDatePicker
                   value={filters.dateTo}
                   onChange={(value) => setFilters(prev => ({ ...prev, dateTo: value }))}
