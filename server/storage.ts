@@ -35,6 +35,20 @@ export interface IStorage {
   deleteFamily(id: string): Promise<void>;
 }
 
+// Helper function to clean date fields - convert empty strings to null
+function cleanDateFields(data: any): any {
+  const cleaned = { ...data };
+  
+  // Handle family date fields
+  if (cleaned.visitedDate === '') cleaned.visitedDate = null;
+  if (cleaned.registrationDate === '') cleaned.registrationDate = null;
+  
+  // Handle member date fields
+  if (cleaned.birthDate === '') cleaned.birthDate = null;
+  
+  return cleaned;
+}
+
 export class DatabaseStorage implements IStorage {
   // Staff operations
   async getStaff(id: string): Promise<Staff | undefined> {
@@ -128,13 +142,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createFamily(familyData: InsertFamily, members: Omit<InsertFamilyMember, 'familyId'>[]): Promise<FamilyWithMembers> {
-    const [family] = await db.insert(families).values(familyData).returning();
+    const cleanedFamilyData = cleanDateFields(familyData);
+    const [family] = await db.insert(families).values(cleanedFamilyData).returning();
     
-    const familyMembersData = members.map(member => ({
-      ...member,
-      familyId: family.id,
-      courses: (member.courses as string[]) || []
-    }));
+    const familyMembersData = members.map(member => {
+      const cleanedMember = cleanDateFields(member);
+      return {
+        ...cleanedMember,
+        familyId: family.id,
+        courses: (cleanedMember.courses as string[]) || []
+      };
+    });
     
     const createdMembers = await db.insert(familyMembers)
       .values(familyMembersData)
@@ -144,8 +162,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateFamily(id: string, familyData: Partial<InsertFamily>, members: Omit<InsertFamilyMember, 'familyId'>[]): Promise<FamilyWithMembers> {
+    const cleanedFamilyData = cleanDateFields(familyData);
     const [family] = await db.update(families)
-      .set({ ...familyData, updatedAt: new Date() })
+      .set({ ...cleanedFamilyData, updatedAt: new Date() })
       .where(eq(families.id, id))
       .returning();
     
@@ -153,11 +172,14 @@ export class DatabaseStorage implements IStorage {
     await db.delete(familyMembers).where(eq(familyMembers.familyId, id));
     
     // Insert new members
-    const familyMembersData = members.map(member => ({
-      ...member,
-      familyId: id,
-      courses: (member.courses as string[]) || []
-    }));
+    const familyMembersData = members.map(member => {
+      const cleanedMember = cleanDateFields(member);
+      return {
+        ...cleanedMember,
+        familyId: id,
+        courses: (cleanedMember.courses as string[]) || []
+      };
+    });
     
     const updatedMembers = await db.insert(familyMembers)
       .values(familyMembersData)
