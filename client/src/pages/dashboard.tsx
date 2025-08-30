@@ -26,7 +26,7 @@ export default function DashboardPage() {
     name: '',
     lifeGroup: '',
     supportTeamMember: '',
-    memberStatus: '',
+    memberStatus: 'all',
     dateFrom: '',
     dateTo: ''
   });
@@ -67,7 +67,7 @@ export default function DashboardPage() {
       name: '',
       lifeGroup: '',
       supportTeamMember: '',
-      memberStatus: '',
+      memberStatus: 'all',
       dateFrom: '',
       dateTo: ''
     });
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
                     {MEMBER_STATUS_OPTIONS.map(option => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
