@@ -13,7 +13,7 @@ import { SundayDatePicker } from '@/components/sunday-date-picker';
 import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
-import { Users, Search, Plus, Eye, Edit, Trash2, LogOut } from 'lucide-react';
+import { Users, Search, Plus, Edit, Trash2, LogOut } from 'lucide-react';
 import styles from './dashboard.module.css';
 
 export default function DashboardPage() {
@@ -34,7 +34,21 @@ export default function DashboardPage() {
   const [hasSearched, setHasSearched] = useState(false);
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
-    queryKey: ['/api/families', filters],
+    queryKey: ['families', filters],
+    queryFn: async () => {
+      const queryParams = new URLSearchParams();
+      
+      if (filters.name) queryParams.append('name', filters.name);
+      if (filters.lifeGroup) queryParams.append('lifeGroup', filters.lifeGroup);
+      if (filters.supportTeamMember) queryParams.append('supportTeamMember', filters.supportTeamMember);
+      if (filters.memberStatus && filters.memberStatus !== 'all') queryParams.append('memberStatus', filters.memberStatus);
+      if (filters.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
+      if (filters.dateTo) queryParams.append('dateTo', filters.dateTo);
+      
+      const url = `/api/families?${queryParams.toString()}`;
+      const response = await apiRequest('GET', url);
+      return response.json();
+    },
     enabled: hasSearched,
   });
 
@@ -43,7 +57,7 @@ export default function DashboardPage() {
       await apiRequest('DELETE', `/api/families/${familyId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/families'] });
+      queryClient.invalidateQueries({ queryKey: ['families'] });
       toast({
         title: "Success",
         description: "Family deleted successfully.",

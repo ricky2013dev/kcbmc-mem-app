@@ -140,7 +140,11 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
   });
 
   const { data: family, isLoading } = useQuery<FamilyWithMembers>({
-    queryKey: ['/api/families', familyId],
+    queryKey: ['families', familyId],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/families/${familyId}`);
+      return response.json();
+    },
     enabled: mode === 'edit' && !!familyId,
   });
 
@@ -198,7 +202,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/families'] });
+      queryClient.invalidateQueries({ queryKey: ['families'] });
       toast({
         title: "Success",
         description: mode === 'create' ? "Family created successfully." : "Family updated successfully.",
