@@ -11,35 +11,31 @@ import {
   type FamilyWithMembers
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, like, gte, lte, desc } from "drizzle-orm";
+import { eq, and, or, like, gte, lte, desc, isNotNull } from "drizzle-orm";
 
-// Generate a human-readable family code
-function generateFamilyCode(): string {
-  const year = new Date().getFullYear().toString().slice(-2); // Last 2 digits of year
-  const month = (new Date().getMonth() + 1).toString().padStart(2, '0'); // Month 01-12
-  const randomNum = Math.floor(Math.random() * 900) + 100; // Random 3-digit number 100-999
-  return `FM${year}${month}${randomNum}`;
-}
-
-// Check if family code already exists and generate a unique one
+// Generate the next sequential family code
 async function generateUniqueFamilyCode(): Promise<string> {
-  let attempts = 0;
-  const maxAttempts = 10;
+  // Get the highest existing family code number
+  const existingFamilies = await db.select({ familyCode: families.familyCode })
+    .from(families)
+    .where(isNotNull(families.familyCode));
   
-  while (attempts < maxAttempts) {
-    const code = generateFamilyCode();
-    const [existing] = await db.select().from(families).where(eq(families.familyCode, code));
-    
-    if (!existing) {
-      return code;
+  let maxNumber = 0;
+  
+  // Extract numbers from existing family codes
+  for (const family of existingFamilies) {
+    if (family.familyCode && family.familyCode.startsWith('FM')) {
+      const numberPart = family.familyCode.substring(2);
+      const num = parseInt(numberPart, 10);
+      if (!isNaN(num) && num > maxNumber) {
+        maxNumber = num;
+      }
     }
-    
-    attempts++;
   }
   
-  // Fallback with timestamp if we can't generate unique code
-  const timestamp = Date.now().toString().slice(-6);
-  return `FM${timestamp}`;
+  // Generate next sequential number
+  const nextNumber = maxNumber + 1;
+  return `FM${nextNumber.toString().padStart(4, '0')}`;
 }
 
 export interface IStorage {
