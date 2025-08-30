@@ -14,7 +14,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, Trash2, LogOut } from 'lucide-react';
+import { Users, Search, Plus, Edit, Trash2, LogOut, ChevronDown, ChevronUp } from 'lucide-react';
 import styles from './dashboard.module.css';
 
 // Helper function to get default date range (recent 3 months, Sunday-only)
@@ -52,6 +52,7 @@ export default function DashboardPage() {
   });
 
   const [hasSearched, setHasSearched] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters],
@@ -133,7 +134,7 @@ export default function DashboardPage() {
             <div className={styles.navIcon}>
               <Users className="w-5 h-5 text-primary-foreground" />
             </div>
-            <h1 className={styles.navTitle}>Family Management</h1>
+            <h1 className={styles.navTitle}>Member</h1>
           </div>
           
           <div className={styles.navRight}>
@@ -148,7 +149,7 @@ export default function DashboardPage() {
               data-testid="button-logout"
             >
               <LogOut className="w-4 h-4 mr-1" />
-              Logout
+              <span>Logout</span>
             </Button>
           </div>
         </div>
@@ -157,11 +158,33 @@ export default function DashboardPage() {
       {/* Main Content */}
       <div className={styles.main}>
         {/* Search Section */}
-        <Card className={styles.searchCard}>
-          <CardHeader>
-            <h2 className={styles.searchTitle}>Search Families</h2>
+        <Card className={`${styles.searchCard} ${!showFilters ? styles.searchCardCompact : ''}`}>
+          <CardHeader className={!showFilters ? styles.searchHeaderCompact : ''}>
+            <div className={styles.searchHeader}>
+              <h2 className={styles.searchTitle}>Search Families</h2>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowFilters(!showFilters)}
+                className={styles.toggleButton}
+                data-testid="button-toggle-filters"
+              >
+                {showFilters ? (
+                  <>
+                    <ChevronUp className="w-4 h-4 mr-2" />
+                    Hide Filters
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4 mr-2" />
+                    Show Filters
+                  </>
+                )}
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent className={styles.searchContent}>
+          {showFilters && (
+            <CardContent className={styles.searchContent}>
             <div className={styles.searchGrid}>
               <div>
                 <Label htmlFor="name">Name</Label>
@@ -256,6 +279,7 @@ export default function DashboardPage() {
               )}
             </div>
           </CardContent>
+          )}
         </Card>
 
         {/* Results Section */}
