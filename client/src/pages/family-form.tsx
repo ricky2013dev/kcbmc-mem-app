@@ -331,12 +331,24 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
 
   // Handle getting upload parameters for object storage
   const handleGetUploadParameters = async () => {
-    const response = await apiRequest('POST', '/api/objects/upload');
-    const result = await response.json();
-    return {
-      method: 'PUT' as const,
-      url: result.uploadURL,
-    };
+    try {
+      console.log('Getting upload parameters...');
+      const response = await apiRequest('POST', '/api/objects/upload');
+      const result = await response.json();
+      console.log('Upload URL received:', result.uploadURL);
+      return {
+        method: 'PUT' as const,
+        url: result.uploadURL,
+      };
+    } catch (error) {
+      console.error('Error getting upload parameters:', error);
+      toast({
+        title: "Upload Error",
+        description: "Failed to get upload URL. Please make sure you're logged in.",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
   // Handle upload completion

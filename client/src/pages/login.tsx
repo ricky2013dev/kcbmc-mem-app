@@ -1,14 +1,20 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
-import { Users } from 'lucide-react';
-import styles from './login.module.css';
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Users } from "lucide-react";
+import styles from "./login.module.css";
 
 interface StaffMember {
   id: string;
@@ -18,18 +24,18 @@ interface StaffMember {
 }
 
 export default function LoginPage() {
-  const [selectedStaff, setSelectedStaff] = useState('');
-  const [pin, setPin] = useState('');
+  const [selectedStaff, setSelectedStaff] = useState("");
+  const [pin, setPin] = useState("");
   const { login, isLoginPending } = useAuth();
   const { toast } = useToast();
 
   const { data: staff = [] } = useQuery<StaffMember[]>({
-    queryKey: ['/api/staff'],
+    queryKey: ["/api/staff"],
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedStaff || !pin) {
       toast({
         title: "Missing Information",
@@ -72,14 +78,13 @@ export default function LoginPage() {
               <div className={styles.icon}>
                 <Users className="w-8 h-8 text-primary-foreground" />
               </div>
-              <h1 className={styles.title}>Family Management</h1>
-              <p className={styles.subtitle}>Staff Login</p>
+              <h1 className={styles.title}>새가족</h1>
             </div>
 
             <form onSubmit={handleSubmit} className={styles.form}>
               <div className={styles.field}>
                 <Label htmlFor="staff-select" className={styles.label}>
-                  Select Staff Member
+                  팀원
                 </Label>
                 <Select value={selectedStaff} onValueChange={setSelectedStaff}>
                   <SelectTrigger data-testid="select-staff">
@@ -97,22 +102,26 @@ export default function LoginPage() {
 
               <div className={styles.field}>
                 <Label htmlFor="pin" className={styles.label}>
-                  PIN Number
+                  PIN
                 </Label>
                 <Input
                   id="pin"
                   type="password"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  maxlength="4"
+                  autocomplete="one-time-code"
                   maxLength={4}
                   value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
                   placeholder="••••"
                   className={styles.pinInput}
                   data-testid="input-pin"
                 />
               </div>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className={styles.submitButton}
                 disabled={isLoginPending}
                 data-testid="button-login"
