@@ -107,10 +107,7 @@ export default function LoginPage() {
                 <Input
                   id="pin"
                   type="password"
-                  inputmode="numeric"
                   pattern="[0-9]*"
-                  maxlength="4"
-                  autocomplete="one-time-code"
                   maxLength={4}
                   value={pin}
                   onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}

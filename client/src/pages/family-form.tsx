@@ -1,103 +1,140 @@
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
-import { z } from 'zod';
-import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { SundayDatePicker } from '@/components/sunday-date-picker';
-import { apiRequest } from '@/lib/queryClient';
-import { FamilyWithMembers } from '@shared/schema';
-import { formatPhoneNumber } from '@/utils/phone-format';
-import { getGradeGroup, generateFamilyName, generateFullAddress } from '@/utils/grade-utils';
-import { 
-  FamilyFormData, 
-  MEMBER_STATUS_OPTIONS, 
-  STATE_OPTIONS, 
-  COURSE_OPTIONS, 
-  GRADE_LEVEL_OPTIONS 
-} from '@/types/family';
-import { ArrowLeft, Save, Plus, Trash2, Home, User, Users, Upload, X } from 'lucide-react';
-import styles from './family-form.module.css';
-import { ObjectUploader } from '@/components/ObjectUploader';
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { z } from "zod";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { SundayDatePicker } from "@/components/sunday-date-picker";
+import { apiRequest } from "@/lib/queryClient";
+import { FamilyWithMembers } from "@shared/schema";
+import { formatPhoneNumber } from "@/utils/phone-format";
+import {
+  getGradeGroup,
+  generateFamilyName,
+  generateFullAddress,
+} from "@/utils/grade-utils";
+import {
+  FamilyFormData,
+  MEMBER_STATUS_OPTIONS,
+  STATE_OPTIONS,
+  COURSE_OPTIONS,
+  GRADE_LEVEL_OPTIONS,
+} from "@/types/family";
+import {
+  ArrowLeft,
+  Save,
+  Plus,
+  Trash2,
+  Home,
+  User,
+  Users,
+  Upload,
+  X,
+} from "lucide-react";
+import styles from "./family-form.module.css";
+import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
 
 interface FamilyFormPageProps {
-  mode: 'create' | 'edit';
+  mode: "create" | "edit";
   familyId?: string;
 }
 
-const familyFormSchema = z.object({
-  visitedDate: z.string().min(1, 'Visited date is required'),
-  registrationDate: z.string().optional(),
-  memberStatus: z.enum(['visit', 'member', 'pending']),
-  phoneNumber: z.string().optional(),
-  email: z.string().email().optional().or(z.literal('')),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zipCode: z.string().optional(),
-  familyNotes: z.string().optional(),
-  familyPicture: z.string().optional(),
-  lifeGroup: z.string().optional(),
-  supportTeamMember: z.string().optional(),
-  husband: z.object({
-    koreanName: z.string().optional(),
-    englishName: z.string().optional(),
-    birthDate: z.string().optional(),
+const familyFormSchema = z
+  .object({
+    visitedDate: z.string().min(1, "Visited date is required"),
+    registrationDate: z.string().optional(),
+    memberStatus: z.enum(["visit", "member", "pending"]),
     phoneNumber: z.string().optional(),
-    email: z.string().email().optional().or(z.literal('')),
-    courses: z.array(z.string()),
-  }),
-  wife: z.object({
-    koreanName: z.string().optional(),
-    englishName: z.string().optional(),
-    birthDate: z.string().optional(),
-    phoneNumber: z.string().optional(),
-    email: z.string().email().optional().or(z.literal('')),
-    courses: z.array(z.string()),
-  }),
-  children: z.array(z.object({
-    koreanName: z.string().optional(),
-    englishName: z.string().optional(),
-    birthDate: z.string().optional(),
-    gradeLevel: z.string().optional(),
-    school: z.string().optional(),
-  })),
-}).refine(
-  (data) => {
-    // Family name is effectively required through the auto-generation logic
-    // At least one spouse's Korean name is needed to generate family name
-    const hasHusbandName = data.husband.koreanName && data.husband.koreanName.trim().length > 0;
-    const hasWifeName = data.wife.koreanName && data.wife.koreanName.trim().length > 0;
-    return hasHusbandName || hasWifeName;
-  },
-  {
-    message: "Family name cannot be generated without at least one spouse's Korean name",
-    path: ["husband", "koreanName"],
-  }
-);
+    email: z.string().email().optional().or(z.literal("")),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    zipCode: z.string().optional(),
+    familyNotes: z.string().optional(),
+    familyPicture: z.string().optional(),
+    lifeGroup: z.string().optional(),
+    supportTeamMember: z.string().optional(),
+    husband: z.object({
+      koreanName: z.string().optional(),
+      englishName: z.string().optional(),
+      birthDate: z.string().optional(),
+      phoneNumber: z.string().optional(),
+      email: z.string().email().optional().or(z.literal("")),
+      courses: z.array(z.string()),
+    }),
+    wife: z.object({
+      koreanName: z.string().optional(),
+      englishName: z.string().optional(),
+      birthDate: z.string().optional(),
+      phoneNumber: z.string().optional(),
+      email: z.string().email().optional().or(z.literal("")),
+      courses: z.array(z.string()),
+    }),
+    children: z.array(
+      z.object({
+        koreanName: z.string().optional(),
+        englishName: z.string().optional(),
+        birthDate: z.string().optional(),
+        gradeLevel: z.string().optional(),
+        school: z.string().optional(),
+      }),
+    ),
+  })
+  .refine(
+    (data) => {
+      // Family name is effectively required through the auto-generation logic
+      // At least one spouse's Korean name is needed to generate family name
+      const hasHusbandName =
+        data.husband.koreanName && data.husband.koreanName.trim().length > 0;
+      const hasWifeName =
+        data.wife.koreanName && data.wife.koreanName.trim().length > 0;
+      return hasHusbandName || hasWifeName;
+    },
+    {
+      message:
+        "Family name cannot be generated without at least one spouse's Korean name",
+      path: ["husband", "koreanName"],
+    },
+  );
 
 type FormData = z.infer<typeof familyFormSchema>;
 
-export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) {
+export default function FamilyFormPage({
+  mode,
+  familyId,
+}: FamilyFormPageProps) {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [autoGeneratedValues, setAutoGeneratedValues] = useState({
-    familyName: '',
-    fullAddress: '',
+    familyName: "",
+    fullAddress: "",
     gradeGroups: {} as Record<number, string>,
   });
 
@@ -106,52 +143,54 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
   const form = useForm<FormData>({
     resolver: zodResolver(familyFormSchema),
     defaultValues: {
-      visitedDate: '',
-      registrationDate: '',
-      memberStatus: 'visit',
-      phoneNumber: '',
-      email: '',
-      address: '',
-      city: '',
-      state: 'TX',
-      zipCode: '',
-      familyNotes: '',
-      familyPicture: '',
-      lifeGroup: '',
-      supportTeamMember: '',
+      visitedDate: "",
+      registrationDate: "",
+      memberStatus: "visit",
+      phoneNumber: "",
+      email: "",
+      address: "",
+      city: "",
+      state: "TX",
+      zipCode: "",
+      familyNotes: "",
+      familyPicture: "",
+      lifeGroup: "",
+      supportTeamMember: "",
       husband: {
-        koreanName: '',
-        englishName: '',
-        birthDate: '',
-        phoneNumber: '',
-        email: '',
+        koreanName: "",
+        englishName: "",
+        birthDate: "",
+        phoneNumber: "",
+        email: "",
         courses: [],
       },
       wife: {
-        koreanName: '',
-        englishName: '',
-        birthDate: '',
-        phoneNumber: '',
-        email: '',
+        koreanName: "",
+        englishName: "",
+        birthDate: "",
+        phoneNumber: "",
+        email: "",
         courses: [],
       },
-      children: [{
-        koreanName: '',
-        englishName: '',
-        birthDate: '',
-        gradeLevel: '',
-        school: '',
-      }],
+      children: [
+        {
+          koreanName: "",
+          englishName: "",
+          birthDate: "",
+          gradeLevel: "",
+          school: "",
+        },
+      ],
     },
   });
 
   const { data: family, isLoading } = useQuery<FamilyWithMembers>({
-    queryKey: ['families', familyId],
+    queryKey: ["families", familyId],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/families/${familyId}`);
+      const response = await apiRequest("GET", `/api/families/${familyId}`);
       return response.json();
     },
-    enabled: mode === 'edit' && !!familyId,
+    enabled: mode === "edit" && !!familyId,
   });
 
   const saveMutation = useMutation({
@@ -177,24 +216,26 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
       const members = [
         {
           ...data.husband,
-          relationship: 'husband' as const,
+          relationship: "husband" as const,
           email: data.husband.email || undefined,
           phoneNumber: data.husband.phoneNumber || undefined,
           birthDate: data.husband.birthDate || undefined,
         },
         {
           ...data.wife,
-          relationship: 'wife' as const,
+          relationship: "wife" as const,
           email: data.wife.email || undefined,
           phoneNumber: data.wife.phoneNumber || undefined,
           birthDate: data.wife.birthDate || undefined,
         },
-        ...data.children.map(child => ({
+        ...data.children.map((child) => ({
           ...child,
-          relationship: 'child' as const,
+          relationship: "child" as const,
           birthDate: child.birthDate || undefined,
           gradeLevel: child.gradeLevel || undefined,
-          gradeGroup: autoGeneratedValues.gradeGroups[data.children.indexOf(child)] || undefined,
+          gradeGroup:
+            autoGeneratedValues.gradeGroups[data.children.indexOf(child)] ||
+            undefined,
           school: child.school || undefined,
           courses: [],
           phoneNumber: undefined,
@@ -202,19 +243,28 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
         })),
       ];
 
-      if (mode === 'create') {
-        return await apiRequest('POST', '/api/families', { ...familyData, members });
+      if (mode === "create") {
+        return await apiRequest("POST", "/api/families", {
+          ...familyData,
+          members,
+        });
       } else {
-        return await apiRequest('PUT', `/api/families/${familyId}`, { ...familyData, members });
+        return await apiRequest("PUT", `/api/families/${familyId}`, {
+          ...familyData,
+          members,
+        });
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['families'] });
+      queryClient.invalidateQueries({ queryKey: ["families"] });
       toast({
         title: "Success",
-        description: mode === 'create' ? "Family created successfully." : "Family updated successfully.",
+        description:
+          mode === "create"
+            ? "Family created successfully."
+            : "Family updated successfully.",
       });
-      setLocation('/');
+      setLocation("/");
     },
     onError: (error: any) => {
       toast({
@@ -227,48 +277,55 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
 
   // Load family data for edit mode
   useEffect(() => {
-    if (mode === 'edit' && family) {
-      const husband = family.members.find(m => m.relationship === 'husband');
-      const wife = family.members.find(m => m.relationship === 'wife');
-      const children = family.members.filter(m => m.relationship === 'child');
+    if (mode === "edit" && family) {
+      const husband = family.members.find((m) => m.relationship === "husband");
+      const wife = family.members.find((m) => m.relationship === "wife");
+      const children = family.members.filter((m) => m.relationship === "child");
 
       form.reset({
         visitedDate: family.visitedDate,
-        registrationDate: family.registrationDate || '',
+        registrationDate: family.registrationDate || "",
         memberStatus: family.memberStatus as any,
         phoneNumber: family.phoneNumber,
-        email: family.email || '',
+        email: family.email || "",
         address: family.address,
         city: family.city,
         state: family.state,
         zipCode: family.zipCode,
-        familyNotes: family.familyNotes || '',
-        familyPicture: family.familyPicture || '',
-        lifeGroup: family.lifeGroup || '',
-        supportTeamMember: family.supportTeamMember || '',
-        husband: husband ? {
-          koreanName: husband.koreanName,
-          englishName: husband.englishName,
-          birthDate: husband.birthDate || '',
-          phoneNumber: husband.phoneNumber || '',
-          email: husband.email || '',
-          courses: husband.courses || [],
-        } : form.getValues('husband'),
-        wife: wife ? {
-          koreanName: wife.koreanName,
-          englishName: wife.englishName,
-          birthDate: wife.birthDate || '',
-          phoneNumber: wife.phoneNumber || '',
-          email: wife.email || '',
-          courses: wife.courses || [],
-        } : form.getValues('wife'),
-        children: children.length > 0 ? children.map(child => ({
-          koreanName: child.koreanName,
-          englishName: child.englishName,
-          birthDate: child.birthDate || '',
-          gradeLevel: child.gradeLevel || '',
-          school: child.school || '',
-        })) : form.getValues('children'),
+        familyNotes: family.familyNotes || "",
+        familyPicture: family.familyPicture || "",
+        lifeGroup: family.lifeGroup || "",
+        supportTeamMember: family.supportTeamMember || "",
+        husband: husband
+          ? {
+              koreanName: husband.koreanName,
+              englishName: husband.englishName,
+              birthDate: husband.birthDate || "",
+              phoneNumber: husband.phoneNumber || "",
+              email: husband.email || "",
+              courses: husband.courses || [],
+            }
+          : form.getValues("husband"),
+        wife: wife
+          ? {
+              koreanName: wife.koreanName,
+              englishName: wife.englishName,
+              birthDate: wife.birthDate || "",
+              phoneNumber: wife.phoneNumber || "",
+              email: wife.email || "",
+              courses: wife.courses || [],
+            }
+          : form.getValues("wife"),
+        children:
+          children.length > 0
+            ? children.map((child) => ({
+                koreanName: child.koreanName,
+                englishName: child.englishName,
+                birthDate: child.birthDate || "",
+                gradeLevel: child.gradeLevel || "",
+                school: child.school || "",
+              }))
+            : form.getValues("children"),
       });
 
       // Set picture preview if there's an existing family picture
@@ -282,15 +339,15 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
   useEffect(() => {
     const subscription = form.watch((value) => {
       const familyName = generateFamilyName(
-        value.husband?.koreanName || '',
-        value.wife?.koreanName || ''
+        value.husband?.koreanName || "",
+        value.wife?.koreanName || "",
       );
-      
+
       const fullAddress = generateFullAddress(
-        value.address || '',
-        value.city || '',
-        value.state || '',
-        value.zipCode || ''
+        value.address || "",
+        value.city || "",
+        value.state || "",
+        value.zipCode || "",
       );
 
       const gradeGroups: Record<number, string> = {};
@@ -307,20 +364,26 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
   }, [form]);
 
   const addChild = () => {
-    const currentChildren = form.getValues('children');
-    form.setValue('children', [...currentChildren, {
-      koreanName: '',
-      englishName: '',
-      birthDate: '',
-      gradeLevel: '',
-      school: '',
-    }]);
+    const currentChildren = form.getValues("children");
+    form.setValue("children", [
+      ...currentChildren,
+      {
+        koreanName: "",
+        englishName: "",
+        birthDate: "",
+        gradeLevel: "",
+        school: "",
+      },
+    ]);
   };
 
   const removeChild = (index: number) => {
-    const currentChildren = form.getValues('children');
+    const currentChildren = form.getValues("children");
     if (currentChildren.length > 1) {
-      form.setValue('children', currentChildren.filter((_, i) => i !== index));
+      form.setValue(
+        "children",
+        currentChildren.filter((_, i) => i !== index),
+      );
     }
   };
 
@@ -332,19 +395,20 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
   // Handle getting upload parameters for object storage
   const handleGetUploadParameters = async () => {
     try {
-      console.log('Getting upload parameters...');
-      const response = await apiRequest('POST', '/api/objects/upload');
+      console.log("Getting upload parameters...");
+      const response = await apiRequest("POST", "/api/objects/upload");
       const result = await response.json();
-      console.log('Upload URL received:', result.uploadURL);
+      console.log("Upload URL received:", result.uploadURL);
       return {
-        method: 'PUT' as const,
+        method: "PUT" as const,
         url: result.uploadURL,
       };
     } catch (error) {
-      console.error('Error getting upload parameters:', error);
+      console.error("Error getting upload parameters:", error);
       toast({
         title: "Upload Error",
-        description: "Failed to get upload URL. Please make sure you're logged in.",
+        description:
+          "Failed to get upload URL. Please make sure you're logged in.",
         variant: "destructive",
       });
       throw error;
@@ -352,21 +416,23 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
   };
 
   // Handle upload completion
-  const handleUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+  const handleUploadComplete = async (
+    result: UploadResult<Record<string, unknown>, Record<string, unknown>>,
+  ) => {
     try {
       if (result.successful && result.successful.length > 0) {
         const uploadedFile = result.successful[0];
         const imageURL = uploadedFile.uploadURL;
-        
+
         // Set ACL policy for the uploaded image
-        const response = await apiRequest('PUT', '/api/family-images', {
+        const response = await apiRequest("PUT", "/api/family-images", {
           imageURL: imageURL,
         });
-        
+
         const data = await response.json();
-        
+
         // Update form with object storage path
-        form.setValue('familyPicture', data.objectPath);
+        form.setValue("familyPicture", data.objectPath);
         setPicturePreview(data.objectPath);
 
         toast({
@@ -384,7 +450,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
   };
 
   const handleRemoveImage = () => {
-    form.setValue('familyPicture', '');
+    form.setValue("familyPicture", "");
     setPicturePreview(null);
   };
 
@@ -392,7 +458,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
     saveMutation.mutate(data);
   };
 
-  if (mode === 'edit' && isLoading) {
+  if (mode === "edit" && isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -409,20 +475,20 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
       <nav className={styles.nav}>
         <div className={styles.navContent}>
           <div className={styles.navLeft}>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
-              onClick={() => setLocation('/')}
+              onClick={() => setLocation("/")}
               className={styles.backButton}
               data-testid="button-back"
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <h1 className={styles.navTitle}>
-              {mode === 'create' ? 'Add New Family' : 'Edit Family'}
+              {mode === "create" ? "Add New Family" : "Edit Family"}
             </h1>
           </div>
-          
+
           <div className={styles.navRight}>
             <span className={styles.userName}>
               {user?.fullName} ({user?.group})
@@ -446,39 +512,40 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
               <CardContent className={styles.sectionContent}>
                 <div className={styles.grid}>
                   <div className={styles.fullWidth}>
-                    <Label>Family Name</Label>
-                    <Input 
+                    <Input
                       value={autoGeneratedValues.familyName}
-                      placeholder="Auto-generated from husband and wife names"
+                      placeholder=""
                       readOnly
                       className="bg-muted text-muted-foreground"
                       data-testid="input-family-name"
                     />
-                    <p className={styles.fieldHint}>This field is automatically generated</p>
+                    <p className={styles.fieldHint}></p>
                   </div>
 
-                  {mode === 'edit' && family?.familyCode && (
+                  {mode === "edit" && family?.familyCode && (
                     <div className={styles.fullWidth}>
                       <Label>Family ID</Label>
-                      <Input 
+                      <Input
                         value={family.familyCode}
                         readOnly
                         className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 text-blue-800 font-mono font-semibold"
                         data-testid="input-family-code"
                       />
-                      <p className={styles.fieldHint}>Unique family identifier for easy reference</p>
+                      <p className={styles.fieldHint}>
+                        Unique family identifier for easy reference
+                      </p>
                     </div>
                   )}
-                  
+
                   <FormField
                     control={form.control}
                     name="visitedDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Visited Date</FormLabel>
+                        <FormLabel>방문일</FormLabel>
                         <FormControl>
-                          <SundayDatePicker 
-                            {...field} 
+                          <SundayDatePicker
+                            {...field}
                             data-testid="input-visited-date"
                           />
                         </FormControl>
@@ -486,7 +553,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="registrationDate"
@@ -494,8 +561,8 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>Registration Date</FormLabel>
                         <FormControl>
-                          <SundayDatePicker 
-                            {...field} 
+                          <SundayDatePicker
+                            {...field}
                             data-testid="input-registration-date"
                           />
                         </FormControl>
@@ -503,22 +570,28 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="memberStatus"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Member Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <FormLabel>방문/등록</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger data-testid="select-member-status">
                               <SelectValue placeholder="Select status..." />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {MEMBER_STATUS_OPTIONS.map(option => (
-                              <SelectItem key={option.value} value={option.value}>
+                            {MEMBER_STATUS_OPTIONS.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
                                 {option.label}
                               </SelectItem>
                             ))}
@@ -528,18 +601,20 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="phoneNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
+                        <FormLabel>Phone</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
                             placeholder="(555) 123-4567"
-                            onChange={(e) => handlePhoneFormat(e.target.value, 'phoneNumber')}
+                            onChange={(e) =>
+                              handlePhoneFormat(e.target.value, "phoneNumber")
+                            }
                             data-testid="input-phone-number"
                           />
                         </FormControl>
@@ -547,7 +622,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className={styles.fullWidth}>
                     <FormField
                       control={form.control}
@@ -556,7 +631,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input 
+                            <Input
                               {...field}
                               type="email"
                               placeholder="family@example.com"
@@ -568,7 +643,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       )}
                     />
                   </div>
-                  
+
                   <div className={styles.fullWidth}>
                     <FormField
                       control={form.control}
@@ -577,7 +652,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                         <FormItem>
                           <FormLabel>Address</FormLabel>
                           <FormControl>
-                            <Input 
+                            <Input
                               {...field}
                               placeholder="123 Main Street"
                               data-testid="input-address"
@@ -588,7 +663,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       )}
                     />
                   </div>
-                  
+
                   <FormField
                     control={form.control}
                     name="city"
@@ -596,9 +671,9 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>City</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
-                            placeholder="Los Angeles"
+                            placeholder="Frisco"
                             data-testid="input-city"
                           />
                         </FormControl>
@@ -606,22 +681,28 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="state"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>State</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger data-testid="select-state">
                               <SelectValue placeholder="Select state..." />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {STATE_OPTIONS.map(option => (
-                              <SelectItem key={option.value} value={option.value}>
+                            {STATE_OPTIONS.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
                                 {option.label}
                               </SelectItem>
                             ))}
@@ -631,7 +712,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="zipCode"
@@ -639,7 +720,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>ZIP Code</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
                             placeholder="90210"
                             data-testid="input-zip-code"
@@ -649,7 +730,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="lifeGroup"
@@ -657,7 +738,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>Life Group</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
                             placeholder="Life group leader name"
                             data-testid="input-life-group"
@@ -667,7 +748,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="supportTeamMember"
@@ -675,7 +756,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>Support Team Member</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
                             placeholder="Support team member name"
                             data-testid="input-support-team"
@@ -685,7 +766,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className={styles.fullWidth}>
                     <FormField
                       control={form.control}
@@ -694,7 +775,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                         <FormItem>
                           <FormLabel>Family Notes</FormLabel>
                           <FormControl>
-                            <Textarea 
+                            <Textarea
                               {...field}
                               rows={3}
                               placeholder="Additional notes about the family..."
@@ -707,7 +788,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       )}
                     />
                   </div>
-                  
+
                   <div className={styles.fullWidth}>
                     <FormField
                       control={form.control}
@@ -719,9 +800,9 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                             <div className="space-y-4">
                               {picturePreview ? (
                                 <div className="relative">
-                                  <img 
-                                    src={picturePreview} 
-                                    alt="Family preview" 
+                                  <img
+                                    src={picturePreview}
+                                    alt="Family preview"
                                     className="w-32 h-32 object-cover rounded-lg border"
                                   />
                                   <Button
@@ -745,17 +826,21 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                                   </p>
                                 </div>
                               )}
-                              
+
                               <div className="flex items-center gap-2">
                                 <ObjectUploader
                                   maxNumberOfFiles={1}
                                   maxFileSize={5 * 1024 * 1024} // 5MB
-                                  onGetUploadParameters={handleGetUploadParameters}
+                                  onGetUploadParameters={
+                                    handleGetUploadParameters
+                                  }
                                   onComplete={handleUploadComplete}
                                   buttonClassName="outline"
                                 >
                                   <Upload className="w-4 h-4 mr-2" />
-                                  {picturePreview ? 'Change Picture' : 'Upload Picture'}
+                                  {picturePreview
+                                    ? "Change Picture"
+                                    : "Upload Picture"}
                                 </ObjectUploader>
                               </div>
                             </div>
@@ -786,7 +871,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>Korean Name</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
                             placeholder="김철수"
                             data-testid="input-husband-korean-name"
@@ -796,7 +881,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="husband.englishName"
@@ -804,7 +889,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>English Name</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
                             placeholder="John Kim"
                             data-testid="input-husband-english-name"
@@ -814,7 +899,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="husband.birthDate"
@@ -822,7 +907,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>Birth Date</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
                             type="date"
                             data-testid="input-husband-birth-date"
@@ -832,7 +917,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="husband.phoneNumber"
@@ -840,10 +925,15 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
                             placeholder="(555) 123-4567"
-                            onChange={(e) => handlePhoneFormat(e.target.value, 'husband.phoneNumber')}
+                            onChange={(e) =>
+                              handlePhoneFormat(
+                                e.target.value,
+                                "husband.phoneNumber",
+                              )
+                            }
                             data-testid="input-husband-phone"
                           />
                         </FormControl>
@@ -851,7 +941,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className={styles.fullWidth}>
                     <FormField
                       control={form.control}
@@ -860,7 +950,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input 
+                            <Input
                               {...field}
                               type="email"
                               placeholder="john.kim@example.com"
@@ -872,7 +962,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       )}
                     />
                   </div>
-                  
+
                   <div className={styles.fullWidth}>
                     <FormField
                       control={form.control}
@@ -881,22 +971,35 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                         <FormItem>
                           <FormLabel>Courses</FormLabel>
                           <div className={styles.checkboxGrid}>
-                            {COURSE_OPTIONS.map(course => (
-                              <div key={course.value} className="flex items-center space-x-2">
+                            {COURSE_OPTIONS.map((course) => (
+                              <div
+                                key={course.value}
+                                className="flex items-center space-x-2"
+                              >
                                 <Checkbox
                                   id={`husband-course-${course.value}`}
                                   checked={field.value?.includes(course.value)}
                                   onCheckedChange={(checked) => {
                                     const currentCourses = field.value || [];
                                     if (checked) {
-                                      field.onChange([...currentCourses, course.value]);
+                                      field.onChange([
+                                        ...currentCourses,
+                                        course.value,
+                                      ]);
                                     } else {
-                                      field.onChange(currentCourses.filter(c => c !== course.value));
+                                      field.onChange(
+                                        currentCourses.filter(
+                                          (c) => c !== course.value,
+                                        ),
+                                      );
                                     }
                                   }}
                                   data-testid={`checkbox-husband-course-${course.value}`}
                                 />
-                                <Label htmlFor={`husband-course-${course.value}`} className="text-sm">
+                                <Label
+                                  htmlFor={`husband-course-${course.value}`}
+                                  className="text-sm"
+                                >
                                   {course.label}
                                 </Label>
                               </div>
@@ -928,7 +1031,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>Korean Name</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
                             placeholder="김영희"
                             data-testid="input-wife-korean-name"
@@ -938,7 +1041,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="wife.englishName"
@@ -946,7 +1049,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>English Name</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
                             placeholder="Jane Kim"
                             data-testid="input-wife-english-name"
@@ -956,7 +1059,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="wife.birthDate"
@@ -964,7 +1067,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>Birth Date</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
                             type="date"
                             data-testid="input-wife-birth-date"
@@ -974,7 +1077,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="wife.phoneNumber"
@@ -982,10 +1085,15 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             {...field}
                             placeholder="(555) 123-4568"
-                            onChange={(e) => handlePhoneFormat(e.target.value, 'wife.phoneNumber')}
+                            onChange={(e) =>
+                              handlePhoneFormat(
+                                e.target.value,
+                                "wife.phoneNumber",
+                              )
+                            }
                             data-testid="input-wife-phone"
                           />
                         </FormControl>
@@ -993,7 +1101,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className={styles.fullWidth}>
                     <FormField
                       control={form.control}
@@ -1002,7 +1110,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input 
+                            <Input
                               {...field}
                               type="email"
                               placeholder="jane.kim@example.com"
@@ -1014,7 +1122,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                       )}
                     />
                   </div>
-                  
+
                   <div className={styles.fullWidth}>
                     <FormField
                       control={form.control}
@@ -1023,22 +1131,35 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                         <FormItem>
                           <FormLabel>Courses</FormLabel>
                           <div className={styles.checkboxGrid}>
-                            {COURSE_OPTIONS.map(course => (
-                              <div key={course.value} className="flex items-center space-x-2">
+                            {COURSE_OPTIONS.map((course) => (
+                              <div
+                                key={course.value}
+                                className="flex items-center space-x-2"
+                              >
                                 <Checkbox
                                   id={`wife-course-${course.value}`}
                                   checked={field.value?.includes(course.value)}
                                   onCheckedChange={(checked) => {
                                     const currentCourses = field.value || [];
                                     if (checked) {
-                                      field.onChange([...currentCourses, course.value]);
+                                      field.onChange([
+                                        ...currentCourses,
+                                        course.value,
+                                      ]);
                                     } else {
-                                      field.onChange(currentCourses.filter(c => c !== course.value));
+                                      field.onChange(
+                                        currentCourses.filter(
+                                          (c) => c !== course.value,
+                                        ),
+                                      );
                                     }
                                   }}
                                   data-testid={`checkbox-wife-course-${course.value}`}
                                 />
-                                <Label htmlFor={`wife-course-${course.value}`} className="text-sm">
+                                <Label
+                                  htmlFor={`wife-course-${course.value}`}
+                                  className="text-sm"
+                                >
                                   {course.label}
                                 </Label>
                               </div>
@@ -1061,8 +1182,8 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                     <Users className="w-5 h-5 mr-2 text-primary" />
                     Children Information
                   </h2>
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     variant="outline"
                     size="sm"
                     onClick={addChild}
@@ -1075,13 +1196,13 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
               </CardHeader>
               <CardContent className={styles.sectionContent}>
                 <div className={styles.childrenList}>
-                  {form.watch('children').map((_, index) => (
+                  {form.watch("children").map((_, index) => (
                     <div key={index} className={styles.childCard}>
                       <div className={styles.childHeader}>
                         <h3 className={styles.childTitle}>Child {index + 1}</h3>
-                        {form.watch('children').length > 1 && (
-                          <Button 
-                            type="button" 
+                        {form.watch("children").length > 1 && (
+                          <Button
+                            type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => removeChild(index)}
@@ -1093,7 +1214,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                           </Button>
                         )}
                       </div>
-                      
+
                       <div className={styles.grid}>
                         <FormField
                           control={form.control}
@@ -1102,7 +1223,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                             <FormItem>
                               <FormLabel>Korean Name</FormLabel>
                               <FormControl>
-                                <Input 
+                                <Input
                                   {...field}
                                   placeholder="김민수"
                                   data-testid={`input-child-${index}-korean-name`}
@@ -1112,7 +1233,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
                           name={`children.${index}.englishName`}
@@ -1120,7 +1241,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                             <FormItem>
                               <FormLabel>English Name</FormLabel>
                               <FormControl>
-                                <Input 
+                                <Input
                                   {...field}
                                   placeholder="Michael Kim"
                                   data-testid={`input-child-${index}-english-name`}
@@ -1130,7 +1251,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
                           name={`children.${index}.birthDate`}
@@ -1138,7 +1259,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                             <FormItem>
                               <FormLabel>Birth Date</FormLabel>
                               <FormControl>
-                                <Input 
+                                <Input
                                   {...field}
                                   type="date"
                                   data-testid={`input-child-${index}-birth-date`}
@@ -1148,22 +1269,30 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
                           name={`children.${index}.gradeLevel`}
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Grade Level</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                              >
                                 <FormControl>
-                                  <SelectTrigger data-testid={`select-child-${index}-grade-level`}>
+                                  <SelectTrigger
+                                    data-testid={`select-child-${index}-grade-level`}
+                                  >
                                     <SelectValue placeholder="Select grade..." />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {GRADE_LEVEL_OPTIONS.map(option => (
-                                    <SelectItem key={option.value} value={option.value}>
+                                  {GRADE_LEVEL_OPTIONS.map((option) => (
+                                    <SelectItem
+                                      key={option.value}
+                                      value={option.value}
+                                    >
                                       {option.label}
                                     </SelectItem>
                                   ))}
@@ -1173,18 +1302,18 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                             </FormItem>
                           )}
                         />
-                        
+
                         <div>
                           <Label>Grade Group</Label>
-                          <Input 
-                            value={autoGeneratedValues.gradeGroups[index] || ''}
+                          <Input
+                            value={autoGeneratedValues.gradeGroups[index] || ""}
                             placeholder="Auto-populated from grade level"
                             readOnly
                             className="bg-muted text-muted-foreground"
                             data-testid={`input-child-${index}-grade-group`}
                           />
                         </div>
-                        
+
                         <FormField
                           control={form.control}
                           name={`children.${index}.school`}
@@ -1192,7 +1321,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                             <FormItem>
                               <FormLabel>School</FormLabel>
                               <FormControl>
-                                <Input 
+                                <Input
                                   {...field}
                                   placeholder="School name"
                                   data-testid={`input-child-${index}-school`}
@@ -1211,21 +1340,21 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
 
             {/* Form Actions */}
             <div className={styles.actions}>
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 variant="secondary"
-                onClick={() => setLocation('/')}
+                onClick={() => setLocation("/")}
                 data-testid="button-cancel"
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={saveMutation.isPending}
                 data-testid="button-save"
               >
                 <Save className="w-4 h-4 mr-2" />
-                {saveMutation.isPending ? 'Saving...' : 'Save Family'}
+                {saveMutation.isPending ? "Saving..." : "Save Family"}
               </Button>
             </div>
           </form>
