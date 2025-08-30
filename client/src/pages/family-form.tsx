@@ -28,6 +28,8 @@ import {
 } from '@/types/family';
 import { ArrowLeft, Save, Plus, Trash2, Home, User, Users, Upload, X } from 'lucide-react';
 import styles from './family-form.module.css';
+import { ObjectUploader } from '@/components/ObjectUploader';
+import type { UploadResult } from "@uppy/core";
 
 interface FamilyFormPageProps {
   mode: 'create' | 'edit';
@@ -100,7 +102,6 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
   });
 
   const [picturePreview, setPicturePreview] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(familyFormSchema),
@@ -328,55 +329,45 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
     form.setValue(fieldName as any, formatted);
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  // Handle getting upload parameters for object storage
+  const handleGetUploadParameters = async () => {
+    const response = await apiRequest('POST', '/api/objects/upload');
+    const result = await response.json();
+    return {
+      method: 'PUT' as const,
+      url: result.uploadURL,
+    };
+  };
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an image file.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please upload an image smaller than 5MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUploading(true);
-
+  // Handle upload completion
+  const handleUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
     try {
-      const formData = new FormData();
-      formData.append('image', file);
+      if (result.successful && result.successful.length > 0) {
+        const uploadedFile = result.successful[0];
+        const imageURL = uploadedFile.uploadURL;
+        
+        // Set ACL policy for the uploaded image
+        const response = await apiRequest('PUT', '/api/family-images', {
+          imageURL: imageURL,
+        });
+        
+        const data = await response.json();
+        
+        // Update form with object storage path
+        form.setValue('familyPicture', data.objectPath);
+        setPicturePreview(data.objectPath);
 
-      const response = await apiRequest('POST', '/api/upload', formData);
-      
-      const result = await response.json();
-      
-      form.setValue('familyPicture', result.url);
-      setPicturePreview(result.url);
-
-      toast({
-        title: "Success",
-        description: "Image uploaded successfully.",
-      });
+        toast({
+          title: "Success",
+          description: "Family picture uploaded successfully.",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload image.",
+        description: error.message || "Failed to process uploaded image.",
         variant: "destructive",
       });
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -744,24 +735,16 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                               )}
                               
                               <div className="flex items-center gap-2">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={isUploading}
-                                  onClick={() => document.getElementById('picture-upload')?.click()}
+                                <ObjectUploader
+                                  maxNumberOfFiles={1}
+                                  maxFileSize={5 * 1024 * 1024} // 5MB
+                                  onGetUploadParameters={handleGetUploadParameters}
+                                  onComplete={handleUploadComplete}
+                                  buttonClassName="outline"
                                 >
                                   <Upload className="w-4 h-4 mr-2" />
-                                  {isUploading ? 'Uploading...' : picturePreview ? 'Change Picture' : 'Upload Picture'}
-                                </Button>
-                                <input
-                                  id="picture-upload"
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleImageUpload}
-                                  className="hidden"
-                                  data-testid="input-family-picture"
-                                />
+                                  {picturePreview ? 'Change Picture' : 'Upload Picture'}
+                                </ObjectUploader>
                               </div>
                             </div>
                           </FormControl>
