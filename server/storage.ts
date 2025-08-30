@@ -127,13 +127,13 @@ export class DatabaseStorage implements IStorage {
     return familiesWithMembers;
   }
 
-  async createFamily(familyData: InsertFamily, members: InsertFamilyMember[]): Promise<FamilyWithMembers> {
+  async createFamily(familyData: InsertFamily, members: Omit<InsertFamilyMember, 'familyId'>[]): Promise<FamilyWithMembers> {
     const [family] = await db.insert(families).values(familyData).returning();
     
     const familyMembersData = members.map(member => ({
       ...member,
       familyId: family.id,
-      courses: member.courses || []
+      courses: (member.courses as string[]) || []
     }));
     
     const createdMembers = await db.insert(familyMembers)
@@ -143,7 +143,7 @@ export class DatabaseStorage implements IStorage {
     return { ...family, members: createdMembers };
   }
 
-  async updateFamily(id: string, familyData: Partial<InsertFamily>, members: InsertFamilyMember[]): Promise<FamilyWithMembers> {
+  async updateFamily(id: string, familyData: Partial<InsertFamily>, members: Omit<InsertFamilyMember, 'familyId'>[]): Promise<FamilyWithMembers> {
     const [family] = await db.update(families)
       .set({ ...familyData, updatedAt: new Date() })
       .where(eq(families.id, id))
@@ -156,7 +156,7 @@ export class DatabaseStorage implements IStorage {
     const familyMembersData = members.map(member => ({
       ...member,
       familyId: id,
-      courses: member.courses || []
+      courses: (member.courses as string[]) || []
     }));
     
     const updatedMembers = await db.insert(familyMembers)

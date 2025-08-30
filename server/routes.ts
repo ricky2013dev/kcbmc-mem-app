@@ -154,8 +154,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/families", requireAuth, requireAdminAccess, async (req, res) => {
     try {
+      // For family creation, members don't have familyId yet
+      const memberSchemaForCreation = insertFamilyMemberSchema.omit({ familyId: true });
       const familySchema = insertFamilySchema.extend({
-        members: z.array(insertFamilyMemberSchema)
+        members: z.array(memberSchemaForCreation)
       });
 
       const { members, ...familyData } = familySchema.parse(req.body);
@@ -173,8 +175,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/families/:id", requireAuth, async (req, res) => {
     try {
+      // For family updates, members might not have familyId (will be added by storage)
+      const memberSchemaForUpdate = insertFamilyMemberSchema.omit({ familyId: true });
       const familySchema = insertFamilySchema.extend({
-        members: z.array(insertFamilyMemberSchema)
+        members: z.array(memberSchemaForUpdate)
       }).partial();
 
       const { members, ...familyData } = familySchema.parse(req.body);
