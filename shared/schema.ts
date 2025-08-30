@@ -31,7 +31,7 @@ export const families = pgTable("families", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   familyName: varchar("family_name", { length: 255 }).notNull(),
   visitedDate: date("visited_date").notNull(),
-  registrationDate: date("registration_date").notNull(),
+  registrationDate: date("registration_date"),
   memberStatus: varchar("member_status", { length: 50 }).notNull(), // visit, member, pending
   phoneNumber: varchar("phone_number", { length: 20 }).notNull(),
   email: varchar("email", { length: 255 }),

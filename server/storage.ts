@@ -39,11 +39,12 @@ export interface IStorage {
 function cleanDateFields(data: any): any {
   const cleaned = { ...data };
   
-  // Handle optional member date fields only
+  // Handle optional date fields - convert empty strings to null
   if (cleaned.birthDate === '') cleaned.birthDate = null;
+  if (cleaned.registrationDate === '') cleaned.registrationDate = null;
   
-  // visitedDate and registrationDate are required, so don't convert to null
-  // The form validation should ensure these are provided
+  // visitedDate is required, so don't convert to null
+  // The form validation should ensure visitedDate is provided
   
   return cleaned;
 }
