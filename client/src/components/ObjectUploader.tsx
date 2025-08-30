@@ -74,26 +74,37 @@ export function ObjectUploader({
       })
   );
 
+  const handleButtonClick = () => {
+    console.log('Upload button clicked, showModal:', showModal);
+    setShowModal(true);
+    console.log('Modal should now be open');
+  };
+
   return (
     <div>
-      <Button onClick={() => setShowModal(true)} className={buttonClassName}>
+      <Button onClick={handleButtonClick} className={buttonClassName}>
         {children}
       </Button>
 
-      <DashboardModal
-        uppy={uppy}
-        open={showModal}
-        onRequestClose={() => setShowModal(false)}
-        proudlyDisplayPoweredByUppy={false}
-        plugins={["Dashboard"]}
-        closeModalOnClickOutside={true}
-        animateOpenClose={false}
-        hideUploadButton={false}
-        hideCancelButton={false}
-        hideRetryButton={false}
-        hidePauseResumeButton={false}
-        hideProgressAfterFinish={true}
-      />
+      {showModal && (
+        <DashboardModal
+          uppy={uppy}
+          open={showModal}
+          onRequestClose={() => {
+            console.log('Modal close requested');
+            setShowModal(false);
+          }}
+          proudlyDisplayPoweredByUppy={false}
+          plugins={["Dashboard"]}
+          closeModalOnClickOutside={true}
+          animateOpenClose={false}
+          hideUploadButton={false}
+          hideCancelButton={false}
+          hideRetryButton={false}
+          hidePauseResumeButton={false}
+          hideProgressAfterFinish={true}
+        />
+      )}
     </div>
   );
 }

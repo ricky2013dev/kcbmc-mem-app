@@ -137,3 +137,42 @@
     @apply border border-slate-200 hover:border-slate-300 transition-colors;
   }
 }
+
+/* Uppy styles */
+.uppy-Dashboard {
+  font-family: inherit !important;
+}
+
+.uppy-Dashboard-inner {
+  border-radius: 8px !important;
+}
+
+.uppy-DashboardContent-title {
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+}
+
+.uppy-u-reset.uppy-c-btn {
+  font-family: inherit !important;
+}
+
+/* Ensure Uppy modal appears above everything */
+.uppy-Dashboard--modal {
+  z-index: 9999 !important;
+}
+
+/* Fix Uppy modal overlay */
+.uppy-Dashboard--modal .uppy-Dashboard-overlay {
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* Uppy button styling */
+.uppy-c-btn {
+  border-radius: 6px !important;
+}
+
+/* Uppy drag and drop area */
+.uppy-DashboardContent-panel {
+  border-radius: 8px !important;
+}
