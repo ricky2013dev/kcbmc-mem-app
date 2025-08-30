@@ -149,18 +149,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // File upload route
-  app.post("/api/upload", requireAuth, upload.single('image'), (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
+  app.post("/api/upload", requireAuth, (req, res) => {
+    console.log("Upload route hit", { 
+      hasFile: !!req.file, 
+      sessionId: req.session?.staffId,
+      contentType: req.headers['content-type']
+    });
+    
+    upload.single('image')(req, res, (err) => {
+      if (err) {
+        console.error("Multer error:", err);
+        if (err instanceof multer.MulterError) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ message: "File too large. Maximum size is 5MB." });
+          }
+        }
+        return res.status(400).json({ message: err.message || "Upload failed" });
       }
 
-      const imageUrl = `/uploads/${req.file.filename}`;
-      res.json({ url: imageUrl });
-    } catch (error) {
-      console.error("Upload error:", error);
-      res.status(500).json({ message: "Failed to upload file" });
-    }
+      try {
+        if (!req.file) {
+          console.log("No file in request");
+          return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        console.log("File uploaded successfully:", req.file.filename);
+        const imageUrl = `/uploads/${req.file.filename}`;
+        res.json({ url: imageUrl });
+      } catch (error) {
+        console.error("Upload error:", error);
+        res.status(500).json({ message: "Failed to upload file" });
+      }
+    });
   });
 
   // Serve uploaded files statically
