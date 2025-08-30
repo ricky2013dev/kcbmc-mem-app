@@ -1,8 +1,13 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertFamilySchema, insertFamilyMemberSchema } from "@shared/schema";
 import { z } from "zod";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { nanoid } from "nanoid";
 
 // Session type for staff authentication
 declare module "express-session" {
@@ -24,6 +29,35 @@ declare global {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize sample staff data
   await initializeSampleData();
+
+  // Configure multer for file uploads
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadDir = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        const extension = path.extname(file.originalname);
+        const filename = `${nanoid()}-${Date.now()}${extension}`;
+        cb(null, filename);
+      }
+    }),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (allowedMimes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
+      }
+    }
+  });
 
   // Auth middleware
   const requireAuth = (req: any, res: any, next: any) => {
@@ -113,6 +147,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get staff" });
     }
   });
+
+  // File upload route
+  app.post("/api/upload", requireAuth, upload.single('image'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const imageUrl = `/uploads/${req.file.filename}`;
+      res.json({ url: imageUrl });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
+  // Serve uploaded files statically
+  app.use('/uploads', (req, res, next) => {
+    // Add CORS headers for image requests
+    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  });
+  
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  app.use('/uploads', express.static(uploadsDir));
 
   // Family routes
   app.get("/api/families", requireAuth, async (req, res) => {

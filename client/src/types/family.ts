@@ -43,9 +43,9 @@ export interface SearchFilters {
 }
 
 export const MEMBER_STATUS_OPTIONS = [
-  { value: 'visit', label: 'Visit' },
-  { value: 'member', label: 'Member' },
-  { value: 'pending', label: 'Pending' }
+  { value: 'visit', label: '방문' },
+  { value: 'member', label: '등록' },
+  { value: 'pending', label: '미정' }
 ];
 
 export const STATE_OPTIONS = [

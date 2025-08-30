@@ -53,6 +53,7 @@ export default function DashboardPage() {
 
   const [hasSearched, setHasSearched] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters],
@@ -123,6 +124,23 @@ export default function DashboardPage() {
       case 'pending': return 'outline';
       default: return 'secondary';
     }
+  };
+
+  const getStatusDisplayLabel = (status: string) => {
+    const option = MEMBER_STATUS_OPTIONS.find(opt => opt.value === status);
+    return option ? option.label : status;
+  };
+
+  const toggleFamilyExpanded = (familyId: string) => {
+    setExpandedFamilies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(familyId)) {
+        newSet.delete(familyId);
+      } else {
+        newSet.add(familyId);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -318,50 +336,112 @@ export default function DashboardPage() {
             <div className={styles.familyList}>
               {families.map((family) => (
                 <div key={family.id} className={styles.familyCard} data-testid={`card-family-${family.id}`}>
-                  <div className={styles.familyContent}>
+                  <div 
+                    className={styles.familyContent}
+                    onClick={() => toggleFamilyExpanded(family.id)}
+                  >
                     <div className={styles.familyInfo}>
                       <div className={styles.familyAvatar}>
-                        <Users className="w-6 h-6 text-muted-foreground" />
+                        {family.familyPicture ? (
+                          <img 
+                            src={family.familyPicture} 
+                            alt={`${family.familyName} family`}
+                            className="w-12 h-12 object-cover rounded-full border-2 border-border"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.parentElement?.querySelector('.fallback-icon') as HTMLElement;
+                              if (fallback) fallback.style.display = 'block';
+                            }}
+                          />
+                        ) : null}
+                        <Users className={`w-6 h-6 text-muted-foreground ${family.familyPicture ? 'fallback-icon hidden' : ''}`} />
                       </div>
                       
                       <div className={styles.familyDetails}>
-                        <h4 className={styles.familyName} data-testid={`text-family-name-${family.id}`}>
-                          {family.familyName}
-                        </h4>
-                        <div className={styles.familyMeta}>
-                          <div><span className="font-medium">Status:</span> <Badge variant={getStatusBadgeVariant(family.memberStatus)}>{family.memberStatus}</Badge></div>
-                          <div><span className="font-medium">Phone:</span> {family.phoneNumber}</div>
-                          <div><span className="font-medium">Life Group:</span> {family.lifeGroup || 'N/A'}</div>
-                          <div><span className="font-medium">Support Team:</span> {family.supportTeamMember || 'N/A'}</div>
-                          <div><span className="font-medium">Registration:</span> {family.registrationDate}</div>
-                          <div><span className="font-medium">Last Visit:</span> {family.visitedDate}</div>
+                        <div className={styles.familyLine1}>
+                          <h4 className={styles.familyName} data-testid={`text-family-name-${family.id}`}>
+                            {family.familyName}
+                          </h4>
+                          <div className={styles.familyBadges}>
+                            <Badge variant={getStatusBadgeVariant(family.memberStatus)}>
+                              {getStatusDisplayLabel(family.memberStatus)} - {family.visitedDate}
+                            </Badge>
+                            {family.supportTeamMember && (
+                              <Badge variant="outline" className={styles.supportTeamBadge}>
+                                {family.supportTeamMember}
+                              </Badge>
+                            )}
+                            
+                          </div>
                         </div>
                       </div>
                     </div>
                     
-                    <div className={styles.familyActions}>
-                      <Button 
-                        size="sm"
-                        onClick={() => setLocation(`/family/${family.id}/edit`)}
-                        data-testid={`button-edit-${family.id}`}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
-                      
-                      {canAddDelete && (
-                        <Button 
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDeleteFamily(family.id, family.familyName)}
-                          disabled={deleteMutation.isPending}
-                          data-testid={`button-delete-${family.id}`}
-                        >
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          Delete
-                        </Button>
-                      )}
-                    </div>
+                    {expandedFamilies.has(family.id) && (
+                      <div className={styles.expandedContent}>
+                        <div className={styles.familyDetailsExpanded}>
+                          <div className={styles.contactInfo}>
+                            {family.phoneNumber && (
+                              <div className={styles.infoItem}>
+                                <span className={styles.infoLabel}>Phone:</span>
+                                <span>{family.phoneNumber}</span>
+                              </div>
+                            )}
+                            {family.lifeGroup && (
+                              <div className={styles.infoItem}>
+                                <span className={styles.infoLabel}>Life Group:</span>
+                                <span>{family.lifeGroup}</span>
+                              </div>
+                            )}
+                            {family.husband?.courses && family.husband.courses.length > 0 && (
+                              <div className={styles.infoItem}>
+                                <span className={styles.infoLabel}>Husband Courses:</span>
+                                <span>{family.husband.courses.join(', ')}</span>
+                              </div>
+                            )}
+                            {family.wife?.courses && family.wife.courses.length > 0 && (
+                              <div className={styles.infoItem}>
+                                <span className={styles.infoLabel}>Wife Courses:</span>
+                                <span>{family.wife.courses.join(', ')}</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className={styles.familyActions}>
+                            <Button 
+                              size="sm"
+                              variant="default"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLocation(`/family/${family.id}/edit`);
+                              }}
+                              data-testid={`button-edit-${family.id}`}
+                              className={styles.editButton}
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              Edit
+                            </Button>
+                            {canAddDelete && (
+                              <Button 
+                                size="sm"
+                                variant="destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteFamily(family.id, family.familyName);
+                                }}
+                                disabled={deleteMutation.isPending}
+                                data-testid={`button-delete-${family.id}`}
+                                className={styles.deleteButton}
+                              >
+                                <Trash2 className="w-4 h-4 mr-1" />
+                                Delete
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

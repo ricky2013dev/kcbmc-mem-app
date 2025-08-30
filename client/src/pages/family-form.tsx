@@ -26,7 +26,7 @@ import {
   COURSE_OPTIONS, 
   GRADE_LEVEL_OPTIONS 
 } from '@/types/family';
-import { ArrowLeft, Save, Plus, Trash2, Home, User, Users } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Home, User, Users, Upload, X } from 'lucide-react';
 import styles from './family-form.module.css';
 
 interface FamilyFormPageProps {
@@ -45,6 +45,7 @@ const familyFormSchema = z.object({
   state: z.string().optional(),
   zipCode: z.string().optional(),
   familyNotes: z.string().optional(),
+  familyPicture: z.string().optional(),
   lifeGroup: z.string().optional(),
   supportTeamMember: z.string().optional(),
   husband: z.object({
@@ -98,6 +99,9 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
     gradeGroups: {} as Record<number, string>,
   });
 
+  const [picturePreview, setPicturePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const form = useForm<FormData>({
     resolver: zodResolver(familyFormSchema),
     defaultValues: {
@@ -111,6 +115,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
       state: 'TX',
       zipCode: '',
       familyNotes: '',
+      familyPicture: '',
       lifeGroup: '',
       supportTeamMember: '',
       husband: {
@@ -163,6 +168,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
         state: data.state,
         zipCode: data.zipCode,
         familyNotes: data.familyNotes || undefined,
+        familyPicture: data.familyPicture || undefined,
         lifeGroup: data.lifeGroup || undefined,
         supportTeamMember: data.supportTeamMember || undefined,
       };
@@ -227,7 +233,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
 
       form.reset({
         visitedDate: family.visitedDate,
-        registrationDate: family.registrationDate,
+        registrationDate: family.registrationDate || '',
         memberStatus: family.memberStatus as any,
         phoneNumber: family.phoneNumber,
         email: family.email || '',
@@ -236,6 +242,7 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
         state: family.state,
         zipCode: family.zipCode,
         familyNotes: family.familyNotes || '',
+        familyPicture: family.familyPicture || '',
         lifeGroup: family.lifeGroup || '',
         supportTeamMember: family.supportTeamMember || '',
         husband: husband ? {
@@ -262,6 +269,11 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
           school: child.school || '',
         })) : form.getValues('children'),
       });
+
+      // Set picture preview if there's an existing family picture
+      if (family.familyPicture) {
+        setPicturePreview(family.familyPicture);
+      }
     }
   }, [family, mode, form]);
 
@@ -314,6 +326,63 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
   const handlePhoneFormat = (value: string, fieldName: string) => {
     const formatted = formatPhoneNumber(value);
     form.setValue(fieldName as any, formatted);
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await apiRequest('POST', '/api/upload', formData);
+      
+      const result = await response.json();
+      
+      form.setValue('familyPicture', result.url);
+      setPicturePreview(result.url);
+
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload image.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    form.setValue('familyPicture', '');
+    setPicturePreview(null);
   };
 
   const onSubmit = (data: FormData) => {
@@ -616,6 +685,72 @@ export default function FamilyFormPage({ mode, familyId }: FamilyFormPageProps) 
                               className="resize-none"
                               data-testid="textarea-family-notes"
                             />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className={styles.fullWidth}>
+                    <FormField
+                      control={form.control}
+                      name="familyPicture"
+                      render={() => (
+                        <FormItem>
+                          <FormLabel>Family Picture</FormLabel>
+                          <FormControl>
+                            <div className="space-y-4">
+                              {picturePreview ? (
+                                <div className="relative">
+                                  <img 
+                                    src={picturePreview} 
+                                    alt="Family preview" 
+                                    className="w-32 h-32 object-cover rounded-lg border"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="sm"
+                                    className="absolute -top-2 -right-2"
+                                    onClick={handleRemoveImage}
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                                  <p className="text-sm text-muted-foreground mb-2">
+                                    Upload a family picture
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    JPG, PNG up to 5MB
+                                  </p>
+                                </div>
+                              )}
+                              
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={isUploading}
+                                  onClick={() => document.getElementById('picture-upload')?.click()}
+                                >
+                                  <Upload className="w-4 h-4 mr-2" />
+                                  {isUploading ? 'Uploading...' : picturePreview ? 'Change Picture' : 'Upload Picture'}
+                                </Button>
+                                <input
+                                  id="picture-upload"
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleImageUpload}
+                                  className="hidden"
+                                  data-testid="input-family-picture"
+                                />
+                              </div>
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
