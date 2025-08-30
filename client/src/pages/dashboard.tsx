@@ -13,8 +13,26 @@ import { SundayDatePicker } from '@/components/sunday-date-picker';
 import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
+import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
 import { Users, Search, Plus, Edit, Trash2, LogOut } from 'lucide-react';
 import styles from './dashboard.module.css';
+
+// Helper function to get default date range (recent 3 months, Sunday-only)
+function getDefaultDateRange() {
+  const today = new Date();
+  const threMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+  
+  // Get the most recent Sunday from today
+  const dateTo = getPreviousSunday(today);
+  
+  // Get the first Sunday from 3 months ago
+  const dateFrom = getPreviousSunday(threMonthsAgo);
+  
+  return {
+    dateFrom: formatDateForInput(dateFrom),
+    dateTo: formatDateForInput(dateTo)
+  };
+}
 
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
@@ -22,16 +40,18 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const defaultDateRange = getDefaultDateRange();
+
   const [filters, setFilters] = useState<SearchFilters>({
     name: '',
     lifeGroup: '',
     supportTeamMember: '',
     memberStatus: 'all',
-    dateFrom: '',
-    dateTo: ''
+    dateFrom: defaultDateRange.dateFrom,
+    dateTo: defaultDateRange.dateTo
   });
 
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(true);
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters],
@@ -77,13 +97,14 @@ export default function DashboardPage() {
   };
 
   const clearFilters = () => {
+    const defaultDateRange = getDefaultDateRange();
     setFilters({
       name: '',
       lifeGroup: '',
       supportTeamMember: '',
       memberStatus: 'all',
-      dateFrom: '',
-      dateTo: ''
+      dateFrom: defaultDateRange.dateFrom,
+      dateTo: defaultDateRange.dateTo
     });
     setHasSearched(false);
   };
