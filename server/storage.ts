@@ -35,16 +35,15 @@ export interface IStorage {
   deleteFamily(id: string): Promise<void>;
 }
 
-// Helper function to clean date fields - convert empty strings to null
+// Helper function to clean date fields - convert empty strings to null for optional fields only
 function cleanDateFields(data: any): any {
   const cleaned = { ...data };
   
-  // Handle family date fields
-  if (cleaned.visitedDate === '') cleaned.visitedDate = null;
-  if (cleaned.registrationDate === '') cleaned.registrationDate = null;
-  
-  // Handle member date fields
+  // Handle optional member date fields only
   if (cleaned.birthDate === '') cleaned.birthDate = null;
+  
+  // visitedDate and registrationDate are required, so don't convert to null
+  // The form validation should ensure these are provided
   
   return cleaned;
 }
