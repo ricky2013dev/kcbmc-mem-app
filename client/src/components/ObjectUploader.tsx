@@ -86,6 +86,13 @@ export function ObjectUploader({
         onRequestClose={() => setShowModal(false)}
         proudlyDisplayPoweredByUppy={false}
         plugins={["Dashboard"]}
+        closeModalOnClickOutside={true}
+        animateOpenClose={false}
+        hideUploadButton={false}
+        hideCancelButton={false}
+        hideRetryButton={false}
+        hidePauseResumeButton={false}
+        hideProgressAfterFinish={true}
       />
     </div>
   );
