@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Upload, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -130,6 +130,9 @@ export function ObjectUploader({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Upload File</DialogTitle>
+            <DialogDescription>
+              Select and upload an image file for the family picture.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
