@@ -127,13 +127,22 @@ export function ObjectUploader({
         {children}
       </Button>
 
-      <Dialog open={showModal} onOpenChange={setShowModal}>
+      <Dialog open={showModal} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Upload File</DialogTitle>
             <DialogDescription>
               Select and upload an image file for the family picture.
             </DialogDescription>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 right-2 h-6 w-6 p-0"
+              onClick={() => setShowModal(false)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
           </DialogHeader>
           
           <div className="space-y-4">
