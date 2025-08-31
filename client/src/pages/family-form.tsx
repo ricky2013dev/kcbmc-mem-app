@@ -56,7 +56,6 @@ import {
 } from "lucide-react";
 import styles from "./family-form.module.css";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import type { UploadResult } from "@uppy/core";
 
 interface FamilyFormPageProps {
   mode: "create" | "edit";
@@ -417,7 +416,7 @@ export default function FamilyFormPage({
 
   // Handle upload completion
   const handleUploadComplete = async (
-    result: UploadResult<Record<string, unknown>, Record<string, unknown>>,
+    result: { successful: Array<{ uploadURL: string }> },
   ) => {
     try {
       if (result.successful && result.successful.length > 0) {
