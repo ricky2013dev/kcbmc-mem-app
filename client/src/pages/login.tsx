@@ -93,7 +93,7 @@ export default function LoginPage() {
                   <SelectContent>
                     {staff.map((member) => (
                       <SelectItem key={member.id} value={member.nickName}>
-                        {member.fullName} ({member.group})
+                        {member.nickName} 
                       </SelectItem>
                     ))}
                   </SelectContent>
