@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { SundayDatePicker } from '@/components/sunday-date-picker';
 import { apiRequest } from '@/lib/queryClient';
@@ -54,6 +55,7 @@ export default function DashboardPage() {
   const [hasSearched, setHasSearched] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
+  const [magnifiedImage, setMagnifiedImage] = useState<{ src: string; alt: string } | null>(null);
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters],
@@ -414,7 +416,14 @@ export default function DashboardPage() {
                               <img 
                                 src={family.familyPicture} 
                                 alt={`${family.familyName} family`}
-                                className="w-32 h-32 object-cover rounded-lg border-4 border-primary/20 shadow-lg"
+                                className="w-32 h-32 object-cover rounded-lg border-4 border-primary/20 shadow-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setMagnifiedImage({
+                                    src: family.familyPicture!,
+                                    alt: `${family.familyName} family`
+                                  });
+                                }}
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   target.style.display = 'none';
@@ -529,6 +538,25 @@ export default function DashboardPage() {
           )}
         </Card>
       </div>
+
+      {/* Magnified Image Dialog */}
+      <Dialog open={!!magnifiedImage} onOpenChange={() => setMagnifiedImage(null)}>
+        <DialogContent className="max-w-4xl p-4">
+          {magnifiedImage && (
+            <div className="flex justify-center">
+              <img 
+                src={magnifiedImage.src} 
+                alt={magnifiedImage.alt}
+                className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
