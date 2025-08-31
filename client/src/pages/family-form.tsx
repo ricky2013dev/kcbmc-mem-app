@@ -731,7 +731,8 @@ export default function FamilyFormPage({
                         <FormControl>
                           <Input
                             {...field}
-                            type="date"
+                            type="text"
+                            placeholder="YYYY-MM-DD (e.g., 1990-01-15)"
                             data-testid="input-husband-birth-date"
                           />
                         </FormControl>
@@ -893,7 +894,8 @@ export default function FamilyFormPage({
                         <FormControl>
                           <Input
                             {...field}
-                            type="date"
+                            type="text"
+                            placeholder="YYYY-MM-DD (e.g., 1985-03-22)"
                             data-testid="input-wife-birth-date"
                           />
                         </FormControl>
@@ -1087,7 +1089,8 @@ export default function FamilyFormPage({
                               <FormControl>
                                 <Input
                                   {...field}
-                                  type="date"
+                                  type="text"
+                                  placeholder="YYYY-MM-DD (e.g., 2010-07-08)"
                                   data-testid={`input-child-${index}-birth-date`}
                                 />
                               </FormControl>
