@@ -97,7 +97,8 @@ export function ObjectUploader({
         description: "File uploaded successfully!",
       });
 
-      setShowModal(false);
+      // Don't close modal automatically - let user close it manually
+      // Reset file selection for potential next upload
       setSelectedFile(null);
       setPreview(null);
     } catch (error: any) {
