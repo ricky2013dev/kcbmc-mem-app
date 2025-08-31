@@ -51,11 +51,10 @@ import {
   Home,
   User,
   Users,
-  Upload,
   X,
 } from "lucide-react";
 import styles from "./family-form.module.css";
-import { ObjectUploader } from "@/components/ObjectUploader";
+import { FamilyImageUploader } from "@/components/FamilyImageUploader";
 
 interface FamilyFormPageProps {
   mode: "create" | "edit";
@@ -391,61 +390,9 @@ export default function FamilyFormPage({
     form.setValue(fieldName as any, formatted);
   };
 
-  // Handle getting upload parameters for object storage
-  const handleGetUploadParameters = async () => {
-    try {
-      console.log("Getting upload parameters...");
-      const response = await apiRequest("POST", "/api/objects/upload");
-      const result = await response.json();
-      console.log("Upload URL received:", result.uploadURL);
-      return {
-        method: "PUT" as const,
-        url: result.uploadURL,
-      };
-    } catch (error) {
-      console.error("Error getting upload parameters:", error);
-      toast({
-        title: "Upload Error",
-        description:
-          "Failed to get upload URL. Please make sure you're logged in.",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
-  // Handle upload completion
-  const handleUploadComplete = async (
-    result: { successful: Array<{ uploadURL: string }> },
-  ) => {
-    try {
-      if (result.successful && result.successful.length > 0) {
-        const uploadedFile = result.successful[0];
-        const imageURL = uploadedFile.uploadURL;
-
-        // Set ACL policy for the uploaded image
-        const response = await apiRequest("PUT", "/api/family-images", {
-          imageURL: imageURL,
-        });
-
-        const data = await response.json();
-
-        // Update form with object storage path
-        form.setValue("familyPicture", data.objectPath);
-        setPicturePreview(data.objectPath);
-
-        toast({
-          title: "Success",
-          description: "Family picture uploaded successfully.",
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Upload failed",
-        description: error.message || "Failed to process uploaded image.",
-        variant: "destructive",
-      });
-    }
+  const handleImageUpload = (imageUrl: string) => {
+    form.setValue("familyPicture", imageUrl);
+    setPicturePreview(imageUrl);
   };
 
   const handleRemoveImage = () => {
@@ -797,51 +744,22 @@ export default function FamilyFormPage({
                           <FormLabel>Family Picture</FormLabel>
                           <FormControl>
                             <div className="space-y-4">
-                              {picturePreview ? (
-                                <div className="relative">
-                                  <img
-                                    src={picturePreview}
-                                    alt="Family preview"
-                                    className="w-32 h-32 object-cover rounded-lg border"
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="sm"
-                                    className="absolute -top-2 -right-2"
-                                    onClick={handleRemoveImage}
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                                  <p className="text-sm text-muted-foreground mb-2">
-                                    Upload a family picture
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    JPG, PNG up to 5MB
-                                  </p>
-                                </div>
-                              )}
-
-                              <div className="flex items-center gap-2">
-                                <ObjectUploader
-                                  maxNumberOfFiles={1}
-                                  maxFileSize={5 * 1024 * 1024} // 5MB
-                                  onGetUploadParameters={
-                                    handleGetUploadParameters
-                                  }
-                                  onComplete={handleUploadComplete}
-                                  buttonClassName="outline"
+                              <FamilyImageUploader
+                                currentImage={picturePreview || undefined}
+                                onUploadComplete={handleImageUpload}
+                              />
+                              
+                              {picturePreview && (
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={handleRemoveImage}
                                 >
-                                  <Upload className="w-4 h-4 mr-2" />
-                                  {picturePreview
-                                    ? "Change Picture"
-                                    : "Upload Picture"}
-                                </ObjectUploader>
-                              </div>
+                                  <X className="w-4 h-4 mr-2" />
+                                  Remove Picture
+                                </Button>
+                              )}
                             </div>
                           </FormControl>
                           <FormMessage />
