@@ -408,6 +408,21 @@ export default function DashboardPage() {
                     {expandedFamilies.has(family.id) && (
                       <div className={styles.expandedContent}>
                         <div className={styles.familyDetailsExpanded}>
+                          {/* Large Family Picture */}
+                          {family.familyPicture && (
+                            <div className="mb-6 flex justify-center">
+                              <img 
+                                src={family.familyPicture} 
+                                alt={`${family.familyName} family`}
+                                className="w-32 h-32 object-cover rounded-lg border-4 border-primary/20 shadow-lg"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                          
                           <div className={styles.contactInfo}>
                             {family.supportTeamMember && (
                               <div className={styles.infoItem}>
