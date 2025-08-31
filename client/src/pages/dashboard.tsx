@@ -122,9 +122,18 @@ export default function DashboardPage() {
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'member': return 'default';
-      case 'visit': return 'secondary';
+      case 'visit': return 'default';
       case 'pending': return 'outline';
       default: return 'secondary';
+    }
+  };
+
+  const getStatusBadgeClassName = (status: string) => {
+    switch (status) {
+      case 'member': return 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200';
+      case 'visit': return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200';
+      case 'pending': return '';
+      default: return '';
     }
   };
 
@@ -375,17 +384,15 @@ export default function DashboardPage() {
                             {family.familyName}
                           </h4>
                           <div className={styles.familyBadges}>
-                            <Badge variant={getStatusBadgeVariant(family.memberStatus)}>
+                            <Badge 
+                              variant={getStatusBadgeVariant(family.memberStatus)}
+                              className={getStatusBadgeClassName(family.memberStatus)}
+                            >
                               {getStatusDisplayLabel(family.memberStatus)} - {family.visitedDate}
                             </Badge>
                             {family.supportTeamMember && (
                               <Badge variant="outline" className={styles.supportTeamBadge}>
                                 {family.supportTeamMember}
-                              </Badge>
-                            )}
-                            {family.familyCode && (
-                              <Badge variant="secondary" className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border-blue-200 font-mono font-semibold">
-                                ID: {family.familyCode}
                               </Badge>
                             )}
                             {getChildGrades(family) && (
@@ -428,9 +435,14 @@ export default function DashboardPage() {
                                   <div className="flex flex-wrap gap-2">
                                     {children.map((child, index) => (
                                       <div key={child.id || index} className="bg-green-50 border border-green-200 rounded px-2 py-1 text-sm">
-                                        <span className="font-medium">{child.englishName}</span>
+                                        <div className="font-medium">
+                                          {child.koreanName && child.englishName 
+                                            ? `${child.koreanName} (${child.englishName})`
+                                            : child.koreanName || child.englishName
+                                          }
+                                        </div>
                                         {child.gradeLevel && (
-                                          <span className="text-green-700 ml-2">
+                                          <span className="text-green-700">
                                             {child.gradeLevel}
                                             {child.gradeGroup && ` (${child.gradeGroup})`}
                                           </span>

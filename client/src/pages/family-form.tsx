@@ -36,6 +36,7 @@ import {
   generateFamilyName,
   generateFullAddress,
 } from "@/utils/grade-utils";
+import { formatDateForInput, getPreviousSunday } from "@/utils/date-utils";
 import {
   FamilyFormData,
   MEMBER_STATUS_OPTIONS,
@@ -73,7 +74,6 @@ const familyFormSchema = z
     zipCode: z.string().optional(),
     familyNotes: z.string().optional(),
     familyPicture: z.string().optional(),
-    lifeGroup: z.string().optional(),
     supportTeamMember: z.string().optional(),
     husband: z.object({
       koreanName: z.string().optional(),
@@ -140,7 +140,7 @@ export default function FamilyFormPage({
   const form = useForm<FormData>({
     resolver: zodResolver(familyFormSchema),
     defaultValues: {
-      visitedDate: "",
+      visitedDate: mode === "create" ? formatDateForInput(getPreviousSunday(new Date())) : "",
       memberStatus: "visit",
       phoneNumber: "",
       email: "",
@@ -150,7 +150,6 @@ export default function FamilyFormPage({
       zipCode: "",
       familyNotes: "",
       familyPicture: "",
-      lifeGroup: "",
       supportTeamMember: "",
       husband: {
         koreanName: "",
@@ -204,7 +203,6 @@ export default function FamilyFormPage({
         zipCode: data.zipCode,
         familyNotes: data.familyNotes || undefined,
         familyPicture: data.familyPicture || undefined,
-        lifeGroup: data.lifeGroup || undefined,
         supportTeamMember: data.supportTeamMember || undefined,
       };
 
@@ -288,7 +286,6 @@ export default function FamilyFormPage({
         zipCode: family.zipCode,
         familyNotes: family.familyNotes || "",
         familyPicture: family.familyPicture || "",
-        lifeGroup: family.lifeGroup || "",
         supportTeamMember: family.supportTeamMember || "",
         husband: husband
           ? {
@@ -649,24 +646,6 @@ export default function FamilyFormPage({
                             {...field}
                             placeholder="90210"
                             data-testid="input-zip-code"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="lifeGroup"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Life Group</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="Life group leader name"
-                            data-testid="input-life-group"
                           />
                         </FormControl>
                         <FormMessage />

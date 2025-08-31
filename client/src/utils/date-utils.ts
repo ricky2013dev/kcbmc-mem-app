@@ -8,10 +8,19 @@ export function getNextSunday(date?: Date): Date {
 
 export function getPreviousSunday(date?: Date): Date {
   const d = date ? new Date(date) : new Date();
-  const day = d.getDay();
-  const diff = day === 0 ? 0 : day;
-  d.setDate(d.getDate() - diff);
-  return d;
+  const day = d.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  
+  // Create a new date to avoid mutating the original
+  const result = new Date(d);
+  
+  if (day === 0) {
+    // If today is Sunday, return today
+    return result;
+  } else {
+    // If today is not Sunday, go back to the most recent Sunday
+    result.setDate(result.getDate() - day);
+    return result;
+  }
 }
 
 export function isSunday(date: Date | string): boolean {
@@ -63,3 +72,5 @@ export function getSundayValidationMessage(dateString: string): string {
   }
   return '';
 }
+
+
