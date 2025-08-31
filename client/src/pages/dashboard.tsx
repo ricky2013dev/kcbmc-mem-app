@@ -66,6 +66,8 @@ export default function DashboardPage() {
       if (filters.memberStatus && filters.memberStatus !== 'all') queryParams.append('memberStatus', filters.memberStatus);
       if (filters.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
       if (filters.dateTo) queryParams.append('dateTo', filters.dateTo);
+      queryParams.append('sortBy', 'visitedDate');
+      queryParams.append('sortOrder', 'desc');
       
       const url = `/api/families?${queryParams.toString()}`;
       const response = await apiRequest('GET', url);
@@ -131,6 +133,14 @@ export default function DashboardPage() {
     return option ? option.label : status;
   };
 
+  const getChildGrades = (family: FamilyWithMembers) => {
+    const children = family.members.filter(member => 
+      member.relationship === 'child' && member.gradeLevel
+    );
+    const grades = children.map(child => child.gradeLevel).filter(Boolean);
+    return grades.length > 0 ? grades.join(', ') : null;
+  };
+
   const toggleFamilyExpanded = (familyId: string) => {
     setExpandedFamilies(prev => {
       const newSet = new Set(prev);
@@ -156,6 +166,18 @@ export default function DashboardPage() {
           </div>
           
           <div className={styles.navRight}>
+            {canAddDelete && (
+              <Button 
+                variant="default"
+                size="sm"
+                onClick={() => setLocation('/family/new')}
+                data-testid="button-add-family"
+                className="mr-4"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add
+              </Button>
+            )}
             <span className={styles.userName} data-testid="text-current-user">
               {user?.fullName} ({user?.group})
             </span>
@@ -284,17 +306,6 @@ export default function DashboardPage() {
               <Button variant="secondary" onClick={clearFilters} data-testid="button-clear-filters">
                 Clear Filters
               </Button>
-              
-              {canAddDelete && (
-                <Button 
-                  variant="outline"
-                  onClick={() => setLocation('/family/new')}
-                  data-testid="button-add-family"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add New Family
-                </Button>
-              )}
             </div>
           </CardContent>
           )}
@@ -377,6 +388,11 @@ export default function DashboardPage() {
                                 ID: {family.familyCode}
                               </Badge>
                             )}
+                            {getChildGrades(family) && (
+                              <Badge variant="secondary" className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200">
+                                {getChildGrades(family)}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -386,10 +402,10 @@ export default function DashboardPage() {
                       <div className={styles.expandedContent}>
                         <div className={styles.familyDetailsExpanded}>
                           <div className={styles.contactInfo}>
-                            {family.phoneNumber && (
+                            {family.supportTeamMember && (
                               <div className={styles.infoItem}>
-                                <span className={styles.infoLabel}>Phone:</span>
-                                <span>{family.phoneNumber}</span>
+                                <span className={styles.infoLabel}>Support Team:</span>
+                                <span>{family.supportTeamMember}</span>
                               </div>
                             )}
                             {family.lifeGroup && (
@@ -398,18 +414,51 @@ export default function DashboardPage() {
                                 <span>{family.lifeGroup}</span>
                               </div>
                             )}
-                            {family.husband?.courses && family.husband.courses.length > 0 && (
+                            {family.phoneNumber && (
                               <div className={styles.infoItem}>
-                                <span className={styles.infoLabel}>Husband Courses:</span>
-                                <span>{family.husband.courses.join(', ')}</span>
+                                <span className={styles.infoLabel}>Phone:</span>
+                                <span>{family.phoneNumber}</span>
                               </div>
                             )}
-                            {family.wife?.courses && family.wife.courses.length > 0 && (
-                              <div className={styles.infoItem}>
-                                <span className={styles.infoLabel}>Wife Courses:</span>
-                                <span>{family.wife.courses.join(', ')}</span>
-                              </div>
-                            )}
+                            {(() => {
+                              const children = family.members.filter(m => m.relationship === 'child');
+                              return children.length > 0 && (
+                                <div className={styles.infoItem}>
+                                  <span className={styles.infoLabel}>Children:</span>
+                                  <div className="flex flex-wrap gap-2">
+                                    {children.map((child, index) => (
+                                      <div key={child.id || index} className="bg-green-50 border border-green-200 rounded px-2 py-1 text-sm">
+                                        <span className="font-medium">{child.englishName}</span>
+                                        {child.gradeLevel && (
+                                          <span className="text-green-700 ml-2">
+                                            {child.gradeLevel}
+                                            {child.gradeGroup && ` (${child.gradeGroup})`}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                            {(() => {
+                              const husband = family.members.find(m => m.relationship === 'husband');
+                              return husband?.courses && husband.courses.length > 0 && (
+                                <div className={styles.infoItem}>
+                                  <span className={styles.infoLabel}>Husband Courses:</span>
+                                  <span>{husband.courses.join(', ')}</span>
+                                </div>
+                              );
+                            })()}
+                            {(() => {
+                              const wife = family.members.find(m => m.relationship === 'wife');
+                              return wife?.courses && wife.courses.length > 0 && (
+                                <div className={styles.infoItem}>
+                                  <span className={styles.infoLabel}>Wife Courses:</span>
+                                  <span>{wife.courses.join(', ')}</span>
+                                </div>
+                              );
+                            })()}
                           </div>
                           
                           <div className={styles.familyActions}>
