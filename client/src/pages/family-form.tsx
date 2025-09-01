@@ -695,7 +695,8 @@ export default function FamilyFormPage({
                         <FormLabel>남편이름</FormLabel>
                         <FormControl>
                           <Input
-
+                            {...field}
+                            placeholder="김민수"
                             data-testid="input-husband-korean-name"
                           />
                         </FormControl>
