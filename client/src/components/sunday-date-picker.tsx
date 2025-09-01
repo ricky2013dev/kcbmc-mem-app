@@ -1,6 +1,6 @@
-import { forwardRef, useEffect, useRef } from 'react';
-import { Input } from '@/components/ui/input';
-import { formatDateForInput, isSunday, getNextSunday, getSundayValidationMessage } from '@/utils/date-utils';
+import { forwardRef } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getSundayOptions } from '@/utils/date-utils';
 
 interface SundayDatePickerProps {
   value?: string;
@@ -11,83 +11,32 @@ interface SundayDatePickerProps {
   'data-testid'?: string;
 }
 
-export const SundayDatePicker = forwardRef<HTMLInputElement, SundayDatePickerProps>(
-  ({ value, onChange, placeholder, required, className, 'data-testid': testId, ...props }, ref) => {
-    const inputRef = useRef<HTMLInputElement>(null);
+export const SundayDatePicker = forwardRef<HTMLButtonElement, SundayDatePickerProps>(
+  ({ value, onChange, placeholder = "Select a Sunday", required, className, 'data-testid': testId, ...props }, ref) => {
+    const sundayOptions = getSundayOptions(12); // Show 12 months range (6 months back and forward)
 
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const selectedDate = e.target.value;
-      
-      if (!selectedDate) {
-        onChange?.(selectedDate);
-        return;
-      }
-
-      // Parse YYYY-MM-DD format properly to avoid timezone issues
-      const parts = selectedDate.split('-');
-      const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-      
-      if (!isSunday(date)) {
-        // Automatically adjust to next Sunday
-        const nextSunday = getNextSunday(date);
-        const formattedDate = formatDateForInput(nextSunday);
-        onChange?.(formattedDate);
-      } else {
-        onChange?.(selectedDate);
-      }
+    const handleValueChange = (selectedValue: string) => {
+      onChange?.(selectedValue);
     };
 
-    // Add custom validation to restrict non-Sundays
-    useEffect(() => {
-      const input = inputRef.current || (typeof ref === 'object' && ref?.current);
-      if (!input) return;
-
-      const handleInput = (e: Event) => {
-        const target = e.target as HTMLInputElement;
-        const selectedDate = target.value;
-        
-        if (selectedDate) {
-          // Parse YYYY-MM-DD format properly to avoid timezone issues
-          const parts = selectedDate.split('-');
-          const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-          
-          if (!isSunday(date)) {
-            // Set custom validity to show error with helpful message
-            const validationMessage = getSundayValidationMessage(selectedDate);
-            target.setCustomValidity(validationMessage);
-            target.reportValidity();
-            
-            // Auto-adjust to next Sunday after a brief delay
-            setTimeout(() => {
-              const nextSunday = getNextSunday(date);
-              const formattedDate = formatDateForInput(nextSunday);
-              target.value = formattedDate;
-              target.setCustomValidity(''); // Clear custom validity
-              onChange?.(formattedDate);
-            }, 1500);
-          } else {
-            target.setCustomValidity(''); // Clear any previous custom validity
-          }
-        }
-      };
-
-      input.addEventListener('input', handleInput);
-      return () => input.removeEventListener('input', handleInput);
-    }, [onChange, ref]);
-
     return (
-      <Input
-        ref={ref || inputRef}
-        type="date"
-        value={value || ''}
-        onChange={handleDateChange}
-        placeholder={placeholder}
-        required={required}
-        className={className}
-        data-testid={testId}
-        title="Please select a Sunday only"
-        {...props}
-      />
+      <Select value={value || ''} onValueChange={handleValueChange}>
+        <SelectTrigger 
+          ref={ref} 
+          className={className}
+          data-testid={testId}
+          {...props}
+        >
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {sundayOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
   }
 );
