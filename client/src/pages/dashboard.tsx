@@ -209,7 +209,8 @@ export default function DashboardPage() {
       {/* Main Content */}
       <div className={styles.main}>
         {/* Search Section */}
-        <Card className={`${styles.searchCard} ${!showFilters ? styles.searchCardCompact : ''}`}>
+        {showFilters && (
+        <Card className={styles.searchCard}>
           <CardHeader className={!showFilters ? styles.searchHeaderCompact : ''}>
             <div className={styles.searchHeader}>
               <Button 
@@ -320,16 +321,29 @@ export default function DashboardPage() {
           </CardContent>
           )}
         </Card>
+        )}
 
         {/* Results Section */}
         <Card className={styles.resultsCard}>
           <CardHeader className={styles.resultsHeader}>
-            <h3 className={styles.resultsTitle}>Search Results {hasSearched && (
-              < >
-                : {families.length} 
-              </>
-            )}</h3>
-            
+            <div className="flex items-center justify-between">
+              <h3 className={styles.resultsTitle}>Search Results {hasSearched && (
+                < >
+                  : {families.length} 
+                </>
+              )}</h3>
+              {!showFilters && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowFilters(true)}
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  <ChevronDown className="w-4 h-4 mr-2" />
+                  Show Filters
+                </Button>
+              )}
+            </div>
           </CardHeader>
           
           {!hasSearched ? (
