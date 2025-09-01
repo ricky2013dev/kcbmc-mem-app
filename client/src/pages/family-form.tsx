@@ -121,6 +121,64 @@ const familyFormSchema = z
 
 type FormData = z.infer<typeof familyFormSchema>;
 
+const isValidDatePart = (year: string, month: string, day: string): boolean => {
+  if (year.length === 4) {
+    const yearNum = parseInt(year);
+    if (yearNum < 1950 || yearNum > 2050) return false;
+  }
+  
+  if (month.length === 2) {
+    const monthNum = parseInt(month);
+    if (monthNum < 1 || monthNum > 12) return false;
+  }
+  
+  if (day.length === 2) {
+    const dayNum = parseInt(day);
+    if (dayNum < 1 || dayNum > 31) return false;
+    
+    if (month.length === 2) {
+      const monthNum = parseInt(month);
+      const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      if (dayNum > daysInMonth[monthNum - 1]) return false;
+      
+      if (monthNum === 2 && dayNum > 28 && year.length === 4) {
+        const yearNum = parseInt(year);
+        const isLeapYear = (yearNum % 4 === 0 && yearNum % 100 !== 0) || (yearNum % 400 === 0);
+        if (!isLeapYear && dayNum > 28) return false;
+        if (isLeapYear && dayNum > 29) return false;
+      }
+    }
+  }
+  
+  return true;
+};
+
+const formatBirthDate = (input: string): string => {
+  const digitsOnly = input.replace(/\D/g, '').slice(0, 8);
+  
+  if (digitsOnly.length <= 4) {
+    const year = digitsOnly;
+    if (!isValidDatePart(year, '', '')) return input.replace(/\D/g, '').slice(0, -1);
+    return digitsOnly;
+  } else if (digitsOnly.length <= 6) {
+    const year = digitsOnly.slice(0, 4);
+    const month = digitsOnly.slice(4);
+    if (!isValidDatePart(year, month, '')) return input.replace(/\D/g, '').slice(0, -1);
+    return `${year}-${month}`;
+  } else {
+    const year = digitsOnly.slice(0, 4);
+    const month = digitsOnly.slice(4, 6);
+    const day = digitsOnly.slice(6);
+    if (!isValidDatePart(year, month, day)) return input.replace(/\D/g, '').slice(0, -1);
+    return `${year}-${month}-${day}`;
+  }
+};
+
+const handleBirthDateChange = (value: string, onChange: (value: string) => void) => {
+  const formatted = formatBirthDate(value);
+  onChange(formatted);
+};
+
 export default function FamilyFormPage({
   mode,
   familyId,
@@ -732,7 +790,9 @@ export default function FamilyFormPage({
                           <Input
                             {...field}
                             type="text"
-                            placeholder="YYYY-MM-DD (e.g., 1990-01-15)"
+                            placeholder="YYYYMMDD (e.g., 20120115)"
+                            maxLength={10}
+                            onChange={(e) => handleBirthDateChange(e.target.value, field.onChange)}
                             data-testid="input-husband-birth-date"
                           />
                         </FormControl>
@@ -895,7 +955,9 @@ export default function FamilyFormPage({
                           <Input
                             {...field}
                             type="text"
-                            placeholder="YYYY-MM-DD (e.g., 1985-03-22)"
+                            placeholder="YYYYMMDD (e.g., 19850322)"
+                            maxLength={10}
+                            onChange={(e) => handleBirthDateChange(e.target.value, field.onChange)}
                             data-testid="input-wife-birth-date"
                           />
                         </FormControl>
@@ -1090,7 +1152,9 @@ export default function FamilyFormPage({
                                 <Input
                                   {...field}
                                   type="text"
-                                  placeholder="YYYY-MM-DD (e.g., 2010-07-08)"
+                                  placeholder="YYYYMMDD (e.g., 20100708)"
+                                  maxLength={10}
+                                  onChange={(e) => handleBirthDateChange(e.target.value, field.onChange)}
                                   data-testid={`input-child-${index}-birth-date`}
                                 />
                               </FormControl>
