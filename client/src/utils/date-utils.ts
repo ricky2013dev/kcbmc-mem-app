@@ -73,4 +73,24 @@ export function getSundayValidationMessage(dateString: string): string {
   return '';
 }
 
+export function getSundayOptions(monthsRange: number = 6): Array<{ value: string; label: string }> {
+  const today = new Date();
+  const startDate = new Date(today.getFullYear(), today.getMonth() - monthsRange, today.getDate());
+  
+  // End date should be this week's Sunday (or today if today is Sunday), not future
+  const endDate = getPreviousSunday(today);
+  
+  const sundays = getAllSundaysInRange(startDate, endDate);
+  
+  return sundays.map(sunday => {
+    const value = formatDateForInput(sunday);
+    const label = `Sunday, ${sunday.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })}`;
+    return { value, label };
+  }).sort((a, b) => b.value.localeCompare(a.value)); // Sort in descending order (most recent first)
+}
+
 

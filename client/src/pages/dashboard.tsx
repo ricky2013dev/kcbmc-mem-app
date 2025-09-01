@@ -15,7 +15,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, Trash2, LogOut, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, Search, Plus, Edit, Trash2, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer } from 'lucide-react';
 import styles from './dashboard.module.css';
 
 // Helper function to get default date range (recent 3 months, Sunday-only)
@@ -53,7 +53,8 @@ export default function DashboardPage() {
   });
 
   const [hasSearched, setHasSearched] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
   const [magnifiedImage, setMagnifiedImage] = useState<{ src: string; alt: string } | null>(null);
 
@@ -142,6 +143,29 @@ export default function DashboardPage() {
   const getStatusDisplayLabel = (status: string) => {
     const option = MEMBER_STATUS_OPTIONS.find(opt => opt.value === status);
     return option ? option.label : status;
+  };
+
+  const getActiveFilters = () => {
+    const activeFilters = [];
+    
+    if (filters.dateFrom) {
+      activeFilters.push({ label: 'From', value: filters.dateFrom });
+    }
+    if (filters.dateTo) {
+      activeFilters.push({ label: 'To', value: filters.dateTo });
+    }
+    if (filters.name) {
+      activeFilters.push({ label: 'Name', value: filters.name });
+    }
+    if (filters.supportTeamMember) {
+      activeFilters.push({ label: 'Support Team', value: filters.supportTeamMember });
+    }
+    if (filters.memberStatus && filters.memberStatus !== 'all') {
+      const statusLabel = getStatusDisplayLabel(filters.memberStatus);
+      activeFilters.push({ label: 'Status', value: statusLabel });
+    }
+    
+    return activeFilters;
   };
 
   const getChildGrades = (family: FamilyWithMembers) => {
@@ -236,89 +260,105 @@ export default function DashboardPage() {
           </CardHeader>
           {showFilters && (
             <CardContent className={styles.searchContent}>
-            <div className={styles.searchGrid}>
-              <div>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  placeholder="Search by name..."
-                  value={filters.name}
-                  onChange={(e) => setFilters(prev => ({ ...prev, name: e.target.value }))}
-                  data-testid="input-search-name"
-                />
+              {/* Date Range - Always Visible */}
+              <div className={styles.dateGrid}>
+                <div>
+                  <Label htmlFor="dateFrom">방문일 (From)</Label>
+                  <SundayDatePicker
+                    value={filters.dateFrom}
+                    onChange={(value) => setFilters(prev => ({ ...prev, dateFrom: value }))}
+                    data-testid="input-date-from"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="dateTo">방문일(To)</Label>
+                  <SundayDatePicker
+                    value={filters.dateTo}
+                    onChange={(value) => setFilters(prev => ({ ...prev, dateTo: value }))}
+                    data-testid="input-date-to"
+                  />
+                </div>
               </div>
+
+              {/* More Filters Toggle */}
+              <div className="flex justify-center my-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowMoreFilters(!showMoreFilters)}
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  {showMoreFilters ? (
+                    <>
+                      <ChevronUp className="w-4 h-4 mr-2" />
+                      Less Filters
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4 mr-2" />
+                      More Filters
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Additional Filters - Conditionally Visible */}
+              {showMoreFilters && (
+                <div className={styles.searchGrid}>
+                  <div>
+                    <Label htmlFor="name">이름</Label>
+                    <Input
+                      id="name"
+                      placeholder="Search by name..."
+                      value={filters.name}
+                      onChange={(e) => setFilters(prev => ({ ...prev, name: e.target.value }))}
+                      data-testid="input-search-name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="supportTeam">섬김이</Label>
+                    <Input
+                      id="supportTeam"
+                      placeholder="Support team member..."
+                      value={filters.supportTeamMember}
+                      onChange={(e) => setFilters(prev => ({ ...prev, supportTeamMember: e.target.value }))}
+                      data-testid="input-search-support-team"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="status">방문/등록</Label>
+                    <Select value={filters.memberStatus} onValueChange={(value) => setFilters(prev => ({ ...prev, memberStatus: value }))}>
+                      <SelectTrigger data-testid="select-search-status">
+                        <SelectValue placeholder="All Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        {MEMBER_STATUS_OPTIONS.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
               
-              <div>
-                <Label htmlFor="lifeGroup">Life Group</Label>
-                <Input
-                  id="lifeGroup"
-                  placeholder="Life group..."
-                  value={filters.lifeGroup}
-                  onChange={(e) => setFilters(prev => ({ ...prev, lifeGroup: e.target.value }))}
-                  data-testid="input-search-life-group"
-                />
+              {/* Search Actions */}
+              <div className={styles.searchActions}>
+                <Button onClick={handleSearch} data-testid="button-search">
+                  <Search className="w-4 h-4 mr-2" />
+                  Search
+                </Button>
+                
+                <Button variant="secondary" onClick={clearFilters} data-testid="button-clear-filters">
+                  Clear Filters
+                </Button>
               </div>
-              
-              <div>
-                <Label htmlFor="supportTeam">Support Team</Label>
-                <Input
-                  id="supportTeam"
-                  placeholder="Support team member..."
-                  value={filters.supportTeamMember}
-                  onChange={(e) => setFilters(prev => ({ ...prev, supportTeamMember: e.target.value }))}
-                  data-testid="input-search-support-team"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="status">Member Status</Label>
-                <Select value={filters.memberStatus} onValueChange={(value) => setFilters(prev => ({ ...prev, memberStatus: value }))}>
-                  <SelectTrigger data-testid="select-search-status">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    {MEMBER_STATUS_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className={styles.dateGrid}>
-              <div>
-                <Label htmlFor="dateFrom">Visited Date (From)</Label>
-                <SundayDatePicker
-                  value={filters.dateFrom}
-                  onChange={(value) => setFilters(prev => ({ ...prev, dateFrom: value }))}
-                  data-testid="input-date-from"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="dateTo">Visited Date (To)</Label>
-                <SundayDatePicker
-                  value={filters.dateTo}
-                  onChange={(value) => setFilters(prev => ({ ...prev, dateTo: value }))}
-                  data-testid="input-date-to"
-                />
-              </div>
-            </div>
-            
-            <div className={styles.searchActions}>
-              <Button onClick={handleSearch} data-testid="button-search">
-                <Search className="w-4 h-4 mr-2" />
-                Search Families
-              </Button>
-              
-              <Button variant="secondary" onClick={clearFilters} data-testid="button-clear-filters">
-                Clear Filters
-              </Button>
-            </div>
-          </CardContent>
+            </CardContent>
           )}
         </Card>
         )}
@@ -327,11 +367,11 @@ export default function DashboardPage() {
         <Card className={styles.resultsCard}>
           <CardHeader className={styles.resultsHeader}>
             <div className="flex items-center justify-between">
-              <h3 className={styles.resultsTitle}>Search Results {hasSearched && (
+              <h4 className={styles.resultsTitle}> Results {hasSearched && (
                 < >
                   : {families.length} 
                 </>
-              )}</h3>
+              )}</h4>
               {!showFilters && (
                 <Button 
                   variant="ghost" 
@@ -344,6 +384,19 @@ export default function DashboardPage() {
                 </Button>
               )}
             </div>
+            
+            {/* Active Filters Display */}
+            {hasSearched && getActiveFilters().length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-3 mt-3 border-t border-border">
+                <span className="text-sm font-medium text-muted-foreground mr-2"></span>
+                {getActiveFilters().map((filter, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    <span className="font-medium">{filter.label}:</span>
+                    <span className="ml-1">{filter.value}</span>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </CardHeader>
           
           {!hasSearched ? (
@@ -446,24 +499,6 @@ export default function DashboardPage() {
                           )}
                           
                           <div className={styles.contactInfo}>
-                            {family.supportTeamMember && (
-                              <div className={styles.infoItem}>
-                                <span className={styles.infoLabel}>Support Team:</span>
-                                <span>{family.supportTeamMember}</span>
-                              </div>
-                            )}
-                            {family.lifeGroup && (
-                              <div className={styles.infoItem}>
-                                <span className={styles.infoLabel}>Life Group:</span>
-                                <span>{family.lifeGroup}</span>
-                              </div>
-                            )}
-                            {family.phoneNumber && (
-                              <div className={styles.infoItem}>
-                                <span className={styles.infoLabel}>Phone:</span>
-                                <span>{family.phoneNumber}</span>
-                              </div>
-                            )}
                             {(() => {
                               const children = family.members.filter(m => m.relationship === 'child');
                               return children.length > 0 && (
@@ -491,20 +526,120 @@ export default function DashboardPage() {
                               );
                             })()}
                             {(() => {
-                              const husband = family.members.find(m => m.relationship === 'husband');
-                              return husband?.courses && husband.courses.length > 0 && (
+                              const fullAddress = [
+                                family.address,
+                                family.city,
+                                family.state,
+                                family.zipCode
+                              ].filter(Boolean).join(', ');
+                              
+                              return fullAddress && (
                                 <div className={styles.infoItem}>
-                                  <span className={styles.infoLabel}>Husband Courses:</span>
-                                  <span>{husband.courses.join(', ')}</span>
+                        
+                                  <div className="flex items-center gap-2">
+                                    <span>{fullAddress}</span>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 w-6 p-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+                                          window.open(mapsUrl, '_blank');
+                                        }}
+                                        title="Open in Google Maps"
+                                      >
+                                        <MapPin className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 w-6 p-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          window.print();
+                                        }}
+                                        title="Print"
+                                      >
+                                        <Printer className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                            {(() => {
+                              const husband = family.members.find(m => m.relationship === 'husband');
+                              return husband?.phoneNumber && (
+                                <div className={styles.infoItem}>
+                                  <span className={styles.infoLabel}>Phone</span>
+                                  <div className="flex items-center gap-2">
+                                    <span>H:{husband.phoneNumber}</span>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 w-6 p-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          window.open(`tel:${husband.phoneNumber}`, '_self');
+                                        }}
+                                        title="Call"
+                                      >
+                                        <Phone className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 w-6 p-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          window.open(`sms:${husband.phoneNumber}`, '_self');
+                                        }}
+                                        title="Text"
+                                      >
+                                        <MessageSquare className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
                                 </div>
                               );
                             })()}
                             {(() => {
                               const wife = family.members.find(m => m.relationship === 'wife');
-                              return wife?.courses && wife.courses.length > 0 && (
+                              return wife?.phoneNumber && (
                                 <div className={styles.infoItem}>
-                                  <span className={styles.infoLabel}>Wife Courses:</span>
-                                  <span>{wife.courses.join(', ')}</span>
+                                 
+                                  <div className="flex items-center gap-2">
+                                    <span>W: {wife.phoneNumber}</span>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 w-6 p-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          window.open(`tel:${wife.phoneNumber}`, '_self');
+                                        }}
+                                        title="Call"
+                                      >
+                                        <Phone className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 w-6 p-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          window.open(`sms:${wife.phoneNumber}`, '_self');
+                                        }}
+                                        title="Text"
+                                      >
+                                        <MessageSquare className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
                                 </div>
                               );
                             })()}
