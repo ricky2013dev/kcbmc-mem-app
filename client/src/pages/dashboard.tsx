@@ -16,7 +16,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, Trash2, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X } from 'lucide-react';
+import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy } from 'lucide-react';
 import styles from './dashboard.module.css';
 
 // Helper function to get default date range (recent 3 months, Sunday-only)
@@ -80,25 +80,6 @@ export default function DashboardPage() {
     enabled: hasSearched,
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (familyId: string) => {
-      await apiRequest('DELETE', `/api/families/${familyId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['families'] });
-      toast({
-        title: "Success",
-        description: "Family deleted successfully.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete family.",
-        variant: "destructive",
-      });
-    },
-  });
 
   const handleSearch = () => {
     setHasSearched(true);
@@ -117,11 +98,6 @@ export default function DashboardPage() {
     setHasSearched(false);
   };
 
-  const handleDeleteFamily = async (familyId: string, familyName: string) => {
-    if (window.confirm(`Are you sure you want to delete the family "${familyName}"? This action cannot be undone.`)) {
-      await deleteMutation.mutateAsync(familyId);
-    }
-  };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -177,6 +153,19 @@ export default function DashboardPage() {
     return grades.length > 0 ? grades.join(', ') : null;
   };
 
+  const hasAddress = (family: FamilyWithMembers) => {
+    return family.address || family.city || family.state || family.zipCode;
+  };
+
+  const getPhoneCount = (family: FamilyWithMembers) => {
+    const husband = family.members.find(m => m.relationship === 'husband');
+    const wife = family.members.find(m => m.relationship === 'wife');
+    let count = 0;
+    if (husband?.phoneNumber) count++;
+    if (wife?.phoneNumber) count++;
+    return count;
+  };
+
   const toggleFamilyExpanded = (familyId: string) => {
     setExpandedFamilies(prev => {
       const newSet = new Set(prev);
@@ -187,6 +176,195 @@ export default function DashboardPage() {
       }
       return newSet;
     });
+  };
+
+  const printSearchResults = () => {
+    const printContent = `
+      <html>
+        <head>
+          <title>Family Search Results</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }
+            .header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+            .title { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+            .search-info { color: #666; margin-bottom: 5px; }
+            .results-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            .results-table th { background: #f5f5f5; padding: 8px; border: 1px solid #ddd; font-weight: bold; text-align: left; }
+            .results-table td { padding: 6px 8px; border: 1px solid #ddd; vertical-align: top; }
+            .results-table tr:nth-child(even) { background: #f9f9f9; }
+            @media print { body { margin: 0; } .results-table { font-size: 10px; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">Family Search Results</div>
+            <div class="search-info">Total Results: ${families.length}</div>
+            <div class="search-info">Generated: ${new Date().toLocaleDateString()}</div>
+          </div>
+          
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>Family Name</th>
+                <th>Visited Date</th>
+                <th>Children</th>
+                <th>Phone</th>
+                <th>Supporter</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${families.map(family => {
+                const children = family.members.filter(m => m.relationship === 'child');
+                const husband = family.members.find(m => m.relationship === 'husband');
+                const wife = family.members.find(m => m.relationship === 'wife');
+                const phones = [husband?.phoneNumber, wife?.phoneNumber].filter(Boolean);
+                
+                const childrenNames = children.map(child => {
+                  const name = child.koreanName && child.englishName 
+                    ? `${child.koreanName} (${child.englishName})`
+                    : child.koreanName || child.englishName || '';
+                  return name;
+                }).join(', ');
+                
+                return `
+                  <tr>
+                    <td><strong>${family.familyName}</strong></td>
+                    <td>${family.visitedDate}</td>
+                    <td>${childrenNames || '-'}</td>
+                    <td>${phones.join(', ') || '-'}</td>
+                    <td>${family.supportTeamMember || '-'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }
+  };
+
+  const printFamilyInfo = (family: FamilyWithMembers) => {
+    const children = family.members.filter(m => m.relationship === 'child');
+    const childrenInfo = children.map(child => {
+      const name = child.koreanName && child.englishName 
+        ? `${child.koreanName} (${child.englishName})`
+        : child.koreanName || child.englishName || '';
+      const grade = child.gradeLevel || '';
+      const gradeGroup = child.gradeGroup || '';
+      return { name, grade, gradeGroup };
+    });
+
+    const fullAddress = [
+      family.address,
+      family.city,
+      family.state,
+      family.zipCode
+    ].filter(Boolean).join(', ');
+
+    const husband = family.members.find(m => m.relationship === 'husband');
+    const wife = family.members.find(m => m.relationship === 'wife');
+
+    const printContent = `
+      <html>
+        <head>
+          <title>Family Information - ${family.familyName}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 20px; }
+            .header-content { flex: 1; }
+            .family-picture { width: 120px; height: 120px; border: 2px solid #ddd; border-radius: 8px; object-fit: cover; }
+            .dummy-picture { width: 120px; height: 120px; border: 2px solid #ddd; border-radius: 8px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; color: #999; font-size: 48px; }
+            .family-name { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+            .section { margin-bottom: 20px; }
+            .section-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #333; }
+            .child-item { margin: 5px 0; padding: 5px; border-left: 3px solid #4CAF50; background: #f9f9f9; }
+            .contact-item { margin: 5px 0; padding: 8px; background: #f8f9fa; border-radius: 4px; }
+            .notes { background: #f0f8ff; padding: 15px; border-radius: 5px; white-space: pre-wrap; }
+            .supporter { background: #fff3cd; padding: 8px; border-radius: 4px; font-weight: bold; color: #856404; margin-top: 10px; }
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              ${family.familyPicture ? `
+                <img src="${family.familyPicture}" alt="${family.familyName} family" class="family-picture" />
+              ` : `
+                <div class="dummy-picture">
+                  👤
+                </div>
+              `}
+            </div>
+            <div class="header-content">
+              <div class="family-name">${family.familyName}</div>
+              <div>Visited: ${family.visitedDate}</div>
+              ${family.supportTeamMember ? `
+                <div class="supporter">Support Team: ${family.supportTeamMember}</div>
+              ` : ''}
+            </div>
+          </div>
+          
+          ${fullAddress || husband?.phoneNumber || wife?.phoneNumber ? `
+          <div class="section">
+            <div class="section-title">Contact Information</div>
+            ${fullAddress ? `
+              <div class="contact-item">
+                <strong>Address:</strong> ${fullAddress}
+              </div>
+            ` : ''}
+            ${husband?.phoneNumber ? `
+              <div class="contact-item">
+                <strong>Husband Phone:</strong> ${husband.phoneNumber}
+              </div>
+            ` : ''}
+            ${wife?.phoneNumber ? `
+              <div class="contact-item">
+                <strong>Wife Phone:</strong> ${wife.phoneNumber}
+              </div>
+            ` : ''}
+          </div>
+          ` : ''}
+          
+          ${childrenInfo.length > 0 ? `
+          <div class="section">
+            <div class="section-title">Children</div>
+            ${childrenInfo.map(child => `
+              <div class="child-item">
+                <strong>${child.name}</strong>
+                ${child.grade ? ` - Grade: ${child.grade}` : ''}
+                ${child.gradeGroup ? ` (${child.gradeGroup})` : ''}
+              </div>
+            `).join('')}
+          </div>
+          ` : ''}
+          
+          ${family.familyNotes ? `
+          <div class="section">
+            <div class="section-title">Family Notes</div>
+            <div class="notes">${family.familyNotes}</div>
+          </div>
+          ` : ''}
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }
   };
 
   return (
@@ -369,11 +547,24 @@ export default function DashboardPage() {
         <Card className={styles.resultsCard}>
           <CardHeader className={styles.resultsHeader}>
             <div className="flex items-center justify-between">
-              <h4 className={styles.resultsTitle}> Results {hasSearched && (
-                < >
-                  : {families.length} 
-                </>
-              )}</h4>
+              <div className="flex items-center gap-2">
+                <h4 className={styles.resultsTitle}> Results {hasSearched && (
+                  < >
+                    : {families.length} 
+                  </>
+                )}</h4>
+                {hasSearched && families.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={printSearchResults}
+                    title="Print Search Results"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
               {!showFilters && (
                 <Button 
                   variant="ghost" 
@@ -469,6 +660,17 @@ export default function DashboardPage() {
                                 {getChildGrades(family)}
                               </Badge>
                             )}
+                            {hasAddress(family) && (
+                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                <Home className="w-3 h-3 mr-1" />
+                              </Badge>
+                            )}
+                            {getPhoneCount(family) > 0 && (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                <Phone className="w-3 h-3 mr-1" />
+                                
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -554,12 +756,22 @@ export default function DashboardPage() {
                                             className="h-6 w-6 p-0"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
-                                              window.open(mapsUrl, '_blank');
+                                              navigator.clipboard.writeText(fullAddress).then(() => {
+                                                toast({
+                                                  title: "Copied",
+                                                  description: "Address copied to clipboard",
+                                                });
+                                              }).catch(() => {
+                                                toast({
+                                                  title: "Copy failed",
+                                                  description: "Could not copy address",
+                                                  variant: "destructive",
+                                                });
+                                              });
                                             }}
-                                            title="Open in Google Maps"
+                                            title="Copy address"
                                           >
-                                            <MapPin className="h-3 w-3" />
+                                            <Copy className="h-3 w-3" />
                                           </Button>
                                           <Button
                                             size="sm"
@@ -567,11 +779,12 @@ export default function DashboardPage() {
                                             className="h-6 w-6 p-0"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              window.print();
+                                              const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+                                              window.open(mapsUrl, '_blank');
                                             }}
-                                            title="Print"
+                                            title="Open in Google Maps"
                                           >
-                                            <Printer className="h-3 w-3" />
+                                            <MapPin className="h-3 w-3" />
                                           </Button>
                                         </div>
                                       </div>
@@ -665,25 +878,21 @@ export default function DashboardPage() {
                                   data-testid={`button-edit-${family.id}`}
                                   className={styles.editButton}
                                 >
-                                  <Edit className="w-4 h-4 mr-1" />
+                                  <Edit className="w-3 h-3 mr-1" />
                                   Edit
                                 </Button>
-                                {canAddDelete && (
-                                  <Button 
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteFamily(family.id, family.familyName);
-                                    }}
-                                    disabled={deleteMutation.isPending}
-                                    data-testid={`button-delete-${family.id}`}
-                                    className={styles.deleteButton}
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-1" />
-                                    Delete
-                                  </Button>
-                                )}
+                                <Button 
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    printFamilyInfo(family);
+                                  }}
+                                  title="Print Family Information"
+                                >
+                                  <Printer className="w-3 h-3 mr-1" />
+                                  Print
+                                </Button>
                                 <Button 
                                   size="sm"
                                   variant="outline"
@@ -692,9 +901,8 @@ export default function DashboardPage() {
                                     toggleFamilyExpanded(family.id);
                                   }}
                                   title="Close"
-                                  className="ml-2"
                                 >
-                                  <X className="w-4 h-4 mr-1" />
+                                  <X className="w-3 h-3 mr-1" />
                                   Close
                                 </Button>
                               </div>
