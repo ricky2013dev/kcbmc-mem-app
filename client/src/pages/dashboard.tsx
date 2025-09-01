@@ -16,7 +16,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy } from 'lucide-react';
+import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check } from 'lucide-react';
 import styles from './dashboard.module.css';
 
 // Helper function to get default date range (recent 3 months, Sunday-only)
@@ -58,6 +58,8 @@ export default function DashboardPage() {
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
   const [magnifiedImage, setMagnifiedImage] = useState<{ src: string; alt: string } | null>(null);
+  const [selectedQuickFilter, setSelectedQuickFilter] = useState<'thisWeek' | 'lastWeek' | 'lastMonth' | null>(null);
+  const [selectedMemberStatuses, setSelectedMemberStatuses] = useState<Set<string>>(new Set());
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters],
@@ -81,9 +83,6 @@ export default function DashboardPage() {
   });
 
 
-  const handleSearch = () => {
-    setHasSearched(true);
-  };
 
   const clearFilters = () => {
     const defaultDateRange = getDefaultDateRange();
@@ -95,7 +94,32 @@ export default function DashboardPage() {
       dateFrom: defaultDateRange.dateFrom,
       dateTo: defaultDateRange.dateTo
     });
-    setHasSearched(false);
+    setSelectedQuickFilter(null);
+    setSelectedMemberStatuses(new Set());
+    setHasSearched(true);
+  };
+
+  const toggleMemberStatus = (status: string) => {
+    const newSelected = new Set(selectedMemberStatuses);
+    if (newSelected.has(status)) {
+      newSelected.delete(status);
+    } else {
+      newSelected.add(status);
+    }
+    setSelectedMemberStatuses(newSelected);
+    
+    // Update the filter based on selected statuses
+    // If no statuses selected or if both 'visit' and 'member' are selected, show all
+    const memberStatusFilter = 
+      newSelected.size === 0 || 
+      (newSelected.has('visit') && newSelected.has('member')) 
+        ? 'all' 
+        : Array.from(newSelected).join(',');
+    setFilters(prev => ({ 
+      ...prev, 
+      memberStatus: memberStatusFilter 
+    }));
+    setHasSearched(true);
   };
 
 
@@ -198,6 +222,7 @@ export default function DashboardPage() {
         <body>
           <div class="header">
             <div class="title">Family Search Results</div>
+            <div class="search-info">Date Range: ${filters.dateFrom || 'N/A'} to ${filters.dateTo || 'N/A'}</div>
             <div class="search-info">Total Results: ${families.length}</div>
             <div class="search-info">Generated: ${new Date().toLocaleDateString()}</div>
           </div>
@@ -208,6 +233,7 @@ export default function DashboardPage() {
                 <th>Family Name</th>
                 <th>Visited Date</th>
                 <th>Children</th>
+                <th>Address</th>
                 <th>Phone</th>
                 <th>Supporter</th>
               </tr>
@@ -217,21 +243,42 @@ export default function DashboardPage() {
                 const children = family.members.filter(m => m.relationship === 'child');
                 const husband = family.members.find(m => m.relationship === 'husband');
                 const wife = family.members.find(m => m.relationship === 'wife');
-                const phones = [husband?.phoneNumber, wife?.phoneNumber].filter(Boolean);
                 
-                const childrenNames = children.map(child => {
+                const fullAddress = [
+                  family.address,
+                  family.city,
+                  family.state,
+                  family.zipCode
+                ].filter(Boolean).join(', ');
+                
+                const phoneInfo = [];
+                if (husband?.phoneNumber) phoneInfo.push(`H: ${husband.phoneNumber}`);
+                if (wife?.phoneNumber) phoneInfo.push(`W: ${wife.phoneNumber}`);
+                
+                const childrenInfo = children.map(child => {
                   const name = child.koreanName && child.englishName 
                     ? `${child.koreanName} (${child.englishName})`
                     : child.koreanName || child.englishName || '';
-                  return name;
+                  const grade = child.gradeLevel || '';
+                  const gradeGroup = child.gradeGroup || '';
+                  let childInfo = name;
+                  if (grade) {
+                    childInfo += ` [${grade}`;
+                    if (gradeGroup) {
+                      childInfo += ` ${gradeGroup}`;
+                    }
+                    childInfo += ']';
+                  }
+                  return childInfo;
                 }).join(', ');
                 
                 return `
                   <tr>
                     <td><strong>${family.familyName}</strong></td>
                     <td>${family.visitedDate}</td>
-                    <td>${childrenNames || '-'}</td>
-                    <td>${phones.join(', ') || '-'}</td>
+                    <td>${childrenInfo || '-'}</td>
+                    <td>${fullAddress || '-'}</td>
+                    <td>${phoneInfo.join(', ') || '-'}</td>
                     <td>${family.supportTeamMember || '-'}</td>
                   </tr>
                 `;
@@ -439,13 +486,134 @@ export default function DashboardPage() {
           </CardHeader>
           {showFilters && (
             <CardContent className={styles.searchContent}>
+              {/* Quick Date Filter Buttons - Moved to top */}
+              <div className="flex gap-2 mb-4 flex-wrap">
+                <Button
+                  variant={selectedQuickFilter === 'thisWeek' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date();
+                    const thisWeekSunday = getPreviousSunday(today);
+                    const dateString = formatDateForInput(thisWeekSunday);
+                    setFilters(prev => ({ 
+                      ...prev, 
+                      dateFrom: dateString, 
+                      dateTo: dateString 
+                    }));
+                    setSelectedQuickFilter('thisWeek');
+                  }}
+                  className={`text-xs flex items-center gap-1 ${
+                    selectedQuickFilter === 'thisWeek' 
+                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
+                      : ''
+                  }`}
+                >
+                  {selectedQuickFilter === 'thisWeek' && <Check className="w-3 h-3" />}
+                  This Week
+                </Button>
+                <Button
+                  variant={selectedQuickFilter === 'lastWeek' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date();
+                    const thisWeekSunday = getPreviousSunday(today);
+                    const lastWeekSunday = new Date(thisWeekSunday);
+                    lastWeekSunday.setDate(thisWeekSunday.getDate() - 7);
+                    const dateString = formatDateForInput(lastWeekSunday);
+                    setFilters(prev => ({ 
+                      ...prev, 
+                      dateFrom: dateString, 
+                      dateTo: dateString 
+                    }));
+                    setSelectedQuickFilter('lastWeek');
+                  }}
+                  className={`text-xs flex items-center gap-1 ${
+                    selectedQuickFilter === 'lastWeek' 
+                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
+                      : ''
+                  }`}
+                >
+                  {selectedQuickFilter === 'lastWeek' && <Check className="w-3 h-3" />}
+                  Last Week
+                </Button>
+                <Button
+                  variant={selectedQuickFilter === 'lastMonth' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date();
+                    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+                    const dateFrom = formatDateForInput(getPreviousSunday(lastMonth));
+                    const dateTo = formatDateForInput(getPreviousSunday(lastMonthEnd));
+                    setFilters(prev => ({ 
+                      ...prev, 
+                      dateFrom: dateFrom, 
+                      dateTo: dateTo 
+                    }));
+                    setSelectedQuickFilter('lastMonth');
+                  }}
+                  className={`text-xs flex items-center gap-1 ${
+                    selectedQuickFilter === 'lastMonth' 
+                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
+                      : ''
+                  }`}
+                >
+                  {selectedQuickFilter === 'lastMonth' && <Check className="w-3 h-3" />}
+                  Last Month
+                </Button>
+                
+                {/* Member Status Quick Filters - Multi-selection */}
+                <Button
+                  variant={selectedMemberStatuses.has('visit') ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => toggleMemberStatus('visit')}
+                  className={`text-xs flex items-center gap-1 ${
+                    selectedMemberStatuses.has('visit') 
+                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
+                      : ''
+                  }`}
+                >
+                  {selectedMemberStatuses.has('visit') && <Check className="w-3 h-3" />}
+                  방문
+                </Button>
+                <Button
+                  variant={selectedMemberStatuses.has('member') ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => toggleMemberStatus('member')}
+                  className={`text-xs flex items-center gap-1 ${
+                    selectedMemberStatuses.has('member') 
+                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
+                      : ''
+                  }`}
+                >
+                  {selectedMemberStatuses.has('member') && <Check className="w-3 h-3" />}
+                  등록
+                </Button>
+                <Button
+                  variant={selectedMemberStatuses.has('pending') ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => toggleMemberStatus('pending')}
+                  className={`text-xs flex items-center gap-1 ${
+                    selectedMemberStatuses.has('pending') 
+                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
+                      : ''
+                  }`}
+                >
+                  {selectedMemberStatuses.has('pending') && <Check className="w-3 h-3" />}
+                  미정
+                </Button>
+              </div>
+
               {/* Date Range - Always Visible */}
               <div className={styles.dateGrid}>
                 <div>
                   <Label htmlFor="dateFrom">방문일 (From)</Label>
                   <SundayDatePicker
                     value={filters.dateFrom}
-                    onChange={(value) => setFilters(prev => ({ ...prev, dateFrom: value }))}
+                    onChange={(value) => {
+                      setFilters(prev => ({ ...prev, dateFrom: value }));
+                      setHasSearched(true);
+                    }}
                     data-testid="input-date-from"
                   />
                 </div>
@@ -454,7 +622,10 @@ export default function DashboardPage() {
                   <Label htmlFor="dateTo">방문일(To)</Label>
                   <SundayDatePicker
                     value={filters.dateTo}
-                    onChange={(value) => setFilters(prev => ({ ...prev, dateTo: value }))}
+                    onChange={(value) => {
+                      setFilters(prev => ({ ...prev, dateTo: value }));
+                      setHasSearched(true);
+                    }}
                     data-testid="input-date-to"
                   />
                 </div>
@@ -471,7 +642,10 @@ export default function DashboardPage() {
                       id="name"
                       placeholder="Search by name..."
                       value={filters.name}
-                      onChange={(e) => setFilters(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) => {
+                        setFilters(prev => ({ ...prev, name: e.target.value }));
+                        setHasSearched(true);
+                      }}
                       data-testid="input-search-name"
                     />
                   </div>
@@ -482,41 +656,23 @@ export default function DashboardPage() {
                       id="supportTeam"
                       placeholder="Support team member..."
                       value={filters.supportTeamMember}
-                      onChange={(e) => setFilters(prev => ({ ...prev, supportTeamMember: e.target.value }))}
+                      onChange={(e) => {
+                        setFilters(prev => ({ ...prev, supportTeamMember: e.target.value }));
+                        setHasSearched(true);
+                      }}
                       data-testid="input-search-support-team"
                     />
                   </div>
                   
-                  <div>
-                    <Label htmlFor="status">방문/등록</Label>
-                    <Select value={filters.memberStatus} onValueChange={(value) => setFilters(prev => ({ ...prev, memberStatus: value }))}>
-                      <SelectTrigger data-testid="select-search-status">
-                        <SelectValue placeholder="All Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        {MEMBER_STATUS_OPTIONS.map(option => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+    
                 </div>
               )}
               
-              {/* Search Actions */}
+              {/* Filter Actions */}
               <div className={styles.searchActions}>
-                <Button onClick={handleSearch} data-testid="button-search">
-                  <Search className="w-4 h-4 mr-2" />
-                  Search
-                </Button>
-                
                 <Button variant="secondary" onClick={clearFilters} data-testid="button-clear-filters">
                   Clear 
                 </Button>
-
 
                 <Button 
                   variant="outline" 
@@ -536,7 +692,6 @@ export default function DashboardPage() {
                     </>
                   )}
                 </Button>
-  
               </div>
             </CardContent>
           )}

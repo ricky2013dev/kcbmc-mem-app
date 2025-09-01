@@ -133,8 +133,14 @@ export class DatabaseStorage implements IStorage {
       conditions.push(like(families.supportTeamMember, `%${filters.supportTeamMember}%`));
     }
     
-    if (filters?.memberStatus) {
-      conditions.push(eq(families.memberStatus, filters.memberStatus));
+    if (filters?.memberStatus && filters.memberStatus !== 'all') {
+      // Handle comma-separated values as OR conditions
+      const statusValues = filters.memberStatus.split(',').map(s => s.trim());
+      if (statusValues.length === 1) {
+        conditions.push(eq(families.memberStatus, statusValues[0]));
+      } else {
+        conditions.push(or(...statusValues.map(status => eq(families.memberStatus, status))));
+      }
     }
     
     if (filters?.dateFrom) {
