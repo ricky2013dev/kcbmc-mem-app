@@ -212,7 +212,6 @@ export default function DashboardPage() {
         <Card className={`${styles.searchCard} ${!showFilters ? styles.searchCardCompact : ''}`}>
           <CardHeader className={!showFilters ? styles.searchHeaderCompact : ''}>
             <div className={styles.searchHeader}>
-              <h2 className={styles.searchTitle}>Search Families</h2>
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -228,7 +227,7 @@ export default function DashboardPage() {
                 ) : (
                   <>
                     <ChevronDown className="w-4 h-4 mr-2" />
-                    Show Filters
+                    Search Filters
                   </>
                 )}
               </Button>
@@ -325,12 +324,12 @@ export default function DashboardPage() {
         {/* Results Section */}
         <Card className={styles.resultsCard}>
           <CardHeader className={styles.resultsHeader}>
-            <h3 className={styles.resultsTitle}>Search Results</h3>
-            {hasSearched && (
-              <p className={styles.resultsCount} data-testid="text-results-count">
-                {families.length} families found
-              </p>
-            )}
+            <h3 className={styles.resultsTitle}>Search Results {hasSearched && (
+              < >
+                : {families.length} 
+              </>
+            )}</h3>
+            
           </CardHeader>
           
           {!hasSearched ? (
