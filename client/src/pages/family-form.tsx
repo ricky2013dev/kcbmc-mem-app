@@ -36,6 +36,7 @@ import {
   getGradeGroup,
   generateFamilyName,
   generateFullAddress,
+  calculateGradeLevelFromBirthdate,
 } from "@/utils/grade-utils";
 import { formatDateForInput, getPreviousSunday } from "@/utils/date-utils";
 import {
@@ -179,6 +180,19 @@ const formatBirthDate = (input: string): string => {
 const handleBirthDateChange = (value: string, onChange: (value: string) => void) => {
   const formatted = formatBirthDate(value);
   onChange(formatted);
+};
+
+const handleChildBirthDateChange = (value: string, onChange: (value: string) => void, childIndex: number, form: any) => {
+  const formatted = formatBirthDate(value);
+  onChange(formatted);
+  
+  // Auto-calculate grade level if birthdate is complete (YYYY-MM-DD format)
+  if (formatted.length === 10) {
+    const calculatedGrade = calculateGradeLevelFromBirthdate(formatted);
+    if (calculatedGrade) {
+      form.setValue(`children.${childIndex}.gradeLevel`, calculatedGrade);
+    }
+  }
 };
 
 export default function FamilyFormPage({
@@ -1058,7 +1072,7 @@ export default function FamilyFormPage({
                                   type="text"
                                   placeholder="YYYYMMDD (e.g., 20100708)"
                                   maxLength={10}
-                                  onChange={(e) => handleBirthDateChange(e.target.value, field.onChange)}
+                                  onChange={(e) => handleChildBirthDateChange(e.target.value, field.onChange, index, form)}
                                   data-testid={`input-child-${index}-birth-date`}
                                 />
                               </FormControl>
