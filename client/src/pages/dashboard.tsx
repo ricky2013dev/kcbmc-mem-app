@@ -54,7 +54,7 @@ export default function DashboardPage() {
   });
 
   const [hasSearched, setHasSearched] = useState(true);
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
   const [magnifiedImage, setMagnifiedImage] = useState<{ src: string; alt: string } | null>(null);
@@ -282,27 +282,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* More Filters Toggle */}
-              <div className="flex justify-center my-4">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setShowMoreFilters(!showMoreFilters)}
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  {showMoreFilters ? (
-                    <>
-                      <ChevronUp className="w-4 h-4 mr-2" />
-                      Less Filters
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="w-4 h-4 mr-2" />
-                      More Filters
-                    </>
-                  )}
-                </Button>
-              </div>
+
 
               {/* Additional Filters - Conditionally Visible */}
               {showMoreFilters && (
@@ -356,8 +336,29 @@ export default function DashboardPage() {
                 </Button>
                 
                 <Button variant="secondary" onClick={clearFilters} data-testid="button-clear-filters">
-                  Clear Filters
+                  Clear 
                 </Button>
+
+
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowMoreFilters(!showMoreFilters)}
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  {showMoreFilters ? (
+                    <>
+                      <ChevronUp className="w-4 h-4 mr-2" />
+                      Less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4 mr-2" />
+                      More
+                    </>
+                  )}
+                </Button>
+  
               </div>
             </CardContent>
           )}
@@ -381,7 +382,7 @@ export default function DashboardPage() {
                   className="text-muted-foreground hover:text-primary"
                 >
                   <ChevronDown className="w-4 h-4 mr-2" />
-                  Show Filters
+                  Change Filters
                 </Button>
               )}
             </div>
@@ -475,20 +476,6 @@ export default function DashboardPage() {
                     
                     {expandedFamilies.has(family.id) && (
                       <div className={styles.expandedContent}>
-                        <div className="flex justify-end mb-2">
-                          <Button 
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 hover:bg-gray-100"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFamilyExpanded(family.id);
-                            }}
-                            title="Collapse"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
                         <Tabs defaultValue="current-info" className="w-full">
                           <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="current-info">Summary </TabsTrigger>
@@ -697,6 +684,19 @@ export default function DashboardPage() {
                                     Delete
                                   </Button>
                                 )}
+                                <Button 
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleFamilyExpanded(family.id);
+                                  }}
+                                  title="Close"
+                                  className="ml-2"
+                                >
+                                  <X className="w-4 h-4 mr-1" />
+                                  Close
+                                </Button>
                               </div>
                             </div>
                           </TabsContent>
