@@ -10,12 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { SundayDatePicker } from '@/components/sunday-date-picker';
 import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, Trash2, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer } from 'lucide-react';
+import { Users, Search, Plus, Edit, Trash2, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X } from 'lucide-react';
 import styles from './dashboard.module.css';
 
 // Helper function to get default date range (recent 3 months, Sunday-only)
@@ -426,9 +427,8 @@ export default function DashboardPage() {
                 <div key={family.id} className={styles.familyCard} data-testid={`card-family-${family.id}`}>
                   <div 
                     className={styles.familyContent}
-                    onClick={() => toggleFamilyExpanded(family.id)}
                   >
-                    <div className={styles.familyInfo}>
+                    <div className={styles.familyInfo} onClick={() => toggleFamilyExpanded(family.id)}>
                       <div className={styles.familyAvatar}>
                         {family.familyPicture ? (
                           <img 
@@ -475,208 +475,257 @@ export default function DashboardPage() {
                     
                     {expandedFamilies.has(family.id) && (
                       <div className={styles.expandedContent}>
-                        <div className={styles.familyDetailsExpanded}>
-                          {/* Large Family Picture */}
-                          {family.familyPicture && (
-                            <div className="mb-6 flex justify-center">
-                              <img 
-                                src={family.familyPicture} 
-                                alt={`${family.familyName} family`}
-                                className="w-32 h-32 object-cover rounded-lg border-4 border-primary/20 shadow-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMagnifiedImage({
-                                    src: family.familyPicture!,
-                                    alt: `${family.familyName} family`
-                                  });
-                                }}
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
-                              />
-                            </div>
-                          )}
-                          
-                          <div className={styles.contactInfo}>
-                            {(() => {
-                              const children = family.members.filter(m => m.relationship === 'child');
-                              return children.length > 0 && (
-                                <div className={styles.infoItem}>
-                                  <span className={styles.infoLabel}>Children:</span>
-                                  <div className="flex flex-wrap gap-2">
-                                    {children.map((child, index) => (
-                                      <div key={child.id || index} className="bg-green-50 border border-green-200 rounded px-2 py-1 text-sm">
-                                        <div className="font-medium">
-                                          {child.koreanName && child.englishName 
-                                            ? `${child.koreanName} (${child.englishName})`
-                                            : child.koreanName || child.englishName
-                                          }
-                                        </div>
-                                        {child.gradeLevel && (
-                                          <span className="text-green-700">
-                                            {child.gradeLevel}
-                                            {child.gradeGroup && ` (${child.gradeGroup})`}
-                                          </span>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                            {(() => {
-                              const fullAddress = [
-                                family.address,
-                                family.city,
-                                family.state,
-                                family.zipCode
-                              ].filter(Boolean).join(', ');
-                              
-                              return fullAddress && (
-                                <div className={styles.infoItem}>
-                        
-                                  <div className="flex items-center gap-2">
-                                    <span>{fullAddress}</span>
-                                    <div className="flex gap-1">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-6 w-6 p-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
-                                          window.open(mapsUrl, '_blank');
-                                        }}
-                                        title="Open in Google Maps"
-                                      >
-                                        <MapPin className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-6 w-6 p-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          window.print();
-                                        }}
-                                        title="Print"
-                                      >
-                                        <Printer className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                            {(() => {
-                              const husband = family.members.find(m => m.relationship === 'husband');
-                              return husband?.phoneNumber && (
-                                <div className={styles.infoItem}>
-                                  <span className={styles.infoLabel}>Phone</span>
-                                  <div className="flex items-center gap-2">
-                                    <span>H:{husband.phoneNumber}</span>
-                                    <div className="flex gap-1">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-6 w-6 p-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          window.open(`tel:${husband.phoneNumber}`, '_self');
-                                        }}
-                                        title="Call"
-                                      >
-                                        <Phone className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-6 w-6 p-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          window.open(`sms:${husband.phoneNumber}`, '_self');
-                                        }}
-                                        title="Text"
-                                      >
-                                        <MessageSquare className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                            {(() => {
-                              const wife = family.members.find(m => m.relationship === 'wife');
-                              return wife?.phoneNumber && (
-                                <div className={styles.infoItem}>
-                                 
-                                  <div className="flex items-center gap-2">
-                                    <span>W: {wife.phoneNumber}</span>
-                                    <div className="flex gap-1">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-6 w-6 p-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          window.open(`tel:${wife.phoneNumber}`, '_self');
-                                        }}
-                                        title="Call"
-                                      >
-                                        <Phone className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-6 w-6 p-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          window.open(`sms:${wife.phoneNumber}`, '_self');
-                                        }}
-                                        title="Text"
-                                      >
-                                        <MessageSquare className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                          
-                          <div className={styles.familyActions}>
-                            <Button 
-                              size="sm"
-                              variant="default"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setLocation(`/family/${family.id}/edit`);
-                              }}
-                              data-testid={`button-edit-${family.id}`}
-                              className={styles.editButton}
-                            >
-                              <Edit className="w-4 h-4 mr-1" />
-                              Edit
-                            </Button>
-                            {canAddDelete && (
-                              <Button 
-                                size="sm"
-                                variant="destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteFamily(family.id, family.familyName);
-                                }}
-                                disabled={deleteMutation.isPending}
-                                data-testid={`button-delete-${family.id}`}
-                                className={styles.deleteButton}
-                              >
-                                <Trash2 className="w-4 h-4 mr-1" />
-                                Delete
-                              </Button>
-                            )}
-                          </div>
+                        <div className="flex justify-end mb-2">
+                          <Button 
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 hover:bg-gray-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFamilyExpanded(family.id);
+                            }}
+                            title="Collapse"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
+                        <Tabs defaultValue="current-info" className="w-full">
+                          <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="current-info">Summary </TabsTrigger>
+                            <TabsTrigger value="family-notes">Notes</TabsTrigger>
+                            <TabsTrigger value="staff-notes">섬김이 로그</TabsTrigger>
+                          </TabsList>
+                          
+                          <TabsContent value="current-info" className="mt-4">
+                            <div className={styles.familyDetailsExpanded}>
+                              {/* Large Family Picture */}
+                              {family.familyPicture && (
+                                <div className="mb-6 flex justify-center">
+                                  <img 
+                                    src={family.familyPicture} 
+                                    alt={`${family.familyName} family`}
+                                    className="w-32 h-32 object-cover rounded-lg border-4 border-primary/20 shadow-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setMagnifiedImage({
+                                        src: family.familyPicture!,
+                                        alt: `${family.familyName} family`
+                                      });
+                                    }}
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              )}
+                              
+                              <div className={styles.contactInfo}>
+                                {(() => {
+                                  const children = family.members.filter(m => m.relationship === 'child');
+                                  return children.length > 0 && (
+                                    <div className={styles.infoItem}>
+                                      <span className={styles.infoLabel}>Children:</span>
+                                      <div className="flex flex-wrap gap-2">
+                                        {children.map((child, index) => (
+                                          <div key={child.id || index} className="bg-green-50 border border-green-200 rounded px-2 py-1 text-sm">
+                                            <div className="font-medium">
+                                              {child.koreanName && child.englishName 
+                                                ? `${child.koreanName} (${child.englishName})`
+                                                : child.koreanName || child.englishName
+                                              }
+                                            </div>
+                                            {child.gradeLevel && (
+                                              <span className="text-green-700">
+                                                {child.gradeLevel}
+                                                {child.gradeGroup && ` (${child.gradeGroup})`}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                {(() => {
+                                  const fullAddress = [
+                                    family.address,
+                                    family.city,
+                                    family.state,
+                                    family.zipCode
+                                  ].filter(Boolean).join(', ');
+                                  
+                                  return fullAddress && (
+                                    <div className={styles.infoItem}>
+                            
+                                      <div className="flex items-center gap-2">
+                                        <span>{fullAddress}</span>
+                                        <div className="flex gap-1">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 w-6 p-0"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+                                              window.open(mapsUrl, '_blank');
+                                            }}
+                                            title="Open in Google Maps"
+                                          >
+                                            <MapPin className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 w-6 p-0"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              window.print();
+                                            }}
+                                            title="Print"
+                                          >
+                                            <Printer className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                {(() => {
+                                  const husband = family.members.find(m => m.relationship === 'husband');
+                                  return husband?.phoneNumber && (
+                                    <div className={styles.infoItem}>
+                                      <span className={styles.infoLabel}>Phone</span>
+                                      <div className="flex items-center gap-2">
+                                        <span>H:{husband.phoneNumber}</span>
+                                        <div className="flex gap-1">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 w-6 p-0"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              window.open(`tel:${husband.phoneNumber}`, '_self');
+                                            }}
+                                            title="Call"
+                                          >
+                                            <Phone className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 w-6 p-0"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              window.open(`sms:${husband.phoneNumber}`, '_self');
+                                            }}
+                                            title="Text"
+                                          >
+                                            <MessageSquare className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                {(() => {
+                                  const wife = family.members.find(m => m.relationship === 'wife');
+                                  return wife?.phoneNumber && (
+                                    <div className={styles.infoItem}>
+                                     
+                                      <div className="flex items-center gap-2">
+                                        <span>W: {wife.phoneNumber}</span>
+                                        <div className="flex gap-1">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 w-6 p-0"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              window.open(`tel:${wife.phoneNumber}`, '_self');
+                                            }}
+                                            title="Call"
+                                          >
+                                            <Phone className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 w-6 p-0"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              window.open(`sms:${wife.phoneNumber}`, '_self');
+                                            }}
+                                            title="Text"
+                                          >
+                                            <MessageSquare className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                              
+                              <div className={styles.familyActions}>
+                                <Button 
+                                  size="sm"
+                                  variant="default"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLocation(`/family/${family.id}/edit`);
+                                  }}
+                                  data-testid={`button-edit-${family.id}`}
+                                  className={styles.editButton}
+                                >
+                                  <Edit className="w-4 h-4 mr-1" />
+                                  Edit
+                                </Button>
+                                {canAddDelete && (
+                                  <Button 
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteFamily(family.id, family.familyName);
+                                    }}
+                                    disabled={deleteMutation.isPending}
+                                    data-testid={`button-delete-${family.id}`}
+                                    className={styles.deleteButton}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    Delete
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </TabsContent>
+                          
+                          <TabsContent value="family-notes" className="mt-4">
+                            <div className="space-y-4">
+                              {family.familyNotes ? (
+                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                  <h5 className="font-medium text-blue-900 mb-2">Family Notes</h5>
+                                  <div className="text-blue-800 whitespace-pre-wrap">
+                                    {family.familyNotes}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="p-4 border border-dashed border-gray-300 rounded-lg text-center text-muted-foreground">
+                                  <p>No family notes available.</p>
+                                  <p className="text-sm mt-2">Add notes using the edit function.</p>
+                                </div>
+                              )}
+                            </div>
+                          </TabsContent>
+                          
+                          <TabsContent value="staff-notes" className="mt-4">
+                            <div className="p-4 border border-dashed border-gray-300 rounded-lg text-center text-muted-foreground">
+                              <p>Staff notes functionality will be implemented later.</p>
+                              <p className="text-sm mt-2">This will include internal staff communications and follow-up actions.</p>
+                            </div>
+                          </TabsContent>
+                        </Tabs>
                       </div>
                     )}
                   </div>
