@@ -19,16 +19,16 @@ import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
 import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check } from 'lucide-react';
 import styles from './dashboard.module.css';
 
-// Helper function to get default date range (recent 3 months, Sunday-only)
+// Helper function to get default date range (recent 12 months, Sunday-only)
 function getDefaultDateRange() {
   const today = new Date();
-  const threMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+  const twelveMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 12, today.getDate());
   
   // Get the most recent Sunday from today
   const dateTo = getPreviousSunday(today);
   
-  // Get the first Sunday from 3 months ago
-  const dateFrom = getPreviousSunday(threMonthsAgo);
+  // Get the first Sunday from 12 months ago
+  const dateFrom = getPreviousSunday(twelveMonthsAgo);
   
   return {
     dateFrom: formatDateForInput(dateFrom),
