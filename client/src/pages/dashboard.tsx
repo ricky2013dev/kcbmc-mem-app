@@ -455,7 +455,7 @@ export default function DashboardPage() {
 
 
             <span className={styles.userName} data-testid="text-current-user">
-              {user?.fullName} ({user?.group})
+              {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
             </span>
             <Button 
               variant="ghost" 
