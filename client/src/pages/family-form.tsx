@@ -1364,15 +1364,8 @@ export default function FamilyFormPage({
 
             {/* Form Actions */}
             <div className={styles.actions}>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setLocation("/")}
-                data-testid="button-cancel"
-              >
-                Cancel
-              </Button>
-              {mode === "edit" && canAddDelete && (
+
+                            {mode === "edit" && canAddDelete && (
                 <Button
                   type="button"
                   variant="destructive"
@@ -1381,9 +1374,20 @@ export default function FamilyFormPage({
                   data-testid="button-delete"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  {deleteMutation.isPending ? "Deleting..." : "Delete Family"}
+                  {deleteMutation.isPending ? "Deleting..." : "Delete"}
                 </Button>
               )}
+
+              <Button
+                type="button"
+                variant="secondary"
+                className="bg-green-500 hover:bg-green-600 text-white"
+                onClick={() => setLocation("/")}
+                data-testid="button-cancel"
+              >
+                Cancel
+              </Button>
+
               <Button
                 type="submit"
                 disabled={saveMutation.isPending}
