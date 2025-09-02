@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +32,12 @@ export default function LoginPage() {
   const { data: staff = [] } = useQuery<StaffMember[]>({
     queryKey: ["/api/staff"],
   });
+
+  useEffect(() => {
+    if (staff.length >= 2 && !selectedStaff) {
+      setSelectedStaff(staff[1].nickName);
+    }
+  }, [staff, selectedStaff]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
