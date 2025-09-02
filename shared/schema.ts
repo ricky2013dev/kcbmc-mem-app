@@ -67,15 +67,44 @@ export const familyMembers = pgTable("family_members", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Care logs table
+export const careLogs = pgTable("care_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull().references(() => families.id, { onDelete: "cascade" }),
+  staffId: varchar("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  date: date("date").notNull(),
+  type: varchar("type", { length: 100 }).notNull(), // visit, call, email, etc.
+  description: text("description").notNull(),
+  status: varchar("status", { length: 50 }).notNull(), // pending, completed, cancelled
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const familiesRelations = relations(families, ({ many }) => ({
   members: many(familyMembers),
+  careLogs: many(careLogs),
 }));
 
 export const familyMembersRelations = relations(familyMembers, ({ one }) => ({
   family: one(families, {
     fields: [familyMembers.familyId],
     references: [families.id],
+  }),
+}));
+
+export const staffRelations = relations(staff, ({ many }) => ({
+  careLogs: many(careLogs),
+}));
+
+export const careLogsRelations = relations(careLogs, ({ one }) => ({
+  family: one(families, {
+    fields: [careLogs.familyId],
+    references: [families.id],
+  }),
+  staff: one(staff, {
+    fields: [careLogs.staffId],
+    references: [staff.id],
   }),
 }));
 
@@ -99,6 +128,12 @@ export const insertFamilyMemberSchema = createInsertSchema(familyMembers).omit({
   updatedAt: true,
 });
 
+export const insertCareLogSchema = createInsertSchema(careLogs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Staff = typeof staff.$inferSelect;
 export type InsertStaff = z.infer<typeof insertStaffSchema>;
@@ -108,6 +143,9 @@ export type InsertFamily = z.infer<typeof insertFamilySchema>;
 
 export type FamilyMember = typeof familyMembers.$inferSelect;
 export type InsertFamilyMember = z.infer<typeof insertFamilyMemberSchema>;
+
+export type CareLog = typeof careLogs.$inferSelect;
+export type InsertCareLog = z.infer<typeof insertCareLogSchema>;
 
 export type FamilyWithMembers = Family & {
   members: FamilyMember[];
