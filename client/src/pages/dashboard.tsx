@@ -18,6 +18,7 @@ import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
 import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings } from 'lucide-react';
 import styles from './dashboard.module.css';
+import { CareLogList } from '@/components/CareLogList';
 
 // Helper function to get default date range (recent 12 months, Sunday-only)
 function getDefaultDateRange() {
@@ -924,7 +925,7 @@ export default function DashboardPage() {
                           <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="current-info">Summary </TabsTrigger>
                             <TabsTrigger value="family-notes">Notes</TabsTrigger>
-
+                            <TabsTrigger value="care-logs">Care Logs</TabsTrigger>
                           </TabsList>
                           
                           <TabsContent value="current-info" className="mt-4">
@@ -1186,6 +1187,10 @@ export default function DashboardPage() {
                               <p>Staff notes functionality will be implemented later.</p>
                               <p className="text-sm mt-2">This will include internal staff communications and follow-up actions.</p>
                             </div>
+                          </TabsContent>
+                          
+                          <TabsContent value="care-logs" className="mt-4">
+                            <CareLogList familyId={family.id} />
                           </TabsContent>
                         </Tabs>
                       </div>

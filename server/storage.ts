@@ -2,13 +2,16 @@ import {
   staff, 
   families, 
   familyMembers,
+  careLogs,
   type Staff, 
   type InsertStaff,
   type Family,
   type InsertFamily,
   type FamilyMember,
   type InsertFamilyMember,
-  type FamilyWithMembers
+  type FamilyWithMembers,
+  type CareLog,
+  type InsertCareLog
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, like, gte, lte, desc, isNotNull } from "drizzle-orm";
@@ -61,6 +64,13 @@ export interface IStorage {
   createFamily(family: InsertFamily, members: InsertFamilyMember[]): Promise<FamilyWithMembers>;
   updateFamily(id: string, family: Partial<InsertFamily>, members: InsertFamilyMember[]): Promise<FamilyWithMembers>;
   deleteFamily(id: string): Promise<void>;
+  
+  // Care log operations
+  getCareLog(id: string): Promise<CareLog | undefined>;
+  getCareLogsForFamily(familyId: string): Promise<CareLog[]>;
+  createCareLog(careLog: InsertCareLog): Promise<CareLog>;
+  updateCareLog(id: string, careLog: Partial<InsertCareLog>): Promise<CareLog | undefined>;
+  deleteCareLog(id: string): Promise<void>;
 }
 
 // Helper function to clean date fields - convert empty strings to null for optional fields only
@@ -244,6 +254,35 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFamily(id: string): Promise<void> {
     await db.delete(families).where(eq(families.id, id));
+  }
+
+  // Care log operations
+  async getCareLog(id: string): Promise<CareLog | undefined> {
+    const [careLog] = await db.select().from(careLogs).where(eq(careLogs.id, id));
+    return careLog || undefined;
+  }
+
+  async getCareLogsForFamily(familyId: string): Promise<CareLog[]> {
+    return await db.select().from(careLogs)
+      .where(eq(careLogs.familyId, familyId))
+      .orderBy(desc(careLogs.date), desc(careLogs.createdAt));
+  }
+
+  async createCareLog(careLogData: InsertCareLog): Promise<CareLog> {
+    const [newCareLog] = await db.insert(careLogs).values(careLogData).returning();
+    return newCareLog;
+  }
+
+  async updateCareLog(id: string, careLogData: Partial<InsertCareLog>): Promise<CareLog | undefined> {
+    const [updatedCareLog] = await db.update(careLogs)
+      .set({ ...careLogData, updatedAt: new Date() })
+      .where(eq(careLogs.id, id))
+      .returning();
+    return updatedCareLog || undefined;
+  }
+
+  async deleteCareLog(id: string): Promise<void> {
+    await db.delete(careLogs).where(eq(careLogs.id, id));
   }
 }
 

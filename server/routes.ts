@@ -433,6 +433,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Care log routes
+  app.get("/api/families/:familyId/care-logs", requireAuth, async (req, res) => {
+    try {
+      const careLogs = await storage.getCareLogsForFamily(req.params.familyId);
+      res.json(careLogs);
+    } catch (error) {
+      console.error("Get care logs error:", error);
+      res.status(500).json({ message: "Failed to get care logs" });
+    }
+  });
+
+  app.get("/api/care-logs/:id", requireAuth, async (req, res) => {
+    try {
+      const careLog = await storage.getCareLog(req.params.id);
+      if (!careLog) {
+        return res.status(404).json({ message: "Care log not found" });
+      }
+      res.json(careLog);
+    } catch (error) {
+      console.error("Get care log error:", error);
+      res.status(500).json({ message: "Failed to get care log" });
+    }
+  });
+
+  app.post("/api/care-logs", requireAuth, async (req, res) => {
+    try {
+      const careLogData = {
+        familyId: req.body.familyId,
+        staffId: req.user.id, // Auto-assign to current user
+        date: req.body.date,
+        type: req.body.type,
+        description: req.body.description,
+        status: req.body.status,
+      };
+
+      const careLog = await storage.createCareLog(careLogData);
+      res.json(careLog);
+    } catch (error) {
+      console.error("Create care log error:", error);
+      res.status(500).json({ message: "Failed to create care log" });
+    }
+  });
+
+  // Permission middleware for care log updates/deletes
+  const requireCareLogOwnerOrAdmin = async (req: any, res: any, next: any) => {
+    try {
+      const careLog = await storage.getCareLog(req.params.id);
+      if (!careLog) {
+        return res.status(404).json({ message: "Care log not found" });
+      }
+
+      // Allow if user is ADM group or if they're the original staff member who created the log
+      if (req.user.group === 'ADM' || careLog.staffId === req.user.id) {
+        req.careLog = careLog; // Pass care log to next handler
+        return next();
+      }
+
+      return res.status(403).json({ message: "Permission denied. Only ADM group or the original staff member can modify care logs." });
+    } catch (error) {
+      console.error("Care log permission check error:", error);
+      res.status(500).json({ message: "Failed to check permissions" });
+    }
+  };
+
+  app.put("/api/care-logs/:id", requireAuth, requireCareLogOwnerOrAdmin, async (req, res) => {
+    try {
+      const careLogData = {
+        date: req.body.date,
+        type: req.body.type,
+        description: req.body.description,
+        status: req.body.status,
+      };
+
+      const updatedCareLog = await storage.updateCareLog(req.params.id, careLogData);
+      if (!updatedCareLog) {
+        return res.status(404).json({ message: "Care log not found" });
+      }
+      res.json(updatedCareLog);
+    } catch (error) {
+      console.error("Update care log error:", error);
+      res.status(500).json({ message: "Failed to update care log" });
+    }
+  });
+
+  app.delete("/api/care-logs/:id", requireAuth, requireCareLogOwnerOrAdmin, async (req, res) => {
+    try {
+      await storage.deleteCareLog(req.params.id);
+      res.json({ message: "Care log deleted" });
+    } catch (error) {
+      console.error("Delete care log error:", error);
+      res.status(500).json({ message: "Failed to delete care log" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
