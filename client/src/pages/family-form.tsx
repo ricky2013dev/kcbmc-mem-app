@@ -21,6 +21,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -200,7 +210,7 @@ export default function FamilyFormPage({
   familyId,
 }: FamilyFormPageProps) {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, canAddDelete } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -211,6 +221,7 @@ export default function FamilyFormPage({
   });
 
   const [picturePreview, setPicturePreview] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(familyFormSchema),
@@ -470,6 +481,33 @@ export default function FamilyFormPage({
 
   const onSubmit = (data: FormData) => {
     saveMutation.mutate(data);
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!familyId) throw new Error("No family ID");
+      return await apiRequest("DELETE", `/api/families/${familyId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["families"] });
+      toast({
+        title: "Success",
+        description: "Family deleted successfully.",
+      });
+      setLocation("/");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete family.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDelete = () => {
+    setShowDeleteDialog(false);
+    deleteMutation.mutate();
   };
 
   if (mode === "edit" && isLoading) {
@@ -1334,6 +1372,18 @@ export default function FamilyFormPage({
               >
                 Cancel
               </Button>
+              {mode === "edit" && canAddDelete && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={deleteMutation.isPending}
+                  data-testid="button-delete"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {deleteMutation.isPending ? "Deleting..." : "Delete Family"}
+                </Button>
+              )}
               <Button
                 type="submit"
                 disabled={saveMutation.isPending}
@@ -1346,6 +1396,30 @@ export default function FamilyFormPage({
           </form>
         </Form>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent data-testid="dialog-delete-family">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Family</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this family? This action cannot be undone and will permanently remove all family information and member records.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              Delete Family
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
