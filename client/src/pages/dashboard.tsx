@@ -16,7 +16,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check } from 'lucide-react';
+import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings } from 'lucide-react';
 import styles from './dashboard.module.css';
 
 // Helper function to get default date range (recent 12 months, Sunday-only)
@@ -54,11 +54,11 @@ export default function DashboardPage() {
   });
 
   const [hasSearched, setHasSearched] = useState(true);
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
   const [magnifiedImage, setMagnifiedImage] = useState<{ src: string; alt: string } | null>(null);
-  const [selectedQuickFilter, setSelectedQuickFilter] = useState<'thisWeek' | 'lastWeek' | 'lastMonth' | null>(null);
+  const [selectedQuickFilter, setSelectedQuickFilter] = useState<'thisWeek' | 'lastWeek' | 'lastMonth' | 'last3Months' | null>(null);
   const [selectedMemberStatuses, setSelectedMemberStatuses] = useState<Set<string>>(new Set());
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
@@ -439,6 +439,21 @@ export default function DashboardPage() {
                 Add
               </Button>
             )}
+            {user?.group === 'ADM' && (
+              <Button 
+                variant="secondary"
+                size="sm"
+                onClick={() => setLocation('/staff-management')}
+                data-testid="button-staff-management"
+                className="mr-4 text-blue-700   hover:text-primary-foreground/80"
+                title="Staff Management"
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
+            )}
+        
+
+
             <span className={styles.userName} data-testid="text-current-user">
               {user?.fullName} ({user?.group})
             </span>
@@ -560,6 +575,30 @@ export default function DashboardPage() {
                 >
                   {selectedQuickFilter === 'lastMonth' && <Check className="w-3 h-3" />}
                   Last Month
+                </Button>
+                <Button
+                  variant={selectedQuickFilter === 'last3Months' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date();
+                    const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+                    const dateFrom = formatDateForInput(getPreviousSunday(threeMonthsAgo));
+                    const dateTo = formatDateForInput(getPreviousSunday(today));
+                    setFilters(prev => ({ 
+                      ...prev, 
+                      dateFrom: dateFrom, 
+                      dateTo: dateTo 
+                    }));
+                    setSelectedQuickFilter('last3Months');
+                  }}
+                  className={`text-xs flex items-center gap-1 ${
+                    selectedQuickFilter === 'last3Months' 
+                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
+                      : ''
+                  }`}
+                >
+                  {selectedQuickFilter === 'last3Months' && <Check className="w-3 h-3" />}
+                  Last 3 Months
                 </Button>
                 
                 {/* Member Status Quick Filters - Multi-selection */}

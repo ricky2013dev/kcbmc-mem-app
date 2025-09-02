@@ -43,7 +43,10 @@ export interface IStorage {
   getStaff(id: string): Promise<Staff | undefined>;
   getStaffByNickname(nickname: string): Promise<Staff | undefined>;
   getAllActiveStaff(): Promise<Staff[]>;
+  getAllStaffForManagement(): Promise<Staff[]>;
   createStaff(staff: InsertStaff): Promise<Staff>;
+  updateStaff(id: string, staff: Partial<InsertStaff>): Promise<Staff | undefined>;
+  deleteStaff(id: string): Promise<void>;
   
   // Family operations
   getFamily(id: string): Promise<FamilyWithMembers | undefined>;
@@ -94,9 +97,29 @@ export class DatabaseStorage implements IStorage {
       .orderBy(staff.displayOrder, staff.fullName);
   }
 
+  async getAllStaffForManagement(): Promise<Staff[]> {
+    return await db.select().from(staff)
+      .orderBy(staff.displayOrder, staff.fullName);
+  }
+
   async createStaff(staffData: InsertStaff): Promise<Staff> {
     const [newStaff] = await db.insert(staff).values(staffData).returning();
     return newStaff;
+  }
+
+  async updateStaff(id: string, staffData: Partial<InsertStaff>): Promise<Staff | undefined> {
+    const [updatedStaff] = await db.update(staff)
+      .set({ ...staffData, updatedAt: new Date() })
+      .where(eq(staff.id, id))
+      .returning();
+    return updatedStaff || undefined;
+  }
+
+  async deleteStaff(id: string): Promise<void> {
+    // Soft delete by setting isActive to false
+    await db.update(staff)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(staff.id, id));
   }
 
   // Family operations

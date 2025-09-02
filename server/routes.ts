@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertFamilySchema, insertFamilyMemberSchema } from "@shared/schema";
+import { insertFamilySchema, insertFamilyMemberSchema, insertStaffSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
@@ -78,6 +78,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
+  const requireSuperAdminAccess = (req: any, res: any, next: any) => {
+    if (!req.session?.staffGroup || req.session.staffGroup !== 'ADM') {
+      return res.status(403).json({ message: "Super admin access required" });
+    }
+    next();
+  };
+
   // Auth routes
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -149,6 +156,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get staff error:", error);
       res.status(500).json({ message: "Failed to get staff" });
+    }
+  });
+
+  // Staff management routes (ADM only)
+  app.get("/api/staff/manage", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const allStaff = await storage.getAllStaffForManagement();
+      res.json(allStaff);
+    } catch (error) {
+      console.error("Get staff management error:", error);
+      res.status(500).json({ message: "Failed to get staff for management" });
+    }
+  });
+
+  app.post("/api/staff/manage", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const staffData = insertStaffSchema.parse(req.body);
+      const newStaff = await storage.createStaff(staffData);
+      res.json(newStaff);
+    } catch (error) {
+      console.error("Create staff error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      if (error.message?.includes('unique')) {
+        return res.status(400).json({ message: "Nickname already exists" });
+      }
+      res.status(500).json({ message: "Failed to create staff" });
+    }
+  });
+
+  app.put("/api/staff/manage/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const staffData = insertStaffSchema.partial().parse(req.body);
+      const updatedStaff = await storage.updateStaff(req.params.id, staffData);
+      if (!updatedStaff) {
+        return res.status(404).json({ message: "Staff not found" });
+      }
+      res.json(updatedStaff);
+    } catch (error) {
+      console.error("Update staff error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      if (error.message?.includes('unique')) {
+        return res.status(400).json({ message: "Nickname already exists" });
+      }
+      res.status(500).json({ message: "Failed to update staff" });
+    }
+  });
+
+  app.delete("/api/staff/manage/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      // Don't allow deleting yourself
+      if (req.params.id === req.session.staffId) {
+        return res.status(400).json({ message: "Cannot delete yourself" });
+      }
+      
+      await storage.deleteStaff(req.params.id);
+      res.json({ message: "Staff deleted successfully" });
+    } catch (error) {
+      console.error("Delete staff error:", error);
+      res.status(500).json({ message: "Failed to delete staff" });
     }
   });
 

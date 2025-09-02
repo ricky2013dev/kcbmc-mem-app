@@ -106,7 +106,7 @@ export default function LoginPage() {
                 </Label>
                 <Input
                   id="pin"
-                  type="password"
+                  type="text"
                   pattern="[0-9]*"
                   maxLength={4}
                   value={pin}
