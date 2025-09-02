@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -40,7 +40,6 @@ export default function DashboardPage() {
   const [, setLocation] = useLocation();
   const { user, logout, canAddDelete } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const defaultDateRange = getDefaultDateRange();
 
@@ -60,6 +59,9 @@ export default function DashboardPage() {
   const [magnifiedImage, setMagnifiedImage] = useState<{ src: string; alt: string } | null>(null);
   const [selectedQuickFilter, setSelectedQuickFilter] = useState<'thisWeek' | 'lastWeek' | 'lastMonth' | 'last3Months' | null>(null);
   const [selectedMemberStatuses, setSelectedMemberStatuses] = useState<Set<string>>(new Set());
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [unmaskedFamilyNotes, setUnmaskedFamilyNotes] = useState<Set<string>>(new Set());
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters],
@@ -82,7 +84,53 @@ export default function DashboardPage() {
     enabled: hasSearched,
   });
 
+  // Helper function to mask text with asterisks
+  const maskText = (text: string) => {
+    if (!text) return '';
+    return text.replace(/./g, '*');
+  };
 
+  // PIN verification function
+  const verifyPinAndUnmaskNotes = async (familyId: string) => {
+    try {
+      const response = await apiRequest('POST', '/api/auth/verify-pin', { pin: pinInput });
+      const isValid = await response.json();
+      
+      if (isValid.success) {
+        setUnmaskedFamilyNotes(prev => new Set(prev).add(familyId));
+        setShowPinModal(false);
+        setPinInput('');
+        toast({
+          title: "Success",
+          description: "PIN verified. Family notes are now visible.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Invalid PIN. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to verify PIN. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Function to handle showing PIN modal for specific family
+  const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
+  
+  const handleViewSecureNotes = (familyId: string) => {
+    if (unmaskedFamilyNotes.has(familyId)) {
+      // Already unmasked, no need to verify PIN again
+      return;
+    }
+    setSelectedFamilyId(familyId);
+    setShowPinModal(true);
+  };
 
   const clearFilters = () => {
     const defaultDateRange = getDefaultDateRange();
@@ -876,7 +924,7 @@ export default function DashboardPage() {
                           <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="current-info">Summary </TabsTrigger>
                             <TabsTrigger value="family-notes">Notes</TabsTrigger>
-                            <TabsTrigger value="staff-notes">섬김이 로그</TabsTrigger>
+
                           </TabsList>
                           
                           <TabsContent value="current-info" className="mt-4">
@@ -1108,9 +1156,20 @@ export default function DashboardPage() {
                               {family.familyNotes ? (
                                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                   <h5 className="font-medium text-blue-900 mb-2">Family Notes</h5>
-                                  <div className="text-blue-800 whitespace-pre-wrap">
-                                    {family.familyNotes}
+                                  <div 
+                                    className="text-blue-800 whitespace-pre-wrap cursor-pointer hover:bg-blue-100 p-2 rounded transition-colors"
+                                    onClick={() => handleViewSecureNotes(family.id)}
+                                    title={unmaskedFamilyNotes.has(family.id) ? "Notes are visible" : "Click to enter PIN and view notes"}
+                                  >
+                                    {unmaskedFamilyNotes.has(family.id) 
+                                      ? family.familyNotes 
+                                      : maskText(family.familyNotes)}
                                   </div>
+                                  {!unmaskedFamilyNotes.has(family.id) && (
+                                    <p className="text-sm text-blue-600 mt-2 italic">
+                                      🔒 Click above to enter PIN and view notes
+                                    </p>
+                                  )}
                                 </div>
                               ) : (
                                 <div className="p-4 border border-dashed border-gray-300 rounded-lg text-center text-muted-foreground">
@@ -1154,6 +1213,62 @@ export default function DashboardPage() {
               />
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* PIN Verification Modal */}
+      <Dialog open={showPinModal} onOpenChange={(open) => {
+        setShowPinModal(open);
+        if (!open) {
+          setPinInput('');
+          setSelectedFamilyId(null);
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <div className="space-y-4">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold">Enter PIN to View Family Notes</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                Family notes are protected. Please enter your PIN to view them.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pin-input">PIN</Label>
+              <Input
+                id="pin-input"
+                type="password"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+                placeholder="Enter your PIN"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && selectedFamilyId) {
+                    verifyPinAndUnmaskNotes(selectedFamilyId);
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPinModal(false);
+                  setPinInput('');
+                  setSelectedFamilyId(null);
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => selectedFamilyId && verifyPinAndUnmaskNotes(selectedFamilyId)}
+                disabled={!pinInput.trim()}
+                className="flex-1"
+              >
+                Verify PIN
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

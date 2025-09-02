@@ -143,6 +143,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PIN verification route for viewing secure family notes
+  app.post("/api/auth/verify-pin", requireAuth, async (req, res) => {
+    try {
+      const { pin } = req.body;
+      
+      if (!pin) {
+        return res.status(400).json({ success: false, message: "PIN is required" });
+      }
+
+      // Get the current staff member to verify against their PIN
+      const staff = await storage.getStaff(req.session.staffId!);
+      if (!staff) {
+        return res.status(404).json({ success: false, message: "Staff not found" });
+      }
+
+      // Verify the PIN matches the staff's PIN
+      if (staff.personalPin === pin) {
+        res.json({ success: true });
+      } else {
+        res.json({ success: false, message: "Invalid PIN" });
+      }
+    } catch (error) {
+      console.error("PIN verification error:", error);
+      res.status(500).json({ success: false, message: "Failed to verify PIN" });
+    }
+  });
+
   // Staff routes
   app.get("/api/staff", async (req, res) => {
     try {
