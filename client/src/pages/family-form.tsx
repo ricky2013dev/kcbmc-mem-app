@@ -1771,7 +1771,7 @@ export default function FamilyFormPage({
             {/* Form Actions */}
             <div className={styles.actions}>
 
-                            {mode === "edit" && canAddDelete && (
+                            {mode === "edit" && user?.group === 'ADM' && (
                 <Button
                   type="button"
                   variant="destructive"
@@ -1780,22 +1780,10 @@ export default function FamilyFormPage({
                   data-testid="button-delete"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                  {deleteMutation.isPending ? "Deleting..." : "X"}
                 </Button>
               )}
 
-              {mode === "edit" && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => printFormalDocument()}
-                  data-testid="button-print-pdf"
-                  className="border-blue-600 text-blue-600 hover:bg-blue-50"
-                >
-                  <Printer className="w-4 h-4 mr-2" />
-                  Print PDF
-                </Button>
-              )}
 
               <Button
                 type="button"
@@ -1807,13 +1795,27 @@ export default function FamilyFormPage({
                 Cancel
               </Button>
 
+
+              {mode === "edit" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => printFormalDocument()}
+                  data-testid="button-print-pdf"
+                  className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  
+                </Button>
+              )}
+              
               <Button
                 type="submit"
                 disabled={saveMutation.isPending}
                 data-testid="button-save"
               >
                 <Save className="w-4 h-4 mr-2" />
-                {saveMutation.isPending ? "Saving..." : "Save Family"}
+                {saveMutation.isPending ? "Saving..." : "Save"}
               </Button>
             </div>
           </form>
