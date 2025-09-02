@@ -150,3 +150,11 @@ export type InsertCareLog = z.infer<typeof insertCareLogSchema>;
 export type FamilyWithMembers = Family & {
   members: FamilyMember[];
 };
+
+export type CareLogWithStaff = CareLog & {
+  staff: {
+    id: string;
+    fullName: string;
+    nickName: string;
+  };
+};

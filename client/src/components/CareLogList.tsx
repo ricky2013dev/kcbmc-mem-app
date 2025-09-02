@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
-import { CareLog } from '@shared/schema';
+import { CareLogWithStaff } from '@shared/schema';
 import { formatDateForInput } from '@/utils/date-utils';
 import { Plus, Edit, Trash2, Calendar, User, FileText } from 'lucide-react';
 
@@ -20,21 +20,20 @@ interface CareLogListProps {
 }
 
 const CARE_LOG_TYPES = [
-  { value: 'visit', label: 'Home Visit' },
-  { value: 'call', label: 'Phone Call' },
-  { value: 'email', label: 'Email' },
   { value: 'text', label: 'Text Message' },
-  { value: 'meeting', label: 'Church Meeting' },
-  { value: 'counseling', label: 'Counseling' },
   { value: 'prayer', label: 'Prayer Request' },
+  { value: 'call', label: 'Phone Call' },
   { value: 'other', label: 'Other' },
+    { value: 'visit', label: 'Home Visit' },
+ 
 ];
 
 const CARE_LOG_STATUSES = [
-  { value: 'pending', label: 'Pending' },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
 ];
+
+
 
 export function CareLogList({ familyId }: CareLogListProps) {
   const { user } = useAuth();
@@ -42,7 +41,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
   const queryClient = useQueryClient();
   
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [editingLog, setEditingLog] = useState<CareLog | null>(null);
+  const [editingLog, setEditingLog] = useState<CareLogWithStaff | null>(null);
   const [formData, setFormData] = useState({
     date: formatDateForInput(new Date()),
     type: 'visit',
@@ -51,18 +50,22 @@ export function CareLogList({ familyId }: CareLogListProps) {
   });
 
   // Fetch care logs for this family
-  const { data: careLogs = [], isLoading } = useQuery<CareLog[]>({
+  const { data: careLogs = [], isLoading } = useQuery<CareLogWithStaff[]>({
     queryKey: ['care-logs', familyId],
-    queryFn: () => apiRequest('GET', `/api/families/${familyId}/care-logs`),
+    queryFn: async () => {
+      const res = await apiRequest('GET', `/api/families/${familyId}/care-logs`);
+      return await res.json();
+    },
   });
 
   // Create care log mutation
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return await apiRequest('POST', '/api/care-logs', {
+      const res = await apiRequest('POST', '/api/care-logs', {
         ...data,
         familyId,
       });
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['care-logs', familyId] });
@@ -86,7 +89,8 @@ export function CareLogList({ familyId }: CareLogListProps) {
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       if (!editingLog) throw new Error('No log selected');
-      return await apiRequest('PUT', `/api/care-logs/${editingLog.id}`, data);
+      const res = await apiRequest('PUT', `/api/care-logs/${editingLog.id}`, data);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['care-logs', familyId] });
@@ -109,7 +113,8 @@ export function CareLogList({ familyId }: CareLogListProps) {
   // Delete care log mutation
   const deleteMutation = useMutation({
     mutationFn: async (logId: string) => {
-      return await apiRequest('DELETE', `/api/care-logs/${logId}`);
+      const res = await apiRequest('DELETE', `/api/care-logs/${logId}`);
+      return res.ok;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['care-logs', familyId] });
@@ -145,7 +150,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
     }
   };
 
-  const handleEdit = (log: CareLog) => {
+  const handleEdit = (log: CareLogWithStaff) => {
     setEditingLog(log);
     setFormData({
       date: log.date,
@@ -161,7 +166,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
     }
   };
 
-  const canEditOrDelete = (log: CareLog) => {
+  const canEditOrDelete = (log: CareLogWithStaff) => {
     return user?.group === 'ADM' || log.staffId === user?.id;
   };
 
@@ -312,8 +317,8 @@ export function CareLogList({ familyId }: CareLogListProps) {
                     <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{log.description}</p>
                     <div className="flex items-center text-xs text-muted-foreground">
                       <User className="w-3 h-3 mr-1" />
-                      Added {new Date(log.createdAt).toLocaleDateString()}
-                      {log.updatedAt !== log.createdAt && (
+                      Added by {log.staff.fullName} ({log.staff.nickName}) on {log.createdAt ? new Date(log.createdAt).toLocaleDateString() : 'Unknown'}
+                      {log.updatedAt && log.updatedAt !== log.createdAt && (
                         <span className="ml-2">• Updated {new Date(log.updatedAt).toLocaleDateString()}</span>
                       )}
                     </div>

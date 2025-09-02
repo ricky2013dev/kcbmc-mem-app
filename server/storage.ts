@@ -11,7 +11,8 @@ import {
   type InsertFamilyMember,
   type FamilyWithMembers,
   type CareLog,
-  type InsertCareLog
+  type InsertCareLog,
+  type CareLogWithStaff
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, like, gte, lte, desc, isNotNull } from "drizzle-orm";
@@ -67,7 +68,7 @@ export interface IStorage {
   
   // Care log operations
   getCareLog(id: string): Promise<CareLog | undefined>;
-  getCareLogsForFamily(familyId: string): Promise<CareLog[]>;
+  getCareLogsForFamily(familyId: string): Promise<CareLogWithStaff[]>;
   createCareLog(careLog: InsertCareLog): Promise<CareLog>;
   updateCareLog(id: string, careLog: Partial<InsertCareLog>): Promise<CareLog | undefined>;
   deleteCareLog(id: string): Promise<void>;
@@ -262,10 +263,29 @@ export class DatabaseStorage implements IStorage {
     return careLog || undefined;
   }
 
-  async getCareLogsForFamily(familyId: string): Promise<CareLog[]> {
-    return await db.select().from(careLogs)
-      .where(eq(careLogs.familyId, familyId))
-      .orderBy(desc(careLogs.date), desc(careLogs.createdAt));
+  async getCareLogsForFamily(familyId: string): Promise<CareLogWithStaff[]> {
+    const results = await db.select({
+      id: careLogs.id,
+      familyId: careLogs.familyId,
+      staffId: careLogs.staffId,
+      date: careLogs.date,
+      type: careLogs.type,
+      description: careLogs.description,
+      status: careLogs.status,
+      createdAt: careLogs.createdAt,
+      updatedAt: careLogs.updatedAt,
+      staff: {
+        id: staff.id,
+        fullName: staff.fullName,
+        nickName: staff.nickName,
+      }
+    })
+    .from(careLogs)
+    .innerJoin(staff, eq(careLogs.staffId, staff.id))
+    .where(eq(careLogs.familyId, familyId))
+    .orderBy(desc(careLogs.date), desc(careLogs.createdAt));
+
+    return results as CareLogWithStaff[];
   }
 
   async createCareLog(careLogData: InsertCareLog): Promise<CareLog> {

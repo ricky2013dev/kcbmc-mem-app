@@ -461,7 +461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const careLogData = {
         familyId: req.body.familyId,
-        staffId: req.user.id, // Auto-assign to current user
+        staffId: req.session.staffId!, // Auto-assign to current user
         date: req.body.date,
         type: req.body.type,
         description: req.body.description,
@@ -485,7 +485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Allow if user is ADM group or if they're the original staff member who created the log
-      if (req.user.group === 'ADM' || careLog.staffId === req.user.id) {
+      if (req.session.staffGroup === 'ADM' || careLog.staffId === req.session.staffId) {
         req.careLog = careLog; // Pass care log to next handler
         return next();
       }
