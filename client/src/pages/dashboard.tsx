@@ -1154,11 +1154,12 @@ export default function DashboardPage() {
                           <TabsContent value="family-notes" className="mt-4">
                             <div className="space-y-4">
                               {family.familyNotes ? (
-                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div onClick={() => handleViewSecureNotes(family.id)}
+                                className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                   <h5 className="font-medium text-blue-900 mb-2">Family Notes</h5>
                                   <div 
                                     className="text-blue-800 whitespace-pre-wrap cursor-pointer hover:bg-blue-100 p-2 rounded transition-colors"
-                                    onClick={() => handleViewSecureNotes(family.id)}
+                                    
                                     title={unmaskedFamilyNotes.has(family.id) ? "Notes are visible" : "Click to enter PIN and view notes"}
                                   >
                                     {unmaskedFamilyNotes.has(family.id) 
@@ -1167,14 +1168,14 @@ export default function DashboardPage() {
                                   </div>
                                   {!unmaskedFamilyNotes.has(family.id) && (
                                     <p className="text-sm text-blue-600 mt-2 italic">
-                                      🔒 Click above to enter PIN and view notes
+                                      🔒 Click above to view notes
                                     </p>
                                   )}
                                 </div>
                               ) : (
                                 <div className="p-4 border border-dashed border-gray-300 rounded-lg text-center text-muted-foreground">
-                                  <p>No family notes available.</p>
-                                  <p className="text-sm mt-2">Add notes using the edit function.</p>
+                                  
+                                
                                 </div>
                               )}
                             </div>
@@ -1199,13 +1200,13 @@ export default function DashboardPage() {
 
       {/* Magnified Image Dialog */}
       <Dialog open={!!magnifiedImage} onOpenChange={() => setMagnifiedImage(null)}>
-        <DialogContent className="max-w-4xl p-4">
+        <DialogContent className="max-w-4xl p-4 [&>button]:w-10 [&>button]:h-10 [&>button]:text-lg sm:[&>button]:w-12 sm:[&>button]:h-12 sm:[&>button]:text-xl">
           {magnifiedImage && (
             <div className="flex justify-center">
               <img 
                 src={magnifiedImage.src} 
                 alt={magnifiedImage.alt}
-                className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                className="w-[90%] sm:max-w-full max-h-[80vh] object-contain rounded-lg"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.style.display = 'none';
@@ -1236,8 +1237,9 @@ export default function DashboardPage() {
               <Label htmlFor="pin-input">PIN</Label>
               <Input
                 id="pin-input"
-                type="password"
+                type="text"
                 value={pinInput}
+                               pattern="[0-9]*"
                 onChange={(e) => setPinInput(e.target.value)}
                 placeholder="Enter your PIN"
                 onKeyDown={(e) => {
