@@ -80,6 +80,21 @@ export const careLogs = pgTable("care_logs", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// News announcements table
+export const announcements = pgTable("announcements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  type: varchar("type", { length: 20 }).notNull().default("Medium"), // Major, Medium, Minor
+  isLoginRequired: boolean("is_login_required").notNull().default(true),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  createdBy: varchar("created_by").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const familiesRelations = relations(families, ({ many }) => ({
   members: many(familyMembers),
@@ -95,6 +110,7 @@ export const familyMembersRelations = relations(familyMembers, ({ one }) => ({
 
 export const staffRelations = relations(staff, ({ many }) => ({
   careLogs: many(careLogs),
+  announcements: many(announcements),
 }));
 
 export const careLogsRelations = relations(careLogs, ({ one }) => ({
@@ -104,6 +120,13 @@ export const careLogsRelations = relations(careLogs, ({ one }) => ({
   }),
   staff: one(staff, {
     fields: [careLogs.staffId],
+    references: [staff.id],
+  }),
+}));
+
+export const announcementsRelations = relations(announcements, ({ one }) => ({
+  createdByStaff: one(staff, {
+    fields: [announcements.createdBy],
     references: [staff.id],
   }),
 }));
@@ -134,6 +157,15 @@ export const insertCareLogSchema = createInsertSchema(careLogs).omit({
   updatedAt: true,
 });
 
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  startDate: z.string().transform((str) => new Date(str)),
+  endDate: z.string().transform((str) => new Date(str)),
+});
+
 // Types
 export type Staff = typeof staff.$inferSelect;
 export type InsertStaff = z.infer<typeof insertStaffSchema>;
@@ -153,6 +185,17 @@ export type FamilyWithMembers = Family & {
 
 export type CareLogWithStaff = CareLog & {
   staff: {
+    id: string;
+    fullName: string;
+    nickName: string;
+  };
+};
+
+export type Announcement = typeof announcements.$inferSelect;
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+
+export type AnnouncementWithStaff = Announcement & {
+  createdByStaff: {
     id: string;
     fullName: string;
     nickName: string;

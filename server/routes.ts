@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertFamilySchema, insertFamilyMemberSchema, insertStaffSchema } from "@shared/schema";
+import { insertFamilySchema, insertFamilyMemberSchema, insertStaffSchema, insertAnnouncementSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
@@ -430,6 +430,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete family error:", error);
       res.status(500).json({ message: "Failed to delete family" });
+    }
+  });
+
+  // Announcement routes
+  app.get("/api/announcements", requireAuth, async (req, res) => {
+    try {
+      const announcements = await storage.getAnnouncements();
+      res.json(announcements);
+    } catch (error) {
+      console.error("Get announcements error:", error);
+      res.status(500).json({ message: "Failed to get announcements" });
+    }
+  });
+
+  app.get("/api/announcements/active", async (req, res) => {
+    try {
+      const announcements = await storage.getActiveAnnouncements();
+      res.json(announcements);
+    } catch (error) {
+      console.error("Get active announcements error:", error);
+      res.status(500).json({ message: "Failed to get active announcements" });
+    }
+  });
+
+  app.get("/api/announcements/login", async (req, res) => {
+    try {
+      const announcements = await storage.getLoginPageAnnouncements();
+      res.json(announcements);
+    } catch (error) {
+      console.error("Get login announcements error:", error);
+      res.status(500).json({ message: "Failed to get login announcements" });
+    }
+  });
+
+  app.get("/api/announcements/dashboard", requireAuth, async (req, res) => {
+    try {
+      const announcements = await storage.getDashboardAnnouncements();
+      res.json(announcements);
+    } catch (error) {
+      console.error("Get dashboard announcements error:", error);
+      res.status(500).json({ message: "Failed to get dashboard announcements" });
+    }
+  });
+
+  app.get("/api/announcements/:id", requireAuth, async (req, res) => {
+    try {
+      const announcement = await storage.getAnnouncement(req.params.id);
+      if (!announcement) {
+        return res.status(404).json({ message: "Announcement not found" });
+      }
+      res.json(announcement);
+    } catch (error) {
+      console.error("Get announcement error:", error);
+      res.status(500).json({ message: "Failed to get announcement" });
+    }
+  });
+
+  app.post("/api/announcements", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const announcementData = insertAnnouncementSchema.parse({
+        ...req.body,
+        createdBy: req.session.staffId
+      });
+      const announcement = await storage.createAnnouncement(announcementData);
+      res.json(announcement);
+    } catch (error) {
+      console.error("Create announcement error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create announcement" });
+    }
+  });
+
+  app.put("/api/announcements/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const announcementData = insertAnnouncementSchema.partial().parse(req.body);
+      const updatedAnnouncement = await storage.updateAnnouncement(req.params.id, announcementData);
+      if (!updatedAnnouncement) {
+        return res.status(404).json({ message: "Announcement not found" });
+      }
+      res.json(updatedAnnouncement);
+    } catch (error) {
+      console.error("Update announcement error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update announcement" });
+    }
+  });
+
+  app.delete("/api/announcements/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      await storage.deleteAnnouncement(req.params.id);
+      res.json({ message: "Announcement deleted successfully" });
+    } catch (error) {
+      console.error("Delete announcement error:", error);
+      res.status(500).json({ message: "Failed to delete announcement" });
     }
   });
 

@@ -8,6 +8,7 @@ import LoginPage from "@/pages/login";
 import DashboardPage from "@/pages/dashboard";
 import FamilyFormPage from "@/pages/family-form";
 import StaffManagementPage from "@/pages/staff-management";
+import NewsManagementPage from "@/pages/news-management";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -34,6 +35,7 @@ function Router() {
           <Route path="/family/new" component={() => <FamilyFormPage mode="create" />} />
           <Route path="/family/:id/edit" component={({ params }) => <FamilyFormPage mode="edit" familyId={params.id} />} />
           <Route path="/staff-management" component={StaffManagementPage} />
+          <Route path="/news-management" component={NewsManagementPage} />
         </>
       )}
       <Route component={NotFound} />

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
@@ -7,15 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SundayDatePicker } from '@/components/sunday-date-picker';
 import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings } from 'lucide-react';
+import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { CareLogList } from '@/components/CareLogList';
 
@@ -33,6 +34,25 @@ function getDefaultDateRange() {
   return {
     dateFrom: formatDateForInput(dateFrom),
     dateTo: formatDateForInput(dateTo)
+  };
+}
+
+interface AnnouncementWithStaff {
+  id: string;
+  title: string;
+  content: string;
+  type: 'Major' | 'Medium' | 'Minor';
+  isLoginRequired: boolean;
+  startDate: string;
+  endDate: string;
+  createdBy: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdByStaff: {
+    id: string;
+    fullName: string;
+    nickName: string;
   };
 }
 
@@ -62,6 +82,11 @@ export default function DashboardPage() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [unmaskedFamilyNotes, setUnmaskedFamilyNotes] = useState<Set<string>>(new Set());
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementWithStaff | null>(null);
+  const [dismissedAnnouncements, setDismissedAnnouncements] = useState<Set<string>>(new Set());
+  const [majorAnnouncementModal, setMajorAnnouncementModal] = useState<AnnouncementWithStaff | null>(null);
+  const [shownMajorAnnouncements, setShownMajorAnnouncements] = useState<Set<string>>(new Set());
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters],
@@ -83,6 +108,34 @@ export default function DashboardPage() {
     },
     enabled: hasSearched,
   });
+
+  const { data: allAnnouncements = [] } = useQuery<AnnouncementWithStaff[]>({
+    queryKey: ['announcements/active'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/announcements/active');
+      return response.json();
+    },
+  });
+
+  // Filter announcements for dashboard banners (login required = true)
+  const dashboardAnnouncements = allAnnouncements.filter(a => a.isLoginRequired);
+  
+  // Filter major announcements that should be shown as modals
+  const majorAnnouncements = allAnnouncements.filter(a => a.type === 'Major' && a.isLoginRequired);
+
+  // Show major announcements as modal when they load
+  useEffect(() => {
+    if (majorAnnouncements.length > 0) {
+      const unshownMajorAnnouncement = majorAnnouncements.find(
+        announcement => !shownMajorAnnouncements.has(announcement.id)
+      );
+      
+      if (unshownMajorAnnouncement && !majorAnnouncementModal) {
+        setMajorAnnouncementModal(unshownMajorAnnouncement);
+        setShownMajorAnnouncements(prev => new Set(prev).add(unshownMajorAnnouncement.id));
+      }
+    }
+  }, [majorAnnouncements, shownMajorAnnouncements, majorAnnouncementModal]);
 
   // Helper function to mask text with asterisks - show max 10 asterisks for any note
   const maskText = (text: string) => {
@@ -462,6 +515,27 @@ export default function DashboardPage() {
     }
   };
 
+  const getTypeBadgeVariant = (type: string) => {
+    switch (type) {
+      case 'Major': return 'destructive';
+      case 'Medium': return 'default';
+      case 'Minor': return 'secondary';
+      default: return 'secondary';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('ko-KR');
+  };
+
+  const handleDismissAnnouncement = (announcementId: string) => {
+    setDismissedAnnouncements(prev => new Set(prev).add(announcementId));
+  };
+
+  const visibleAnnouncements = dashboardAnnouncements.filter(
+    announcement => !dismissedAnnouncements.has(announcement.id) && announcement.type !== 'Major'
+  );
+
   return (
     <div className={styles.container}>
       {/* Navigation Header */}
@@ -475,47 +549,162 @@ export default function DashboardPage() {
           </div>
           
           <div className={styles.navRight}>
+            {/* Add New Button - Desktop Only */}
             <Button 
               variant="default"
               size="sm"
               onClick={() => setLocation('/family/new')}
               data-testid="button-add-family"
-              className="mr-4"
+              className="mr-2 hidden md:flex"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Add
+              Add New
             </Button>
-            {user?.group === 'ADM' && (
+            {/* Desktop Menu - Hidden on Mobile */}
+            <div className="hidden md:flex items-center space-x-4">
+              {user?.group === 'ADM' && (
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setLocation('/staff-management')}
+                    data-testid="button-staff-management"
+                    className="text-blue-700 hover:text-primary-foreground/80"
+                    title="Staff Management"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setLocation('/news-management')}
+                    data-testid="button-news-management"
+                    className="text-green-700 hover:text-primary-foreground/80"
+                    title="News Management"
+                  >
+                    <Globe className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+
+              <span className={styles.userName} data-testid="text-current-user">
+                {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
+              </span>
+              
               <Button 
-                variant="secondary"
+                variant="ghost" 
                 size="sm"
-                onClick={() => setLocation('/staff-management')}
-                data-testid="button-staff-management"
-                className="mr-4 text-blue-700   hover:text-primary-foreground/80"
-                title="Staff Management"
+                onClick={() => logout()}
+                className={styles.logoutButton}
+                data-testid="button-logout"
               >
-                <Settings className="w-4 h-4" />
+                <LogOut className="w-4 h-4 mr-1" />
+                <span>Logout</span>
               </Button>
-            )}
-        
+            </div>
 
-
-            <span className={styles.userName} data-testid="text-current-user">
-              {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
-            </span>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => logout()}
-              className={styles.logoutButton}
-              data-testid="button-logout"
-            >
-              <LogOut className="w-4 h-4 mr-1" />
-              <span>Logout</span>
-            </Button>
+            {/* Mobile Hamburger Menu */}
+            <div className="md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-2">
+                    <Menu className="w-5 h-5" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-3 py-2 text-sm font-medium text-gray-900 border-b">
+                    {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
+                  </div>
+                  
+                  <DropdownMenuItem onClick={() => setLocation('/family/new')}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add New Family
+                  </DropdownMenuItem>
+                  
+                  {user?.group === 'ADM' && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setLocation('/staff-management')}>
+                        <Settings className="w-4 h-4 mr-2" />
+                        Staff Management
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setLocation('/news-management')}>
+                        <Globe className="w-4 h-4 mr-2" />
+                        News Management
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem onClick={() => logout()}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </nav>
+
+      {/* Announcement Banners */}
+      {visibleAnnouncements.length > 0 && (
+        <div className="px-4 py-2 space-y-2">
+          {visibleAnnouncements.map((announcement) => (
+            <div
+              key={announcement.id}
+              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+                announcement.type === 'Major' 
+                  ? 'bg-red-50 border-red-200 hover:bg-red-100' 
+                  : announcement.type === 'Medium' 
+                  ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' 
+                  : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+              }`}
+              onClick={() => setSelectedAnnouncement(announcement)}
+            >
+              <div className="flex items-center space-x-3 flex-1">
+                <AlertCircle 
+                  className={`w-5 h-5 ${
+                    announcement.type === 'Major' 
+                      ? 'text-red-600' 
+                      : announcement.type === 'Medium' 
+                      ? 'text-blue-600' 
+                      : 'text-gray-600'
+                  }`} 
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium text-gray-900 text-sm">
+                      {announcement.title}
+                    </h4>
+                    <Badge variant={getTypeBadgeVariant(announcement.type)} className="text-xs">
+                      {announcement.type}
+                    </Badge>
+                  </div>
+                  <p className="text-gray-600 text-xs truncate max-w-md">
+                    {announcement.content.replace(/<[^>]*>/g, '')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDismissAnnouncement(announcement.id);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Main Content */}
       <div className={styles.main}>
@@ -1221,6 +1410,88 @@ export default function DashboardPage() {
                 }}
               />
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Announcement Detail Modal */}
+      <Dialog open={!!selectedAnnouncement} onOpenChange={() => setSelectedAnnouncement(null)}>
+        <DialogContent className="max-w-2xl">
+          {selectedAnnouncement && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {selectedAnnouncement.title}
+                  <Badge variant={getTypeBadgeVariant(selectedAnnouncement.type)} className="text-xs">
+                    {selectedAnnouncement.type}
+                  </Badge>
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div 
+                  className="prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: selectedAnnouncement.content }}
+                />
+                <div className="text-xs text-gray-500 pt-4 border-t">
+                  <p>Posted by: {selectedAnnouncement.createdByStaff.fullName}</p>
+                  <p>Active until: {formatDate(selectedAnnouncement.endDate)}</p>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={() => setSelectedAnnouncement(null)}>
+                  Close
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Major Announcement Modal */}
+      <Dialog open={!!majorAnnouncementModal} onOpenChange={() => setMajorAnnouncementModal(null)}>
+        <DialogContent className="max-w-2xl">
+          {majorAnnouncementModal && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <AlertCircle className="w-6 h-6 text-red-600" />
+                  {majorAnnouncementModal.title}
+                  <Badge variant="destructive" className="text-xs">
+                    {majorAnnouncementModal.type}
+                  </Badge>
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div 
+                  className="prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: majorAnnouncementModal.content }}
+                />
+                <div className="text-xs text-gray-500 pt-4 border-t">
+                  <p>Posted by: {majorAnnouncementModal.createdByStaff.fullName}</p>
+                  <p>Active until: {formatDate(majorAnnouncementModal.endDate)}</p>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setMajorAnnouncementModal(null);
+                    // Check if there are more major announcements to show
+                    const nextMajorAnnouncement = majorAnnouncements.find(
+                      announcement => !shownMajorAnnouncements.has(announcement.id)
+                    );
+                    if (nextMajorAnnouncement) {
+                      setTimeout(() => {
+                        setMajorAnnouncementModal(nextMajorAnnouncement);
+                        setShownMajorAnnouncements(prev => new Set(prev).add(nextMajorAnnouncement.id));
+                      }, 100);
+                    }
+                  }}
+                >
+                  {majorAnnouncements.filter(a => !shownMajorAnnouncements.has(a.id)).length > 1 ? 'Next' : 'OK'}
+                </Button>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>

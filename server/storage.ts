@@ -3,6 +3,7 @@ import {
   families, 
   familyMembers,
   careLogs,
+  announcements,
   type Staff, 
   type InsertStaff,
   type Family,
@@ -12,7 +13,10 @@ import {
   type FamilyWithMembers,
   type CareLog,
   type InsertCareLog,
-  type CareLogWithStaff
+  type CareLogWithStaff,
+  type Announcement,
+  type InsertAnnouncement,
+  type AnnouncementWithStaff
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, like, gte, lte, desc, isNotNull } from "drizzle-orm";
@@ -72,6 +76,16 @@ export interface IStorage {
   createCareLog(careLog: InsertCareLog): Promise<CareLog>;
   updateCareLog(id: string, careLog: Partial<InsertCareLog>): Promise<CareLog | undefined>;
   deleteCareLog(id: string): Promise<void>;
+  
+  // Announcement operations
+  getAnnouncement(id: string): Promise<AnnouncementWithStaff | undefined>;
+  getAnnouncements(): Promise<AnnouncementWithStaff[]>;
+  getActiveAnnouncements(): Promise<AnnouncementWithStaff[]>;
+  getLoginPageAnnouncements(): Promise<AnnouncementWithStaff[]>;
+  getDashboardAnnouncements(): Promise<AnnouncementWithStaff[]>;
+  createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
+  updateAnnouncement(id: string, announcement: Partial<InsertAnnouncement>): Promise<Announcement | undefined>;
+  deleteAnnouncement(id: string): Promise<void>;
 }
 
 // Helper function to clean date fields - convert empty strings to null for optional fields only
@@ -303,6 +317,175 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCareLog(id: string): Promise<void> {
     await db.delete(careLogs).where(eq(careLogs.id, id));
+  }
+
+  // Announcement operations
+  async getAnnouncement(id: string): Promise<AnnouncementWithStaff | undefined> {
+    const result = await db.select({
+      id: announcements.id,
+      title: announcements.title,
+      content: announcements.content,
+      type: announcements.type,
+      isLoginRequired: announcements.isLoginRequired,
+      startDate: announcements.startDate,
+      endDate: announcements.endDate,
+      createdBy: announcements.createdBy,
+      isActive: announcements.isActive,
+      createdAt: announcements.createdAt,
+      updatedAt: announcements.updatedAt,
+      createdByStaff: {
+        id: staff.id,
+        fullName: staff.fullName,
+        nickName: staff.nickName,
+      }
+    })
+    .from(announcements)
+    .innerJoin(staff, eq(announcements.createdBy, staff.id))
+    .where(eq(announcements.id, id))
+    .limit(1);
+
+    return result[0] as AnnouncementWithStaff || undefined;
+  }
+
+  async getAnnouncements(): Promise<AnnouncementWithStaff[]> {
+    const results = await db.select({
+      id: announcements.id,
+      title: announcements.title,
+      content: announcements.content,
+      type: announcements.type,
+      isLoginRequired: announcements.isLoginRequired,
+      startDate: announcements.startDate,
+      endDate: announcements.endDate,
+      createdBy: announcements.createdBy,
+      isActive: announcements.isActive,
+      createdAt: announcements.createdAt,
+      updatedAt: announcements.updatedAt,
+      createdByStaff: {
+        id: staff.id,
+        fullName: staff.fullName,
+        nickName: staff.nickName,
+      }
+    })
+    .from(announcements)
+    .innerJoin(staff, eq(announcements.createdBy, staff.id))
+    .orderBy(desc(announcements.createdAt));
+
+    return results as AnnouncementWithStaff[];
+  }
+
+  async getActiveAnnouncements(): Promise<AnnouncementWithStaff[]> {
+    const now = new Date();
+    const results = await db.select({
+      id: announcements.id,
+      title: announcements.title,
+      content: announcements.content,
+      type: announcements.type,
+      isLoginRequired: announcements.isLoginRequired,
+      startDate: announcements.startDate,
+      endDate: announcements.endDate,
+      createdBy: announcements.createdBy,
+      isActive: announcements.isActive,
+      createdAt: announcements.createdAt,
+      updatedAt: announcements.updatedAt,
+      createdByStaff: {
+        id: staff.id,
+        fullName: staff.fullName,
+        nickName: staff.nickName,
+      }
+    })
+    .from(announcements)
+    .innerJoin(staff, eq(announcements.createdBy, staff.id))
+    .where(and(
+      eq(announcements.isActive, true),
+      lte(announcements.startDate, now),
+      gte(announcements.endDate, now)
+    ))
+    .orderBy(desc(announcements.createdAt));
+
+    return results as AnnouncementWithStaff[];
+  }
+
+  async getLoginPageAnnouncements(): Promise<AnnouncementWithStaff[]> {
+    const now = new Date();
+    const results = await db.select({
+      id: announcements.id,
+      title: announcements.title,
+      content: announcements.content,
+      type: announcements.type,
+      isLoginRequired: announcements.isLoginRequired,
+      startDate: announcements.startDate,
+      endDate: announcements.endDate,
+      createdBy: announcements.createdBy,
+      isActive: announcements.isActive,
+      createdAt: announcements.createdAt,
+      updatedAt: announcements.updatedAt,
+      createdByStaff: {
+        id: staff.id,
+        fullName: staff.fullName,
+        nickName: staff.nickName,
+      }
+    })
+    .from(announcements)
+    .innerJoin(staff, eq(announcements.createdBy, staff.id))
+    .where(and(
+      eq(announcements.isActive, true),
+      eq(announcements.isLoginRequired, false), // Changed: false = show before login
+      lte(announcements.startDate, now),
+      gte(announcements.endDate, now)
+    ))
+    .orderBy(desc(announcements.createdAt));
+
+    return results as AnnouncementWithStaff[];
+  }
+
+  async getDashboardAnnouncements(): Promise<AnnouncementWithStaff[]> {
+    const now = new Date();
+    const results = await db.select({
+      id: announcements.id,
+      title: announcements.title,
+      content: announcements.content,
+      type: announcements.type,
+      isLoginRequired: announcements.isLoginRequired,
+      startDate: announcements.startDate,
+      endDate: announcements.endDate,
+      createdBy: announcements.createdBy,
+      isActive: announcements.isActive,
+      createdAt: announcements.createdAt,
+      updatedAt: announcements.updatedAt,
+      createdByStaff: {
+        id: staff.id,
+        fullName: staff.fullName,
+        nickName: staff.nickName,
+      }
+    })
+    .from(announcements)
+    .innerJoin(staff, eq(announcements.createdBy, staff.id))
+    .where(and(
+      eq(announcements.isActive, true),
+      eq(announcements.isLoginRequired, true), // Changed: true = show after login
+      lte(announcements.startDate, now),
+      gte(announcements.endDate, now)
+    ))
+    .orderBy(desc(announcements.createdAt));
+
+    return results as AnnouncementWithStaff[];
+  }
+
+  async createAnnouncement(announcementData: InsertAnnouncement): Promise<Announcement> {
+    const [newAnnouncement] = await db.insert(announcements).values(announcementData).returning();
+    return newAnnouncement;
+  }
+
+  async updateAnnouncement(id: string, announcementData: Partial<InsertAnnouncement>): Promise<Announcement | undefined> {
+    const [updatedAnnouncement] = await db.update(announcements)
+      .set({ ...announcementData, updatedAt: new Date() })
+      .where(eq(announcements.id, id))
+      .returning();
+    return updatedAnnouncement || undefined;
+  }
+
+  async deleteAnnouncement(id: string): Promise<void> {
+    await db.delete(announcements).where(eq(announcements.id, id));
   }
 }
 

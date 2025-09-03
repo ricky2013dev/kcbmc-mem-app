@@ -40,12 +40,13 @@
 }
 
 .cardContent {
-  padding: 2rem;
+  padding: 1.5rem 2rem 2rem 2rem;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  margin-top: 1rem;
 }
 
 .icon {
