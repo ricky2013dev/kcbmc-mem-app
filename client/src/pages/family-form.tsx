@@ -1056,7 +1056,7 @@ export default function FamilyFormPage({
                
                 <TabsTrigger value="address">주소</TabsTrigger>
                 <TabsTrigger value="picture">사진</TabsTrigger>
-                                <TabsTrigger className="" value="basic">Family 메모 </TabsTrigger>
+                                <TabsTrigger className="" value="basic">추가정보</TabsTrigger>
               </TabsList>
               <TabsContent value="picture">
                 {/* Family Picture Section */}

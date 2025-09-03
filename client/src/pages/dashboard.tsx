@@ -920,8 +920,8 @@ export default function DashboardPage() {
                       <div className={styles.expandedContent}>
                         <Tabs defaultValue="current-info" className="w-full">
                           <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="current-info">기본정보 </TabsTrigger>
-                            <TabsTrigger value="family-notes">Notes</TabsTrigger>
+                            <TabsTrigger value="current-info">가족사항 </TabsTrigger>
+                            <TabsTrigger value="family-notes">추가정보</TabsTrigger>
                             <TabsTrigger value="care-logs">섬김이 로그</TabsTrigger>
                           </TabsList>
                           
