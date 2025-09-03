@@ -6,7 +6,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +38,7 @@ function getDefaultDateRange() {
 
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
-  const { user, logout, canAddDelete } = useAuth();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
 
   const defaultDateRange = getDefaultDateRange();
@@ -85,10 +84,10 @@ export default function DashboardPage() {
     enabled: hasSearched,
   });
 
-  // Helper function to mask text with asterisks
+  // Helper function to mask text with asterisks - show max 10 asterisks for any note
   const maskText = (text: string) => {
     if (!text) return '';
-    return text.replace(/./g, '*');
+    return '*'.repeat(Math.min(text.length, 10));
   };
 
   // PIN verification function
@@ -476,18 +475,16 @@ export default function DashboardPage() {
           </div>
           
           <div className={styles.navRight}>
-            {canAddDelete && (
-              <Button 
-                variant="default"
-                size="sm"
-                onClick={() => setLocation('/family/new')}
-                data-testid="button-add-family"
-                className="mr-4"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add
-              </Button>
-            )}
+            <Button 
+              variant="default"
+              size="sm"
+              onClick={() => setLocation('/family/new')}
+              data-testid="button-add-family"
+              className="mr-4"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add
+            </Button>
             {user?.group === 'ADM' && (
               <Button 
                 variant="secondary"
@@ -923,9 +920,9 @@ export default function DashboardPage() {
                       <div className={styles.expandedContent}>
                         <Tabs defaultValue="current-info" className="w-full">
                           <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="current-info">Summary </TabsTrigger>
+                            <TabsTrigger value="current-info">기본정보 </TabsTrigger>
                             <TabsTrigger value="family-notes">Notes</TabsTrigger>
-                            <TabsTrigger value="care-logs">Care Logs</TabsTrigger>
+                            <TabsTrigger value="care-logs">섬김이 로그</TabsTrigger>
                           </TabsList>
                           
                           <TabsContent value="current-info" className="mt-4">
@@ -1158,19 +1155,25 @@ export default function DashboardPage() {
                                 <div onClick={() => handleViewSecureNotes(family.id)}
                                 className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                   <h5 className="font-medium text-blue-900 mb-2">Family Notes</h5>
-                                  <div 
-                                    className="text-blue-800 whitespace-pre-wrap cursor-pointer hover:bg-blue-100 p-2 rounded transition-colors"
-                                    
-                                    title={unmaskedFamilyNotes.has(family.id) ? "Notes are visible" : "Click to enter PIN and view notes"}
-                                  >
-                                    {unmaskedFamilyNotes.has(family.id) 
-                                      ? family.familyNotes 
-                                      : maskText(family.familyNotes)}
-                                  </div>
-                                  {!unmaskedFamilyNotes.has(family.id) && (
-                                    <p className="text-sm text-blue-600 mt-2 italic">
-                                      🔒 Click above to view notes
-                                    </p>
+                                  {unmaskedFamilyNotes.has(family.id) ? (
+                                    <div 
+                                      className="text-blue-800 whitespace-pre-wrap"
+                                      title="Notes are visible"
+                                    >
+                                      {family.familyNotes}
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div 
+                                        className="text-blue-800 whitespace-pre-wrap cursor-pointer hover:bg-blue-100 p-2 rounded transition-colors"
+                                        title="Click to enter PIN and view notes"
+                                      >
+                                        {maskText(family.familyNotes)}
+                                      </div>
+                                      <p className="text-sm text-blue-600 mt-2 italic">
+                                        🔒 Click above to view notes
+                                      </p>
+                                    </>
                                   )}
                                 </div>
                               ) : (
@@ -1233,9 +1236,9 @@ export default function DashboardPage() {
         <DialogContent className="max-w-md">
           <div className="space-y-4">
             <div className="text-center">
-              <h3 className="text-lg font-semibold">Enter PIN to View Family Notes</h3>
+              <h3 className="text-lg font-semibold">Family notes are protected.</h3>
               <p className="text-sm text-muted-foreground mt-2">
-                Family notes are protected. Please enter your PIN to view them.
+                 Please enter your PIN to view them.
               </p>
             </div>
             <div className="space-y-2">

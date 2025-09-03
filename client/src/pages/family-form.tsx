@@ -989,9 +989,59 @@ export default function FamilyFormPage({
                       )}
                     />
                   </div>
-                  
+               
 
                 </div>
+                             <div className="pt-2 grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="memberStatus"
+                      render={({ field }) => (
+                        <FormItem>
+                         
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger data-testid="select-member-status">
+                                <SelectValue placeholder="Select status..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {MEMBER_STATUS_OPTIONS.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="supportTeamMember"
+                      render={({ field }) => (
+                        <FormItem>
+                         
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="섬김이"
+                              data-testid="input-support-team"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
               </CardContent>
             </Card>
 
@@ -1006,7 +1056,7 @@ export default function FamilyFormPage({
                
                 <TabsTrigger value="address">주소</TabsTrigger>
                 <TabsTrigger value="picture">사진</TabsTrigger>
-                                <TabsTrigger className="" value="basic">새가족노트 </TabsTrigger>
+                                <TabsTrigger className="" value="basic">Family 메모 </TabsTrigger>
               </TabsList>
               <TabsContent value="picture">
                 {/* Family Picture Section */}
@@ -1061,56 +1111,7 @@ export default function FamilyFormPage({
               <CardContent className={styles.sectionContent}>
                 <div className={styles.grid}>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="memberStatus"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>방문/등록</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger data-testid="select-member-status">
-                                <SelectValue placeholder="Select status..." />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {MEMBER_STATUS_OPTIONS.map((option) => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="supportTeamMember"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>섬김이</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="Support team member name"
-                              data-testid="input-support-team"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+        
 
                   <div className={styles.fullWidth}>
                     <FormField

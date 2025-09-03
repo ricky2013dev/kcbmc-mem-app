@@ -23,8 +23,9 @@ const CARE_LOG_TYPES = [
   { value: 'text', label: 'Text Message' },
   { value: 'prayer', label: 'Prayer Request' },
   { value: 'call', label: 'Phone Call' },
-  { value: 'other', label: 'Other' },
+  
     { value: 'visit', label: 'Home Visit' },
+    { value: 'other', label: 'Other' },
  
 ];
 
@@ -207,7 +208,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
     <div className="space-y-4">
       {/* Header with Add Button */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Care Log History</h3>
+        <h3 className="text-lg font-semibold">Care Log </h3>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button size="sm" data-testid="button-add-care-log">
@@ -232,36 +233,10 @@ export function CareLogList({ familyId }: CareLogListProps) {
                     data-testid="input-care-log-date"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="type">Type</Label>
-                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-                    <SelectTrigger data-testid="select-care-log-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CARE_LOG_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+
               </div>
               <div>
-                <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger data-testid="select-care-log-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CARE_LOG_STATUSES.map((status) => (
-                      <SelectItem key={status.value} value={status.value}>
-                        {status.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
               </div>
               <div>
                 <Label htmlFor="description">Description</Label>
@@ -292,8 +267,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
       {careLogs.length === 0 ? (
         <div className="p-6 border border-dashed border-gray-300 rounded-lg text-center text-muted-foreground">
           <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          <p>No care logs recorded yet.</p>
-          <p className="text-sm mt-1">Click "Add Care Log" to start tracking family care activities.</p>
+
         </div>
       ) : (
         <div className="space-y-3">
@@ -302,25 +276,12 @@ export function CareLogList({ familyId }: CareLogListProps) {
               <CardContent className="p-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="outline" className={getTypeColor(log.type)}>
-                        {CARE_LOG_TYPES.find(t => t.value === log.type)?.label || log.type}
-                      </Badge>
-                      <Badge variant="outline" className={getStatusColor(log.status)}>
-                        {CARE_LOG_STATUSES.find(s => s.value === log.status)?.label || log.status}
-                      </Badge>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        {new Date(log.date).toLocaleDateString()}
-                      </div>
-                    </div>
+            
                     <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{log.description}</p>
                     <div className="flex items-center text-xs text-muted-foreground">
                       <User className="w-3 h-3 mr-1" />
-                      Added by {log.staff.fullName} ({log.staff.nickName}) on {log.createdAt ? new Date(log.createdAt).toLocaleDateString() : 'Unknown'}
-                      {log.updatedAt && log.updatedAt !== log.createdAt && (
-                        <span className="ml-2">• Updated {new Date(log.updatedAt).toLocaleDateString()}</span>
-                      )}
+                      {log.staff.nickName} on {log.createdAt ? new Date(log.createdAt).toLocaleDateString() : 'Unknown'}
+     
                     </div>
                   </div>
                   {canEditOrDelete(log) && (
@@ -355,53 +316,13 @@ export function CareLogList({ familyId }: CareLogListProps) {
       {editingLog && (
         <Dialog open={!!editingLog} onOpenChange={() => setEditingLog(null)}>
           <DialogContent data-testid="dialog-edit-care-log">
-            <DialogHeader>
-              <DialogTitle>Edit Care Log</DialogTitle>
-            </DialogHeader>
+  
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit-date">Date</Label>
-                  <Input
-                    id="edit-date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
-                    data-testid="input-edit-care-log-date"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-type">Type</Label>
-                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-                    <SelectTrigger data-testid="select-edit-care-log-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CARE_LOG_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+  
+      
               </div>
-              <div>
-                <Label htmlFor="edit-status">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger data-testid="select-edit-care-log-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CARE_LOG_STATUSES.map((status) => (
-                      <SelectItem key={status.value} value={status.value}>
-                        {status.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+  
               <div>
                 <Label htmlFor="edit-description">Description</Label>
                 <Textarea
