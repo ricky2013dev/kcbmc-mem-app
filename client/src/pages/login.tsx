@@ -49,6 +49,7 @@ export default function LoginPage() {
   const [selectedStaff, setSelectedStaff] = useState("");
   const [pin, setPin] = useState("");
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementWithStaff | null>(null);
+  const [dismissedAnnouncements, setDismissedAnnouncements] = useState<Set<string>>(new Set());
   const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
   const { login, isLoginPending } = useAuth();
   const { toast } = useToast();
@@ -165,9 +166,9 @@ export default function LoginPage() {
   return (
     <>
       {/* Announcements Cards */}
-      {announcements.length > 0 && (
+      {announcements.filter(announcement => !dismissedAnnouncements.has(announcement.id)).length > 0 && (
         <div className="fixed top-4 left-4 right-4 z-50 space-y-2">
-          {announcements.map((announcement) => (
+          {announcements.filter(announcement => !dismissedAnnouncements.has(announcement.id)).map((announcement) => (
             <Card 
               key={announcement.id}
               className="bg-white shadow-lg border-l-4 border-l-blue-500 cursor-pointer hover:shadow-xl transition-shadow"
@@ -235,7 +236,12 @@ export default function LoginPage() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button onClick={() => setSelectedAnnouncement(null)}>
+                <Button onClick={() => {
+                  if (selectedAnnouncement) {
+                    setDismissedAnnouncements(prev => new Set(Array.from(prev).concat(selectedAnnouncement.id)));
+                  }
+                  setSelectedAnnouncement(null);
+                }}>
                   Close
                 </Button>
               </div>
