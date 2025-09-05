@@ -9,6 +9,7 @@ import DashboardPage from "@/pages/dashboard";
 import FamilyFormPage from "@/pages/family-form";
 import StaffManagementPage from "@/pages/staff-management";
 import NewsManagementPage from "@/pages/news-management";
+import PublicAnnouncementPage from "@/pages/public-announcement";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -27,6 +28,9 @@ function Router() {
 
   return (
     <Switch>
+      {/* Public routes (no authentication required) */}
+      <Route path="/announcement/:id" component={PublicAnnouncementPage} />
+      
       {!isAuthenticated ? (
         <Route path="/" component={LoginPage} />
       ) : (

@@ -17,7 +17,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Plus, Edit, Trash2, ArrowLeft, Calendar, Globe, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit, Trash2, ArrowLeft, Calendar, Globe, Eye, EyeOff, Copy, ExternalLink, Check, Files } from 'lucide-react';
 
 interface AnnouncementWithStaff {
   id: string;
@@ -66,6 +66,7 @@ export default function NewsManagementPage() {
   const [editingAnnouncement, setEditingAnnouncement] = useState<AnnouncementWithStaff | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [announcementToDelete, setAnnouncementToDelete] = useState<AnnouncementWithStaff | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Check if user has admin access
   if (user?.group !== 'ADM') {
@@ -197,6 +198,24 @@ export default function NewsManagementPage() {
     setShowDialog(true);
   };
 
+  const handleCopyAnnouncement = (announcement: AnnouncementWithStaff) => {
+    setEditingAnnouncement(null); // This will be a new announcement
+    form.reset({
+      title: `Copy of ${announcement.title}`,
+      content: announcement.content,
+      type: announcement.type,
+      isLoginRequired: announcement.isLoginRequired,
+      startDate: new Date().toISOString().slice(0, 16), // Reset to current time
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16), // 7 days from now
+      isActive: true, // Default to active for new copy
+    });
+    setShowDialog(true);
+    toast({
+      title: "Copying Announcement",
+      description: "Pre-filled with existing announcement data. Modify as needed.",
+    });
+  };
+
   const handleDeleteAnnouncement = (announcement: AnnouncementWithStaff) => {
     setAnnouncementToDelete(announcement);
     setShowDeleteDialog(true);
@@ -220,6 +239,59 @@ export default function NewsManagementPage() {
     if (announcementToDelete) {
       deleteMutation.mutate(announcementToDelete.id);
     }
+  };
+
+  const getPublicUrl = (announcementId: string) => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/announcement/${announcementId}`;
+  };
+
+  const copyPublicUrl = async (announcement: AnnouncementWithStaff) => {
+    if (announcement.isLoginRequired) {
+      toast({
+        title: "Cannot Copy URL",
+        description: "This announcement requires login and doesn't have a public URL.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const publicUrl = getPublicUrl(announcement.id);
+    
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      setCopiedId(announcement.id);
+      toast({
+        title: "URL Copied!",
+        description: "Public announcement URL has been copied to clipboard.",
+      });
+      
+      // Reset copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedId(null);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy URL:', error);
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy URL to clipboard. Please copy manually.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openPublicUrl = (announcement: AnnouncementWithStaff) => {
+    if (announcement.isLoginRequired) {
+      toast({
+        title: "Cannot Open URL",
+        description: "This announcement requires login and doesn't have a public URL.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const publicUrl = getPublicUrl(announcement.id);
+    window.open(publicUrl, '_blank');
   };
 
   const getTypeBadgeVariant = (type: string) => {
@@ -361,6 +433,36 @@ export default function NewsManagementPage() {
                           <div>
                             Created by: <span className="font-medium">{announcement.createdByStaff.fullName}</span>
                           </div>
+                          {!announcement.isLoginRequired && (
+                            <div className="flex items-center space-x-2 py-2">
+                              <span className="text-gray-500 text-xs">Public URL:</span>
+                              <div className="flex items-center space-x-1 bg-gray-50 rounded px-2 py-1 text-xs font-mono text-gray-700 border">
+                                <span className="truncate max-w-xs">
+                                  {getPublicUrl(announcement.id)}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 w-5 p-0 hover:bg-gray-200"
+                                  onClick={() => copyPublicUrl(announcement)}
+                                >
+                                  {copiedId === announcement.id ? (
+                                    <Check className="w-3 h-3 text-green-600" />
+                                  ) : (
+                                    <Copy className="w-3 h-3" />
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 w-5 p-0 hover:bg-gray-200"
+                                  onClick={() => openPublicUrl(announcement)}
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
                           <div className="max-w-md">
                             <span className="text-gray-500">Content:</span> 
                             <div 
@@ -375,6 +477,16 @@ export default function NewsManagementPage() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 sm:flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopyAnnouncement(announcement)}
+                          className="flex-1 sm:flex-none text-blue-600 border-blue-200 hover:bg-blue-50 text-xs sm:text-sm"
+                          title="Create a copy of this announcement"
+                        >
+                          <Files className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                          Copy
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -404,14 +516,14 @@ export default function NewsManagementPage() {
 
         {/* Add/Edit Dialog */}
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
-          <DialogContent className="max-w-2xl mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full max-w-2xl mx-2 sm:mx-4 md:mx-auto max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle className="text-lg sm:text-xl">
                 {editingAnnouncement ? 'Edit Announcement' : 'Add New Announcement'}
               </DialogTitle>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
                 <FormField
                   control={form.control}
                   name="title"
@@ -437,7 +549,7 @@ export default function NewsManagementPage() {
                           value={field.value}
                           onChange={field.onChange}
                           placeholder="Enter announcement content..."
-                          className="min-h-[200px]"
+                          className="min-h-[150px] sm:min-h-[200px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -513,12 +625,12 @@ export default function NewsManagementPage() {
                   control={form.control}
                   name="isLoginRequired"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">
+                    <FormItem className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border p-3 sm:p-4 space-y-2 sm:space-y-0">
+                      <div className="space-y-0.5 flex-1">
+                        <FormLabel className="text-sm sm:text-base">
                           Require Login to View
                         </FormLabel>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-xs sm:text-sm text-muted-foreground">
                           {field.value 
                             ? "Show only after login (dashboard)" 
                             : "Show before login (login page)"
@@ -539,12 +651,12 @@ export default function NewsManagementPage() {
                   control={form.control}
                   name="isActive"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">
+                    <FormItem className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border p-3 sm:p-4 space-y-2 sm:space-y-0">
+                      <div className="space-y-0.5 flex-1">
+                        <FormLabel className="text-sm sm:text-base">
                           Active
                         </FormLabel>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-xs sm:text-sm text-muted-foreground">
                           Enable or disable this announcement
                         </div>
                       </div>
@@ -558,7 +670,7 @@ export default function NewsManagementPage() {
                   )}
                 />
 
-                <DialogFooter className="gap-2 flex-col sm:flex-row">
+                <DialogFooter className="gap-2 flex-col sm:flex-row pt-4 sm:pt-6">
                   <Button
                     type="button"
                     variant="outline"
@@ -588,7 +700,7 @@ export default function NewsManagementPage() {
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <DialogContent className="max-w-md mx-4 sm:mx-auto">
+          <DialogContent className="w-full max-w-md mx-2 sm:mx-4 md:mx-auto p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle className="text-lg sm:text-xl">Confirm Deletion</DialogTitle>
             </DialogHeader>

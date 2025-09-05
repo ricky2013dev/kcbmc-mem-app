@@ -13,9 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Users, X } from "lucide-react";
+import { Users, Bell, ExternalLink } from "lucide-react";
 import styles from "./login.module.css";
 import { apiRequest } from '@/lib/queryClient';
 
@@ -26,30 +24,16 @@ interface StaffMember {
   group: string;
 }
 
-interface AnnouncementWithStaff {
+interface PublicAnnouncement {
   id: string;
   title: string;
-  content: string;
   type: 'Major' | 'Medium' | 'Minor';
-  isLoginRequired: boolean;
-  startDate: string;
-  endDate: string;
-  createdBy: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  createdByStaff: {
-    id: string;
-    fullName: string;
-    nickName: string;
-  };
 }
+
 
 export default function LoginPage() {
   const [selectedStaff, setSelectedStaff] = useState("");
   const [pin, setPin] = useState("");
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementWithStaff | null>(null);
-  const [dismissedAnnouncements, setDismissedAnnouncements] = useState<Set<string>>(new Set());
   const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
   const { login, isLoginPending } = useAuth();
   const { toast } = useToast();
@@ -60,8 +44,8 @@ export default function LoginPage() {
     if (savedCredentials) {
       setHasSavedCredentials(true);
       try {
-        const { nickname, pin: savedPin } = JSON.parse(savedCredentials);
-        if (nickname) setSelectedStaff(nickname);
+        const { nickName, pin: savedPin } = JSON.parse(savedCredentials);
+        if (nickName) setSelectedStaff(nickName);
         if (savedPin) setPin(savedPin);
       } catch (error) {
         // If there's an error parsing, just ignore and continue
@@ -77,13 +61,17 @@ export default function LoginPage() {
     queryKey: ["/api/staff"],
   });
 
-  const { data: announcements = [] } = useQuery<AnnouncementWithStaff[]>({
+  // Query for public announcements (only non-login-required ones)
+  const { data: publicAnnouncements = [] } = useQuery<PublicAnnouncement[]>({
     queryKey: ["/api/announcements/login"],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/announcements/login');
-      return response.json();
+      const announcements = await response.json();
+      // Filter only non-login-required announcements
+      return announcements.filter((ann: any) => !ann.isLoginRequired);
     },
   });
+
 
   useEffect(() => {
     // Only auto-select default staff if no staff is selected and no saved credentials
@@ -119,7 +107,7 @@ export default function LoginPage() {
       
       // Save credentials to localStorage on successful login
       const credentialsToSave = {
-        nickname: selectedStaff,
+        nickName: selectedStaff,
         pin: pin,
         lastLogin: new Date().toISOString()
       };
@@ -139,18 +127,6 @@ export default function LoginPage() {
     }
   };
 
-  const getTypeBadgeVariant = (type: string) => {
-    switch (type) {
-      case 'Major': return 'destructive';
-      case 'Medium': return 'default';
-      case 'Minor': return 'secondary';
-      default: return 'secondary';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ko-KR');
-  };
 
   const clearSavedLogin = () => {
     localStorage.removeItem('lastLoginCredentials');
@@ -164,100 +140,71 @@ export default function LoginPage() {
   };
 
   return (
-    <>
-      {/* Announcements Cards */}
-      {announcements.filter(announcement => !dismissedAnnouncements.has(announcement.id)).length > 0 && (
-        <div className="fixed top-4 left-4 right-4 z-50 space-y-2">
-          {announcements.filter(announcement => !dismissedAnnouncements.has(announcement.id)).map((announcement) => (
-            <Card 
-              key={announcement.id}
-              className="bg-white shadow-lg border-l-4 border-l-blue-500 cursor-pointer hover:shadow-xl transition-shadow"
-              onClick={() => setSelectedAnnouncement(announcement)}
-            >
-              <CardContent className="p-8 min-h-[140px]">
-                <div className="flex items-start justify-between h-full">
-                  <div className="flex-1 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-3 mb-4">
-                        <h3 className="font-semibold text-gray-900 text-lg">
-                          {announcement.title}
-                        </h3>
-                        <Badge variant={getTypeBadgeVariant(announcement.type)} className="text-sm px-2 py-1">
-                          {announcement.type}
-                        </Badge>
-                      </div>
-                      <p className="text-gray-600 text-base line-clamp-4 leading-relaxed mb-3">
-                        {announcement.content.replace(/<[^>]*>/g, '').substring(0, 300)}...
-                      </p>
-                    </div>
-                    <p className="text-gray-500 text-sm mt-auto">
-                      Click to view details
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Hide this announcement (could implement local storage to remember)
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-      
-      {/* Announcement Detail Modal */}
-      <Dialog open={!!selectedAnnouncement} onOpenChange={() => setSelectedAnnouncement(null)}>
-        <DialogContent className="max-w-2xl">
-          {selectedAnnouncement && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {selectedAnnouncement.title}
-                  <Badge variant={getTypeBadgeVariant(selectedAnnouncement.type)} className="text-xs">
-                    {selectedAnnouncement.type}
-                  </Badge>
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div 
-                  className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: selectedAnnouncement.content }}
-                />
-                <div className="text-xs text-gray-500 pt-4 border-t">
-                  <p>Posted by: {selectedAnnouncement.createdByStaff.fullName}</p>
-                  <p>Active until: {formatDate(selectedAnnouncement.endDate)}</p>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={() => {
-                  if (selectedAnnouncement) {
-                    setDismissedAnnouncements(prev => new Set(Array.from(prev).concat(selectedAnnouncement.id)));
-                  }
-                  setSelectedAnnouncement(null);
-                }}>
-                  Close
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     <div className={styles.container}>
       <div className={styles.background}>
-        <Card className={styles.card}>
+        <Card className={`${styles.card} relative`}>
           <CardContent className={styles.cardContent}>
             <div className={styles.header}>
               <div className={styles.icon}>
                 <Users className="w-8 h-8 text-primary-foreground" />
               </div>
               <h1 className={styles.title}>새가족</h1>
+              {publicAnnouncements.length > 0 && (
+                <div className="absolute top-4 right-4">
+                  <div className="relative group">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-10 w-10 p-0 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all duration-200"
+                      onClick={() => {
+                        if (publicAnnouncements.length === 1) {
+                          window.open(`/announcement/${publicAnnouncements[0].id}`, '_blank');
+                        }
+                      }}
+                      title={publicAnnouncements.length === 1 
+                        ? `View announcement: ${publicAnnouncements[0].title}` 
+                        : `${publicAnnouncements.length} public announcements available`}
+                    >
+                      <Bell className="h-5 w-5 text-blue-600" />
+                    </Button>
+                    
+                    {/* Notification badge */}
+                    <div className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                      {publicAnnouncements.length > 9 ? '9+' : publicAnnouncements.length}
+                    </div>
+                    
+                    {/* Dropdown for multiple announcements */}
+                    {publicAnnouncements.length > 1 && (
+                      <div className="absolute right-0 top-12 w-80 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                        <div className="p-3 border-b border-gray-100">
+                          <h3 className="text-sm font-semibold text-gray-900">Public Announcements</h3>
+                        </div>
+                        <div className="max-h-60 overflow-y-auto">
+                          {publicAnnouncements.map((announcement, index) => (
+                            <div
+                              key={announcement.id}
+                              className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0"
+                              onClick={() => window.open(`/announcement/${announcement.id}`, '_blank')}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {announcement.title}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {announcement.type} Priority
+                                  </p>
+                                </div>
+                                <ExternalLink className="h-3 w-3 text-gray-400 flex-shrink-0 ml-2" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <form onSubmit={handleSubmit} className={styles.form}>
@@ -325,6 +272,5 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
-    </>
   );
 }

@@ -433,6 +433,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public announcement route (no authentication required)
+  app.get("/api/announcements/public/:id", async (req, res) => {
+    try {
+      const announcement = await storage.getAnnouncement(req.params.id);
+      if (!announcement) {
+        return res.status(404).json({ message: "Announcement not found" });
+      }
+      
+      // Only return the announcement if it's not login-required
+      if (announcement.isLoginRequired) {
+        return res.status(403).json({ message: "Announcement requires authentication" });
+      }
+      
+      res.json(announcement);
+    } catch (error) {
+      console.error("Get public announcement error:", error);
+      res.status(500).json({ message: "Failed to get announcement" });
+    }
+  });
+
   // Announcement routes
   app.get("/api/announcements", requireAuth, async (req, res) => {
     try {
