@@ -1,0 +1,23 @@
+<svg width="180" height="180" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="30" fill="#2563eb" stroke="#1d4ed8" stroke-width="2"/>
+  
+  <!-- Main person (larger) -->
+  <circle cx="32" cy="24" r="6" fill="white"/>
+  <path d="M20 48 C20 40, 25 36, 32 36 C39 36, 44 40, 44 48" fill="white"/>
+  
+  <!-- Small person icons (team members) -->
+  <!-- Left person -->
+  <circle cx="18" cy="20" r="3" fill="#93c5fd" opacity="0.9"/>
+  <path d="M13 30 C13 27, 15 25, 18 25 C21 25, 23 27, 23 30" fill="#93c5fd" opacity="0.9"/>
+  
+  <!-- Right person -->
+  <circle cx="46" cy="20" r="3" fill="#93c5fd" opacity="0.9"/>
+  <path d="M41 30 C41 27, 43 25, 46 25 C49 25, 51 27, 51 30" fill="#93c5fd" opacity="0.9"/>
+  
+  <!-- Management/settings gear indicator -->
+  <g transform="translate(48, 8)">
+    <circle cx="0" cy="0" r="8" fill="#1e40af"/>
+    <path d="M-2,-6 L2,-6 L3,-4 L1,-2 L3,0 L1,2 L3,4 L2,6 L-2,6 L-3,4 L-1,2 L-3,0 L-1,-2 L-3,-4 Z" fill="white"/>
+  </g>
+</svg>
