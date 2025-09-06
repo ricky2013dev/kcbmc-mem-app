@@ -2,7 +2,7 @@
   "name": "새가족 - Family Management App",
   "short_name": "새가족",
   "description": "Family Management App for team coordination",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",

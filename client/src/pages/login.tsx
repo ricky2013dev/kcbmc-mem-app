@@ -232,16 +232,28 @@ export default function LoginPage() {
                 </Label>
                 <Input
                   id="pin"
-                  type="tel"
+                  type="number"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   maxLength={4}
                   value={pin}
                   onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                  onFocus={(e) => {
+                    // Force keyboard to appear on PWA
+                    e.target.setAttribute('readonly', 'false');
+                    setTimeout(() => {
+                      e.target.focus();
+                    }, 100);
+                  }}
+                  onTouchStart={(e) => {
+                    // Ensure focus on touch devices
+                    e.currentTarget.focus();
+                  }}
                   placeholder="••••"
                   className={styles.pinInput}
                   data-testid="input-pin"
                   autoComplete="one-time-code"
+                  readOnly={false}
                 />
                 {hasSavedCredentials && (
                   <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
