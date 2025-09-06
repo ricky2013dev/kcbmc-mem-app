@@ -173,9 +173,7 @@ export default function PublicAnnouncementPage() {
                   <h1 className="text-3xl font-bold text-gray-900">
                     {announcement.title}
                   </h1>
-                  <Badge variant={getTypeBadgeVariant(announcement.type)} className="text-sm px-3 py-1">
-                    {announcement.type}
-                  </Badge>
+   
                 </div>
               </div>
 
