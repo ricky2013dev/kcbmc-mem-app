@@ -169,7 +169,7 @@
 .main {
   max-width: 112rem;
   margin: 0 auto;
-  padding: 4.5rem 0.75rem 2rem;
+  padding: 4.5rem 0.75rem 4rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -177,7 +177,7 @@
 
 @media (min-width: 768px) {
   .main {
-    padding: 6rem 1rem 2rem;
+    padding: 6rem 1rem 4.5rem;
     gap: 2rem;
   }
 }
@@ -706,5 +706,224 @@
     flex-shrink: 0;
     justify-content: flex-end;
     margin-top: 0;
+  }
+}
+
+/* Fixed Footer Styles */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(226, 232, 240, 0.3);
+  padding: 0.5rem 1rem;
+  box-shadow: 0 -4px 15px -3px rgb(0 0 0 / 0.1), 0 -2px 6px -2px rgb(0 0 0 / 0.05);
+  height: 3rem;
+  animation: slideUpFooter 0.6s ease-out;
+  transition: all 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .footer {
+    padding: 0.75rem 1.5rem;
+    height: 3.5rem;
+  }
+}
+
+.footerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 112rem;
+  margin: 0 auto;
+  height: 100%;
+}
+
+.footerLeft {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  animation: fadeInStaggered 0.8s ease-out;
+}
+
+@media (max-width: 640px) {
+  .footerLeft {
+    gap: 0.5rem;
+  }
+}
+
+.footerRight {
+  display: flex;
+  align-items: center;
+}
+
+.footerDate {
+  font-size: 0.7rem;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+  display: block;
+  animation: slideInLeft 0.8s ease-out;
+  transition: all 0.3s ease;
+}
+
+.footerDate:hover {
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+
+@media (min-width: 640px) {
+  .footerDate {
+    font-size: 0.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .footerDate {
+    font-size: 0.875rem;
+  }
+}
+
+.footerTime {
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8, #3b82f6);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 3s ease-in-out infinite, pulseTime 2s ease-in-out infinite;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.footerTime:hover {
+  transform: scale(1.05) translateY(-2px);
+  filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.3));
+}
+
+@media (min-width: 768px) {
+  .footerTime {
+    font-size: 1rem;
+  }
+}
+
+.footerUser {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  animation: slideInRight 0.8s ease-out;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.footerUser::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.footerUser:hover {
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+
+@media (min-width: 640px) {
+  .footerUser {
+    max-width: 180px;
+  }
+}
+
+@media (min-width: 768px) {
+  .footerUser {
+    font-size: 0.875rem;
+    max-width: none;
+  }
+}
+
+/* Footer Animation Keyframes */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes pulseTime {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 100%;
+  }
+}
+
+@keyframes slideUpFooter {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInStaggered {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  60% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

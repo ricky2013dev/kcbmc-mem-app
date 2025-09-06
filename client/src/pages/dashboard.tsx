@@ -88,6 +88,7 @@ export default function DashboardPage() {
   const [majorAnnouncementModal, setMajorAnnouncementModal] = useState<AnnouncementWithStaff | null>(null);
   const [shownMajorAnnouncements, setShownMajorAnnouncements] = useState<Set<string>>(new Set());
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters],
@@ -137,6 +138,15 @@ export default function DashboardPage() {
       }
     }
   }, [majorAnnouncements, shownMajorAnnouncements, majorAnnouncementModal]);
+
+  // Update time every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Helper function to mask text with asterisks - show max 10 asterisks for any note
   const maskText = (text: string) => {
@@ -1556,6 +1566,41 @@ export default function DashboardPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Fixed Footer */}
+      <footer className={styles.footer}>
+        <div className={styles.footerContent}>
+          <div className={styles.footerLeft}>
+            <span className={styles.footerDate}>
+              <span className="hidden sm:inline">
+                {currentTime.toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  weekday: 'long'
+                })}
+              </span>
+              <span className="inline sm:hidden">
+                {currentTime.toLocaleDateString('ko-KR', {
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </span>
+            </span>
+            <span className={styles.footerTime}>
+              {currentTime.toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </span>
+          </div>
+          <div className={styles.footerRight}>
+            <span className={styles.footerUser}>
+              {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
+            </span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
