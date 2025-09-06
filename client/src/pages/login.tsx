@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Bell, ExternalLink } from "lucide-react";
+import { Users, Bell, ExternalLink, X } from "lucide-react";
 import styles from "./login.module.css";
 import { apiRequest } from '@/lib/queryClient';
 
@@ -38,14 +38,34 @@ export default function LoginPage() {
   const { login, isLoginPending } = useAuth();
   const { toast } = useToast();
 
-  // Load saved credentials from localStorage
+  const { data: staff = [] } = useQuery<StaffMember[]>({
+    queryKey: ["/api/staff"],
+  });
+
+  // Load saved credentials from localStorage when staff data is available
   useEffect(() => {
+    if (staff.length === 0) return; // Wait for staff data to load
+    
     const savedCredentials = localStorage.getItem('lastLoginCredentials');
     if (savedCredentials) {
       setHasSavedCredentials(true);
       try {
-        const { nickName, pin: savedPin } = JSON.parse(savedCredentials);
-        if (nickName) setSelectedStaff(nickName);
+        const { memberId, nickName, pin: savedPin } = JSON.parse(savedCredentials);
+        
+        // If we have memberId, find the member and use their current nickName
+        // Otherwise, fallback to the saved nickName for backwards compatibility
+        if (memberId) {
+          const member = staff.find(m => m.id === memberId);
+          if (member) {
+            setSelectedStaff(member.nickName);
+          } else if (nickName) {
+            // Member ID not found, fallback to nickName
+            setSelectedStaff(nickName);
+          }
+        } else if (nickName) {
+          setSelectedStaff(nickName);
+        }
+        
         if (savedPin) setPin(savedPin);
       } catch (error) {
         // If there's an error parsing, just ignore and continue
@@ -55,11 +75,7 @@ export default function LoginPage() {
     } else {
       setHasSavedCredentials(false);
     }
-  }, []);
-
-  const { data: staff = [] } = useQuery<StaffMember[]>({
-    queryKey: ["/api/staff"],
-  });
+  }, [staff.length]); // Use staff.length to avoid constant re-renders
 
   // Query for public announcements (only non-login-required ones)
   const { data: publicAnnouncements = [] } = useQuery<PublicAnnouncement[]>({
@@ -73,13 +89,6 @@ export default function LoginPage() {
   });
 
 
-  useEffect(() => {
-    // Only auto-select default staff if no staff is selected and no saved credentials
-    if (staff.length >= 2 && !selectedStaff && !hasSavedCredentials) {
-      // No saved credentials, use default (second staff member)
-      setSelectedStaff(staff[1].nickName);
-    }
-  }, [staff, selectedStaff, hasSavedCredentials]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,8 +115,10 @@ export default function LoginPage() {
       await login({ nickname: selectedStaff, pin });
       
       // Save credentials to localStorage on successful login
+      const selectedMember = staff.find(m => m.nickName === selectedStaff);
       const credentialsToSave = {
-        nickName: selectedStaff,
+        memberId: selectedMember?.id, // Save the member ID for reliable lookup
+        nickName: selectedStaff, // Keep nickName for backwards compatibility
         pin: pin,
         lastLogin: new Date().toISOString()
       };
@@ -180,7 +191,7 @@ export default function LoginPage() {
                           <h3 className="text-sm font-semibold text-gray-900">Public Announcements</h3>
                         </div>
                         <div className="max-h-60 overflow-y-auto">
-                          {publicAnnouncements.map((announcement, index) => (
+                          {publicAnnouncements.map((announcement) => (
                             <div
                               key={announcement.id}
                               className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0"
@@ -230,17 +241,29 @@ export default function LoginPage() {
                 <Label htmlFor="pin" className={styles.label}>
                   PIN
                 </Label>
-                <Input
-                  id="pin"
-                  type="text"
-                  pattern="[0-9]*"
-                  maxLength={4}
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-                  placeholder="••••"
-                  className={styles.pinInput}
-                  data-testid="input-pin"
-                />
+                <div className="relative">
+                  <Input
+                    id="pin"
+                    type="text"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                    placeholder="••••"
+                    className={styles.pinInput}
+                    data-testid="input-pin"
+                  />
+                  {pin && (
+                    <button
+                      type="button"
+                      onClick={() => setPin("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      aria-label="Clear PIN"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
                 {hasSavedCredentials && (
                   <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
                     <span className="flex items-center">
