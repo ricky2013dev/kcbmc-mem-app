@@ -19,6 +19,7 @@ import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
 import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { CareLogList } from '@/components/CareLogList';
+import { RefreshButton } from '@/components/RefreshButton';
 
 // Helper function to get default date range (recent 12 months, Sunday-only)
 function getDefaultDateRange() {
@@ -549,6 +550,9 @@ export default function DashboardPage() {
           </div>
           
           <div className={styles.navRight}>
+            {/* Refresh Button - Always Visible */}
+            <RefreshButton />
+            
             {/* Add New Button - Desktop Only */}
             <Button 
               variant="default"

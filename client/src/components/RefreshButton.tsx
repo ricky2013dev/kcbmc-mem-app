@@ -35,20 +35,17 @@ export function RefreshButton() {
   };
 
   return (
-    <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-      <Button
-        onClick={handleRefresh}
-        disabled={isRefreshing}
-        className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg border border-blue-500 px-4 py-2 rounded-full flex items-center space-x-2 text-sm font-medium transition-all duration-200 hover:shadow-xl"
-        size="sm"
-      >
-        <RefreshCw 
-          className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
-        />
-        <span>
-          {isRefreshing ? 'Refreshing...' : 'Refresh the latest data'}
-        </span>
-      </Button>
-    </div>
+    <Button
+      onClick={handleRefresh}
+      disabled={isRefreshing}
+      variant="ghost"
+      size="sm"
+      className="w-9 h-9 p-0"
+      title={isRefreshing ? 'Refreshing...' : 'Refresh the latest data'}
+    >
+      <RefreshCw 
+        className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
+      />
+    </Button>
   );
 }
