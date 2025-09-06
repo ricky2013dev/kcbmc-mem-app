@@ -7,6 +7,7 @@ interface AuthUser {
   fullName: string;
   nickName: string;
   group: string;
+  email?: string;
 }
 
 interface LoginCredentials {
@@ -104,6 +105,15 @@ export function useAuth() {
     },
   });
 
+  // Function to update user data after profile changes
+  const updateUser = (updatedUserData: Partial<AuthUser>) => {
+    if (user) {
+      const newUserData = { ...user, ...updatedUserData };
+      queryClient.setQueryData(['/api/auth/me'], newUserData);
+      localStorage.setItem('currentUser', JSON.stringify(newUserData));
+    }
+  };
+
   return {
     user,
     isLoading,
@@ -111,6 +121,7 @@ export function useAuth() {
     canAddDelete: user?.group === 'ADM' || user?.group === 'MGM',
     login: loginMutation.mutateAsync,
     logout: logoutMutation.mutateAsync,
+    updateUser,
     isLoginPending: loginMutation.isPending,
     isLogoutPending: logoutMutation.isPending,
   };

@@ -16,7 +16,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink } from 'lucide-react';
+import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { CareLogList } from '@/components/CareLogList';
 import { RefreshButton } from '@/components/RefreshButton';
@@ -59,7 +59,7 @@ interface AnnouncementWithStaff {
 
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { toast } = useToast();
 
   const defaultDateRange = getDefaultDateRange();
@@ -90,6 +90,13 @@ export default function DashboardPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showAnnouncementDropdown, setShowAnnouncementDropdown] = useState(false);
+  const [showUserProfileModal, setShowUserProfileModal] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editProfileData, setEditProfileData] = useState({
+    fullName: '',
+    email: '',
+    personalPin: ''
+  });
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters],
@@ -151,11 +158,11 @@ export default function DashboardPage() {
     }
   }, [majorAnnouncements, shownMajorAnnouncements, majorAnnouncementModal]);
 
-  // Update time every minute
+  // Update time every second for real-time display
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Update every minute
+    }, 1000); // Update every second
 
     return () => clearInterval(timer);
   }, []);
@@ -206,6 +213,66 @@ export default function DashboardPage() {
     }
     setSelectedFamilyId(familyId);
     setShowPinModal(true);
+  };
+
+  // Handle opening profile edit modal
+  const handleEditProfile = async () => {
+    // Check if user is authenticated before showing edit form
+    try {
+      await apiRequest('GET', '/api/auth/me');
+      setEditProfileData({
+        fullName: user?.fullName || '',
+        email: user?.email || '',
+        personalPin: ''
+      });
+      setShowUserProfileModal(false);
+      setShowEditProfileModal(true);
+    } catch (error) {
+      console.error('Auth check failed when opening edit modal:', error);
+      setShowUserProfileModal(false);
+      toast({
+        title: "Authentication Required",
+        description: "Please log in again to edit your profile.",
+        variant: "destructive",
+      });
+      // Redirect to login
+      logout();
+    }
+  };
+
+  // Handle profile update
+  const handleUpdateProfile = async () => {
+    try {
+      const response = await apiRequest('PUT', '/api/auth/profile', editProfileData);
+      const updatedUser = await response.json();
+      
+      // Update user data in context and localStorage
+      updateUser({
+        fullName: updatedUser.fullName,
+        email: updatedUser.email,
+        // Don't update other fields that weren't changed
+      });
+      
+      toast({
+        title: "Success",
+        description: "Profile updated successfully!",
+      });
+      
+      setShowEditProfileModal(false);
+    } catch (error) {
+      console.error('Profile update failed:', error);
+      toast({
+        title: "Error",
+        description: error.message.includes('401') ? 
+          "Please log in again to update your profile." : 
+          "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+      
+      if (error.message.includes('401')) {
+        logout();
+      }
+    }
   };
 
   const clearFilters = () => {
@@ -574,6 +641,87 @@ export default function DashboardPage() {
           <div className={styles.navRight}>
             {/* Refresh Button - Always Visible */}
             <RefreshButton />
+            
+            {/* News Announcement Bell - Always Visible */}
+            {footerAnnouncements.length > 0 && (
+              <div className="relative mr-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-2"
+                  onClick={() => {
+                    if (footerAnnouncements.length === 1) {
+                      setLocation(`/announcement/${footerAnnouncements[0].id}`);
+                    } else {
+                      setShowAnnouncementDropdown(!showAnnouncementDropdown);
+                    }
+                  }}
+                  title={footerAnnouncements.length === 1 
+                    ? `View announcement: ${footerAnnouncements[0].title}` 
+                    : `${footerAnnouncements.length} announcements available`}
+                >
+                  <Bell className="h-4 w-4 text-blue-600" />
+                </Button>
+                
+                {/* Notification badge */}
+                <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                  {footerAnnouncements.length > 9 ? '9+' : footerAnnouncements.length}
+                </div>
+                
+                {/* Dropdown for multiple announcements */}
+                {footerAnnouncements.length > 1 && showAnnouncementDropdown && (
+                  <>
+                    {/* Backdrop */}
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowAnnouncementDropdown(false)}
+                    />
+                    
+                    {/* Dropdown content */}
+                    <div className="absolute top-full right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <div className="p-3 border-b border-gray-100">
+                        <h3 className="text-sm font-semibold text-gray-900">Announcements</h3>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {footerAnnouncements.map((announcement) => (
+                          <div
+                            key={announcement.id}
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0"
+                            onClick={() => {
+                              setLocation(`/announcement/${announcement.id}`);
+                              setShowAnnouncementDropdown(false);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {announcement.title}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                    announcement.type === 'Major' 
+                                      ? 'bg-red-100 text-red-700' 
+                                      : announcement.type === 'Medium' 
+                                      ? 'bg-blue-100 text-blue-700' 
+                                      : 'bg-gray-100 text-gray-700'
+                                  }`}>
+                                    {announcement.type}
+                                  </span>
+                                  {!announcement.isLoginRequired && (
+                                    <span className="text-xs text-green-600">Public</span>
+                                  )}
+                                </div>
+                              </div>
+                              <ExternalLink className="h-3 w-3 text-gray-400 flex-shrink-0 ml-2" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             
             {/* Add New Button - Desktop Only */}
             <Button 
@@ -1584,118 +1732,176 @@ export default function DashboardPage() {
         <div className={styles.footerContent}>
           <div className={styles.footerLeft}>
             <span className={styles.footerDate}>
-              <span className="hidden sm:inline">
-                {currentTime.toLocaleDateString('ko-KR', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
+              {(() => {
+                const dateStr = currentTime.toLocaleDateString('en-US', {
+                  month: '2-digit',
+                  day: '2-digit'
+                });
+                const weekdayStr = currentTime.toLocaleDateString('en-US', {
                   weekday: 'long'
-                })}
-              </span>
-              <span className="inline sm:hidden">
-                {currentTime.toLocaleDateString('ko-KR', {
-                  month: 'short',
-                  day: 'numeric'
-                })}
-              </span>
-            </span>
-            <span className={styles.footerTime}>
-              {currentTime.toLocaleTimeString('ko-KR', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
+                }).toUpperCase();
+                const timeStr = currentTime.toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                }).toUpperCase();
+                return `${dateStr.toUpperCase()} ${weekdayStr} ${timeStr}`;
+              })()}
             </span>
           </div>
           <div className={styles.footerRight}>
-            <span className={styles.footerUser}>
-              {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
-            </span>
-            
-            {/* News Announcement Icon */}
-            {footerAnnouncements.length > 0 && (
-              <div className={styles.footerAnnouncements}>
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={styles.footerAnnouncementButton}
-                    onClick={() => {
-                      if (footerAnnouncements.length === 1) {
-                        setLocation(`/announcement/${footerAnnouncements[0].id}`);
-                      } else {
-                        setShowAnnouncementDropdown(!showAnnouncementDropdown);
-                      }
-                    }}
-                    title={footerAnnouncements.length === 1 
-                      ? `View announcement: ${footerAnnouncements[0].title}` 
-                      : `${footerAnnouncements.length} announcements available`}
-                  >
-                    <Bell className="h-4 w-4 text-blue-600" />
-                  </Button>
-                  
-                  {/* Notification badge */}
-                  <div className={styles.footerAnnouncementBadge}>
-                    {footerAnnouncements.length > 9 ? '9+' : footerAnnouncements.length}
-                  </div>
-                  
-                  {/* Dropdown for multiple announcements */}
-                  {footerAnnouncements.length > 1 && showAnnouncementDropdown && (
-                    <>
-                      {/* Backdrop */}
-                      <div 
-                        className="fixed inset-0 z-40" 
-                        onClick={() => setShowAnnouncementDropdown(false)}
-                      />
-                      
-                      {/* Dropdown content */}
-                      <div className="absolute bottom-full right-0 mb-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                        <div className="p-3 border-b border-gray-100">
-                          <h3 className="text-sm font-semibold text-gray-900">Announcements</h3>
-                        </div>
-                        <div className="max-h-48 overflow-y-auto">
-                          {footerAnnouncements.map((announcement) => (
-                            <div
-                              key={announcement.id}
-                              className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0"
-                              onClick={() => {
-                                setLocation(`/announcement/${announcement.id}`);
-                                setShowAnnouncementDropdown(false);
-                              }}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 truncate">
-                                    {announcement.title}
-                                  </p>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                      announcement.type === 'Major' 
-                                        ? 'bg-red-100 text-red-700' 
-                                        : announcement.type === 'Medium' 
-                                        ? 'bg-blue-100 text-blue-700' 
-                                        : 'bg-gray-100 text-gray-700'
-                                    }`}>
-                                      {announcement.type}
-                                    </span>
-                                    {!announcement.isLoginRequired && (
-                                      <span className="text-xs text-green-600">Public</span>
-                                    )}
-                                  </div>
-                                </div>
-                                <ExternalLink className="h-3 w-3 text-gray-400 flex-shrink-0 ml-2" />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+            <div 
+              className={styles.footerUser}
+              onClick={() => setShowUserProfileModal(true)}
+              title="Click to view profile"
+            >
+              <div className={styles.footerUserIcon}>
+                <User className="w-3 h-3" />
               </div>
-            )}
+              <span className={styles.footerUserText}>
+                {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
+              </span>
+            </div>
           </div>
         </div>
       </footer>
+
+      {/* User Profile Modal */}
+      <Dialog open={showUserProfileModal} onOpenChange={setShowUserProfileModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <User className="w-6 h-6 text-white" />
+              </div>
+              User Profile
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* User Information */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-600">Full Name:</span>
+                  <span className="font-semibold text-gray-900">{user?.fullName || 'N/A'}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-600">Email:</span>
+                  <span className="font-medium text-gray-700">{user?.email || 'N/A'}</span>
+                </div>
+                
+
+                
+  
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="default"
+                size="sm"
+                onClick={handleEditProfile}
+                className="flex-1"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Profile
+              </Button>
+              
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => setShowUserProfileModal(false)}
+                className="flex-1"
+              >
+                Close
+              </Button>
+            </div>
+
+            {/* Last Login Info */}
+            <div className="text-xs text-gray-500 text-center pt-2 border-t">
+              Session started: {new Date().toLocaleString()}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Profile Modal */}
+      <Dialog open={showEditProfileModal} onOpenChange={setShowEditProfileModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center">
+                <Edit className="w-5 h-5 text-white" />
+              </div>
+              Edit Profile
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Full Name */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-fullName">Full Name</Label>
+              <Input
+                id="edit-fullName"
+                value={editProfileData.fullName}
+                onChange={(e) => setEditProfileData(prev => ({ ...prev, fullName: e.target.value }))}
+                placeholder="Enter your full name"
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editProfileData.email}
+                onChange={(e) => setEditProfileData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="Enter your email address"
+              />
+            </div>
+
+            {/* Personal PIN */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-pin">Personal PIN</Label>
+              <Input
+                id="edit-pin"
+                type="password"
+                value={editProfileData.personalPin}
+                onChange={(e) => setEditProfileData(prev => ({ ...prev, personalPin: e.target.value }))}
+                placeholder="Enter new PIN (leave blank to keep current)"
+              />
+              <p className="text-xs text-gray-500">
+                Leave blank to keep your current PIN
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-4">
+              <Button 
+                variant="default"
+                onClick={handleUpdateProfile}
+                className="flex-1"
+                disabled={!editProfileData.fullName.trim()}
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Update Profile
+              </Button>
+              
+              <Button 
+                variant="outline"
+                onClick={() => setShowEditProfileModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

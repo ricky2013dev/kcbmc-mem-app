@@ -135,11 +135,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: staff.id,
         fullName: staff.fullName,
         nickName: staff.nickName,
-        group: staff.group
+        group: staff.group,
+        email: staff.email
       });
     } catch (error) {
       console.error("Get staff error:", error);
       res.status(500).json({ message: "Failed to get staff" });
+    }
+  });
+
+  // User profile update route (users can update their own profile)
+  app.put("/api/auth/profile", requireAuth, async (req, res) => {
+    try {
+      // Users can only update specific fields of their own profile
+      const allowedFields = {
+        fullName: req.body.fullName,
+        email: req.body.email,
+        personalPin: req.body.personalPin
+      };
+
+      // Remove undefined values
+      const updateData = Object.fromEntries(
+        Object.entries(allowedFields).filter(([_, value]) => value !== undefined && value !== '')
+      );
+
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
+
+      const updatedStaff = await storage.updateStaff(req.session.staffId!, updateData);
+      if (!updatedStaff) {
+        return res.status(404).json({ message: "Staff not found" });
+      }
+
+      // Return updated profile (excluding sensitive data)
+      res.json({
+        id: updatedStaff.id,
+        fullName: updatedStaff.fullName,
+        nickName: updatedStaff.nickName,
+        group: updatedStaff.group,
+        email: updatedStaff.email
+      });
+    } catch (error) {
+      console.error("Update profile error:", error);
+      if (error.message?.includes('unique')) {
+        return res.status(400).json({ message: "Email or nickname already exists" });
+      }
+      res.status(500).json({ message: "Failed to update profile" });
     }
   });
 

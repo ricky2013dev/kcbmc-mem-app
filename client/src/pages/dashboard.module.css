@@ -762,17 +762,59 @@
 }
 
 .footerDate {
-  font-size: 0.7rem;
-  color: hsl(var(--muted-foreground));
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 700;
   display: block;
-  animation: slideInLeft 0.8s ease-out;
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    #3b82f6,
+    #10b981,
+    #8b5cf6,
+    #ef4444,
+    #f59e0b,
+    #3b82f6
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: waveFlow 60s linear infinite, slideInLeft 0.8s ease-out;
   transition: all 0.3s ease;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .footerDate:hover {
-  color: hsl(var(--foreground));
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.05);
+  animation: waveFlowFast 30s linear infinite, slideInLeft 0.8s ease-out;
+  filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.3));
+}
+
+.footerDate::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -4px;
+  right: -4px;
+  bottom: -2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(59, 130, 246, 0.1),
+    rgba(16, 185, 129, 0.1),
+    rgba(59, 130, 246, 0.1),
+    transparent
+  );
+  background-size: 200% 100%;
+  border-radius: 6px;
+  z-index: -1;
+  animation: waveBackground 3s ease-in-out infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.footerDate:hover::before {
+  opacity: 1;
 }
 
 @media (min-width: 640px) {
@@ -813,36 +855,75 @@
 }
 
 .footerUser {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.75rem;
-  color: hsl(var(--muted-foreground));
   font-weight: 500;
+  animation: slideInRight 0.8s ease-out;
+  transition: all 0.3s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.footerUser:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.footerUser:hover .footerUserIcon {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  transform: rotate(360deg) scale(1.1);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.footerUser:hover .footerUserText {
+  background: linear-gradient(90deg, #3b82f6, #10b981, #8b5cf6);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: textShimmer 2s linear infinite;
+}
+
+.footerUserIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  background: linear-gradient(135deg, #6b7280, #9ca3af);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.footerUserIcon::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: iconGlow 3s ease-in-out infinite;
+  border-radius: 50%;
+}
+
+.footerUserText {
+  color: hsl(var(--muted-foreground));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 120px;
-  animation: slideInRight 0.8s ease-out;
   transition: all 0.3s ease;
-  position: relative;
-}
-
-.footerUser::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
-  animation: shimmer 3s ease-in-out infinite;
-}
-
-.footerUser:hover {
-  color: hsl(var(--foreground));
-  transform: translateY(-1px);
 }
 
 @media (min-width: 640px) {
-  .footerUser {
+  .footerUserText {
     max-width: 180px;
   }
 }
@@ -850,7 +931,15 @@
 @media (min-width: 768px) {
   .footerUser {
     font-size: 0.875rem;
+  }
+  
+  .footerUserText {
     max-width: none;
+  }
+  
+  .footerUserIcon {
+    width: 1.75rem;
+    height: 1.75rem;
   }
 }
 
@@ -1024,5 +1113,56 @@
   50% {
     transform: scale(1.1);
     opacity: 0.8;
+  }
+}
+
+/* Wave Flow Animations for Footer Date */
+@keyframes waveFlow {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 300% center;
+  }
+}
+
+@keyframes waveFlowFast {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 300% center;
+  }
+}
+
+@keyframes waveBackground {
+  0%, 100% {
+    background-position: -200% 0;
+    transform: scaleX(0.8);
+  }
+  50% {
+    background-position: 200% 0;
+    transform: scaleX(1.2);
+  }
+}
+
+/* Fancy User Icon Animations */
+@keyframes iconGlow {
+  0%, 100% {
+    transform: rotate(0deg) translate(-50%, -50%);
+    opacity: 0;
+  }
+  50% {
+    transform: rotate(180deg) translate(-50%, -50%);
+    opacity: 1;
+  }
+}
+
+@keyframes textShimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
   }
 }
