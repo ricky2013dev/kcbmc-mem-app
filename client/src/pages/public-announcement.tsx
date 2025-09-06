@@ -179,19 +179,7 @@ export default function PublicAnnouncementPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 text-gray-600 text-sm border-b pb-4">
-                <div className="flex items-center gap-2">
-                  <span>By {announcement.createdByStaff.fullName}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>Posted {new Date(announcement.createdAt).toLocaleString('ko-KR')}</span>
-                </div>
-                {announcement.endDate && (
-                  <div className="flex items-center gap-2">
-                    <span>Valid until {new Date(announcement.endDate).toLocaleString('ko-KR')}</span>
-                  </div>
-                )}
-              </div>
+    
             </div>
 
             <div className="prose prose-lg max-w-none">
