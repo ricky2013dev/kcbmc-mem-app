@@ -1081,16 +1081,14 @@ export default function FamilyFormPage({
 
 
             <Tabs defaultValue="husband" className=" w-full">
-              <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 grid-rows-2 md:grid-rows-1 gap-y-8 py-8 mb-5 md:gap-y-5 md:py-5 md:h-2">
-                <TabsTrigger className="" value="husband">남편</TabsTrigger>
-                <TabsTrigger className="" value="wife">아내</TabsTrigger>
-                 <TabsTrigger value="children">자녀/가족</TabsTrigger>
-                 
-
-               
-                <TabsTrigger value="address">주소</TabsTrigger>
-                <TabsTrigger value="picture">사진</TabsTrigger>
-                                <TabsTrigger className="" value="basic">추가정보</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-1 h-auto py-2">
+                <TabsTrigger className="text-xs sm:text-sm" value="husband">남편</TabsTrigger>
+                <TabsTrigger className="text-xs sm:text-sm" value="wife">아내</TabsTrigger>
+                <TabsTrigger className="text-xs sm:text-sm" value="children">자녀/가족</TabsTrigger>
+                <TabsTrigger className="text-xs sm:text-sm" value="address">주소</TabsTrigger>
+                <TabsTrigger className="text-xs sm:text-sm" value="picture">사진</TabsTrigger>
+                <TabsTrigger className="text-xs sm:text-sm" value="basic">추가정보</TabsTrigger>
+                <TabsTrigger className="text-xs sm:text-sm" value="courses">과목</TabsTrigger>
               </TabsList>
               <TabsContent value="picture">
                 {/* Family Picture Section */}
@@ -1262,41 +1260,6 @@ export default function FamilyFormPage({
                         </FormItem>
                       )}
                     />
-                  </div>
-
-                  {/* Unified Courses Section - shows for primary person */}
-                  <div className={styles.fullWidth}>
-                    <div>
-                      <FormLabel>Courses ({getCoursesPrimaryPerson() === "husband" ? "남편" : "아내"})</FormLabel>
-                      <div className={styles.checkboxGrid}>
-                        {COURSE_OPTIONS.map((course) => {
-                          const primaryPerson = getCoursesPrimaryPerson();
-                          const currentCourses = form.watch(`${primaryPerson}.courses`) || [];
-                          
-                          return (
-                            <div
-                              key={course.value}
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox
-                                id={`course-${course.value}`}
-                                checked={currentCourses.includes(course.value)}
-                                onCheckedChange={(checked) => {
-                                  handleCourseChange(course.value, !!checked);
-                                }}
-                                data-testid={`checkbox-course-${course.value}`}
-                              />
-                              <Label
-                                htmlFor={`course-${course.value}`}
-                                className="text-sm"
-                              >
-                                {course.label}
-                              </Label>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -1737,6 +1700,53 @@ export default function FamilyFormPage({
                           </FormItem>
                         )}
                       />
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="courses">
+                {/* Courses Section */}
+                <Card>
+                  <CardHeader>
+                    <h2 className={styles.sectionTitle}>
+                      <Users className="w-5 h-5 mr-2 text-primary" />
+                      Courses
+                    </h2>
+                  </CardHeader>
+                  <CardContent className={styles.sectionContent}>
+                    <div className={styles.fullWidth}>
+                      <div>
+                        <FormLabel>Courses ({getCoursesPrimaryPerson() === "husband" ? "남편" : "아내"})</FormLabel>
+                        <div className={styles.checkboxGrid}>
+                          {COURSE_OPTIONS.map((course) => {
+                            const primaryPerson = getCoursesPrimaryPerson();
+                            const currentCourses = form.watch(`${primaryPerson}.courses`) || [];
+                            
+                            return (
+                              <div
+                                key={course.value}
+                                className="flex items-center space-x-2"
+                              >
+                                <Checkbox
+                                  id={`course-${course.value}`}
+                                  checked={currentCourses.includes(course.value)}
+                                  onCheckedChange={(checked) => {
+                                    handleCourseChange(course.value, !!checked);
+                                  }}
+                                  data-testid={`checkbox-course-${course.value}`}
+                                />
+                                <Label
+                                  htmlFor={`course-${course.value}`}
+                                  className="text-sm"
+                                >
+                                  {course.label}
+                                </Label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
