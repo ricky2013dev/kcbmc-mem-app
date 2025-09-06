@@ -109,14 +109,6 @@
   text-align: center;
   font-size: 1.125rem;
   letter-spacing: 0.5rem;
-  /* Ensure input is focusable on touch devices */
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  -ms-user-select: text;
-  user-select: text;
-  /* Force keyboard on mobile */
-  -webkit-touch-callout: default;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .submitButton {
