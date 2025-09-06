@@ -286,7 +286,8 @@ export default function EventDetailPage({ eventId: propEventId }: EventDetailPag
   };
 
   const isAdmin = user?.group === 'ADM' || user?.group === 'MGM';
-  const canEditAttendance = isAdmin; // Only admins and managers can edit attendance
+  const isTeamA = user?.group === 'TEAM-A' ;
+  const canEditAttendance = isAdmin || isTeamA; // Only admins and managers can edit attendance
 
   if (isLoading) {
     return (

@@ -876,13 +876,14 @@ export default function DashboardPage() {
                         <Globe className="w-4 h-4 mr-2" />
                         News Management
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setLocation('/events')}>
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Events Management
-                      </DropdownMenuItem>
                     </>
                   )}
                   
+                  <DropdownMenuItem onClick={() => setLocation('/events')}>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Events Management
+                  </DropdownMenuItem>
+
                   <DropdownMenuSeparator />
                   
                   <DropdownMenuItem onClick={() => logout()}>
