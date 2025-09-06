@@ -9,6 +9,9 @@ import DashboardPage from "@/pages/dashboard";
 import FamilyFormPage from "@/pages/family-form";
 import StaffManagementPage from "@/pages/staff-management";
 import NewsManagementPage from "@/pages/news-management";
+import EventListPage from "@/pages/event-list";
+import EventDetailPage from "@/pages/event-detail";
+import EventFormPage from "@/pages/event-form";
 import PublicAnnouncementPage from "@/pages/public-announcement";
 import NotFound from "@/pages/not-found";
 
@@ -41,6 +44,10 @@ function Router() {
             <Route path="/family/:id/edit" component={({ params }) => <FamilyFormPage mode="edit" familyId={params.id} />} />
             <Route path="/staff-management" component={StaffManagementPage} />
             <Route path="/news-management" component={NewsManagementPage} />
+            <Route path="/events" component={EventListPage} />
+            <Route path="/events/new" component={() => <EventFormPage mode="create" />} />
+            <Route path="/events/:id" component={EventDetailPage} />
+            <Route path="/events/:id/edit" component={({ params }) => <EventFormPage mode="edit" eventId={params.id} />} />
           </>
         )}
         <Route component={NotFound} />

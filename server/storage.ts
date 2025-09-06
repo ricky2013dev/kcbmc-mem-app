@@ -4,6 +4,8 @@ import {
   familyMembers,
   careLogs,
   announcements,
+  events,
+  eventAttendance,
   type Staff, 
   type InsertStaff,
   type Family,
@@ -16,7 +18,14 @@ import {
   type CareLogWithStaff,
   type Announcement,
   type InsertAnnouncement,
-  type AnnouncementWithStaff
+  type AnnouncementWithStaff,
+  type Event,
+  type InsertEvent,
+  type EventWithStaff,
+  type EventWithAttendance,
+  type EventAttendance,
+  type InsertEventAttendance,
+  type EventAttendanceWithDetails
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, like, gte, lte, desc, isNotNull } from "drizzle-orm";
@@ -87,6 +96,21 @@ export interface IStorage {
   createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
   updateAnnouncement(id: string, announcement: Partial<InsertAnnouncement>): Promise<Announcement | undefined>;
   deleteAnnouncement(id: string): Promise<void>;
+  
+  // Event operations
+  getEvent(id: string): Promise<EventWithAttendance | undefined>;
+  getEvents(): Promise<EventWithStaff[]>;
+  getActiveEvents(): Promise<EventWithStaff[]>;
+  createEvent(event: InsertEvent): Promise<Event>;
+  updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event | undefined>;
+  deleteEvent(id: string): Promise<void>;
+  
+  // Event attendance operations
+  getEventAttendance(eventId: string): Promise<EventAttendanceWithDetails[]>;
+  createEventAttendance(attendance: InsertEventAttendance): Promise<EventAttendance>;
+  updateEventAttendance(id: string, attendance: Partial<InsertEventAttendance>): Promise<EventAttendance | undefined>;
+  deleteEventAttendance(id: string): Promise<void>;
+  initializeEventAttendance(eventId: string, createdBy: string): Promise<void>;
 }
 
 // Helper function to clean date fields - convert empty strings to null for optional fields only
@@ -511,6 +535,257 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAnnouncement(id: string): Promise<void> {
     await db.delete(announcements).where(eq(announcements.id, id));
+  }
+
+  // Event operations
+  async getEvent(id: string): Promise<EventWithAttendance | undefined> {
+    const eventResult = await db.select({
+      id: events.id,
+      title: events.title,
+      date: events.date,
+      time: events.time,
+      location: events.location,
+      isActive: events.isActive,
+      createdBy: events.createdBy,
+      createdAt: events.createdAt,
+      updatedAt: events.updatedAt,
+      createdByStaff: {
+        id: staff.id,
+        fullName: staff.fullName,
+        nickName: staff.nickName,
+      }
+    })
+    .from(events)
+    .innerJoin(staff, eq(events.createdBy, staff.id))
+    .where(eq(events.id, id))
+    .limit(1);
+
+    if (!eventResult[0]) return undefined;
+
+    const attendanceResult = await db.select({
+      id: eventAttendance.id,
+      eventId: eventAttendance.eventId,
+      familyId: eventAttendance.familyId,
+      familyMemberId: eventAttendance.familyMemberId,
+      attendanceStatus: eventAttendance.attendanceStatus,
+      updatedBy: eventAttendance.updatedBy,
+      createdAt: eventAttendance.createdAt,
+      updatedAt: eventAttendance.updatedAt,
+      family: {
+        id: families.id,
+        familyName: families.familyName,
+      },
+      familyMember: {
+        id: familyMembers.id,
+        koreanName: familyMembers.koreanName,
+        englishName: familyMembers.englishName,
+        relationship: familyMembers.relationship,
+        gradeGroup: familyMembers.gradeGroup,
+      }
+    })
+    .from(eventAttendance)
+    .innerJoin(families, eq(eventAttendance.familyId, families.id))
+    .leftJoin(familyMembers, eq(eventAttendance.familyMemberId, familyMembers.id))
+    .where(eq(eventAttendance.eventId, id));
+
+    return {
+      ...eventResult[0],
+      attendance: attendanceResult.map(a => ({
+        ...a,
+        familyMember: a.familyMember && a.familyMember.id ? a.familyMember : undefined
+      }))
+    } as EventWithAttendance;
+  }
+
+  async getEvents(): Promise<EventWithStaff[]> {
+    const results = await db.select({
+      id: events.id,
+      title: events.title,
+      date: events.date,
+      time: events.time,
+      location: events.location,
+      isActive: events.isActive,
+      createdBy: events.createdBy,
+      createdAt: events.createdAt,
+      updatedAt: events.updatedAt,
+      createdByStaff: {
+        id: staff.id,
+        fullName: staff.fullName,
+        nickName: staff.nickName,
+      }
+    })
+    .from(events)
+    .innerJoin(staff, eq(events.createdBy, staff.id))
+    .orderBy(desc(events.date));
+
+    return results as EventWithStaff[];
+  }
+
+  async getActiveEvents(): Promise<EventWithStaff[]> {
+    const results = await db.select({
+      id: events.id,
+      title: events.title,
+      date: events.date,
+      time: events.time,
+      location: events.location,
+      isActive: events.isActive,
+      createdBy: events.createdBy,
+      createdAt: events.createdAt,
+      updatedAt: events.updatedAt,
+      createdByStaff: {
+        id: staff.id,
+        fullName: staff.fullName,
+        nickName: staff.nickName,
+      }
+    })
+    .from(events)
+    .innerJoin(staff, eq(events.createdBy, staff.id))
+    .where(eq(events.isActive, true))
+    .orderBy(desc(events.date));
+
+    return results as EventWithStaff[];
+  }
+
+  async createEvent(eventData: InsertEvent): Promise<Event> {
+    const [newEvent] = await db.insert(events).values(eventData).returning();
+    return newEvent;
+  }
+
+  async updateEvent(id: string, eventData: Partial<InsertEvent>): Promise<Event | undefined> {
+    const [updatedEvent] = await db.update(events)
+      .set({ ...eventData, updatedAt: new Date() })
+      .where(eq(events.id, id))
+      .returning();
+    return updatedEvent || undefined;
+  }
+
+  async deleteEvent(id: string): Promise<void> {
+    await db.delete(events).where(eq(events.id, id));
+  }
+
+  // Event attendance operations
+  async getEventAttendance(eventId: string): Promise<EventAttendanceWithDetails[]> {
+    const results = await db.select({
+      id: eventAttendance.id,
+      eventId: eventAttendance.eventId,
+      familyId: eventAttendance.familyId,
+      familyMemberId: eventAttendance.familyMemberId,
+      attendanceStatus: eventAttendance.attendanceStatus,
+      updatedBy: eventAttendance.updatedBy,
+      createdAt: eventAttendance.createdAt,
+      updatedAt: eventAttendance.updatedAt,
+      event: {
+        id: events.id,
+        title: events.title,
+        date: events.date,
+        time: events.time,
+        location: events.location,
+        isActive: events.isActive,
+        createdBy: events.createdBy,
+        createdAt: events.createdAt,
+        updatedAt: events.updatedAt,
+      },
+      family: {
+        id: families.id,
+        familyName: families.familyName,
+      },
+      familyMember: {
+        id: familyMembers.id,
+        koreanName: familyMembers.koreanName,
+        englishName: familyMembers.englishName,
+        relationship: familyMembers.relationship,
+        gradeGroup: familyMembers.gradeGroup,
+      },
+      updatedByStaff: {
+        id: staff.id,
+        fullName: staff.fullName,
+        nickName: staff.nickName,
+      }
+    })
+    .from(eventAttendance)
+    .innerJoin(events, eq(eventAttendance.eventId, events.id))
+    .innerJoin(families, eq(eventAttendance.familyId, families.id))
+    .leftJoin(familyMembers, eq(eventAttendance.familyMemberId, familyMembers.id))
+    .innerJoin(staff, eq(eventAttendance.updatedBy, staff.id))
+    .where(eq(eventAttendance.eventId, eventId))
+    .orderBy(families.familyName);
+
+    return results.map(r => ({
+      ...r,
+      familyMember: r.familyMember && r.familyMember.id ? r.familyMember : undefined
+    })) as EventAttendanceWithDetails[];
+  }
+
+  async createEventAttendance(attendanceData: InsertEventAttendance): Promise<EventAttendance> {
+    const [newAttendance] = await db.insert(eventAttendance).values(attendanceData).returning();
+    return newAttendance;
+  }
+
+  async updateEventAttendance(id: string, attendanceData: Partial<InsertEventAttendance>): Promise<EventAttendance | undefined> {
+    const [updatedAttendance] = await db.update(eventAttendance)
+      .set({ ...attendanceData, updatedAt: new Date() })
+      .where(eq(eventAttendance.id, id))
+      .returning();
+    return updatedAttendance || undefined;
+  }
+
+  async deleteEventAttendance(id: string): Promise<void> {
+    await db.delete(eventAttendance).where(eq(eventAttendance.id, id));
+  }
+
+  async initializeEventAttendance(eventId: string, createdBy: string): Promise<void> {
+    // Get all families with their members
+    const allFamilies = await db.select({
+      id: families.id,
+      familyName: families.familyName,
+    }).from(families);
+
+    const allFamilyMembers = await db.select({
+      id: familyMembers.id,
+      familyId: familyMembers.familyId,
+      koreanName: familyMembers.koreanName,
+      englishName: familyMembers.englishName,
+      relationship: familyMembers.relationship,
+      gradeGroup: familyMembers.gradeGroup,
+    }).from(familyMembers);
+
+    const attendanceRecords = [];
+
+    // Create attendance records for each family member
+    for (const family of allFamilies) {
+      const members = allFamilyMembers.filter(member => member.familyId === family.id);
+      
+      // Filter out members without names (skip empty koreanName and englishName)
+      const namedMembers = members.filter(member => 
+        (member.koreanName && member.koreanName.trim() !== '') || 
+        (member.englishName && member.englishName.trim() !== '')
+      );
+      
+      if (namedMembers.length > 0) {
+        // Create individual records for each named family member
+        for (const member of namedMembers) {
+          attendanceRecords.push({
+            eventId: eventId,
+            familyId: family.id,
+            familyMemberId: member.id,
+            attendanceStatus: 'pending' as const,
+            updatedBy: createdBy
+          });
+        }
+      } else {
+        // If no named family members, create a family-level record
+        attendanceRecords.push({
+          eventId: eventId,
+          familyId: family.id,
+          attendanceStatus: 'pending' as const,
+          updatedBy: createdBy
+        });
+      }
+    }
+
+    if (attendanceRecords.length > 0) {
+      await db.insert(eventAttendance).values(attendanceRecords);
+    }
   }
 }
 

@@ -16,7 +16,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS, COURSE_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, BookOpen } from 'lucide-react';
+import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, BookOpen, Calendar } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { CareLogList } from '@/components/CareLogList';
 import { RefreshButton } from '@/components/RefreshButton';
@@ -817,6 +817,16 @@ export default function DashboardPage() {
                   >
                     <Globe className="w-4 h-4" />
                   </Button>
+                  <Button 
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setLocation('/events')}
+                    data-testid="button-events"
+                    className="text-purple-700 hover:text-primary-foreground/80"
+                    title="Event Management"
+                  >
+                    <Calendar className="w-4 h-4" />
+                  </Button>
                 </div>
               )}
 
@@ -865,6 +875,10 @@ export default function DashboardPage() {
                       <DropdownMenuItem onClick={() => setLocation('/news-management')}>
                         <Globe className="w-4 h-4 mr-2" />
                         News Management
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setLocation('/events')}>
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Events Management
                       </DropdownMenuItem>
                     </>
                   )}

@@ -20,6 +20,7 @@ export const staff = pgTable("staff", {
   nickName: varchar("nick_name", { length: 100 }).notNull().unique(),
   personalPin: varchar("personal_pin", { length: 4 }).notNull(),
   group: varchar("group", { length: 50 }).notNull(), // ADM, MGM, TEAM-A, TEAM-B
+  email: varchar("email", { length: 255 }),
   displayOrder: integer("display_order").default(0),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
@@ -95,22 +96,51 @@ export const announcements = pgTable("announcements", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Events table
+export const events = pgTable("events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 255 }).notNull(),
+  date: date("date").notNull(),
+  time: varchar("time", { length: 10 }).notNull(),
+  location: varchar("location", { length: 255 }).notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: varchar("created_by").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Event attendance table
+export const eventAttendance = pgTable("event_attendance", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+  familyId: varchar("family_id").notNull().references(() => families.id, { onDelete: "cascade" }),
+  familyMemberId: varchar("family_member_id").references(() => familyMembers.id, { onDelete: "cascade" }),
+  attendanceStatus: varchar("attendance_status", { length: 20 }).notNull().default("pending"), // present, absent, pending
+  updatedBy: varchar("updated_by").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const familiesRelations = relations(families, ({ many }) => ({
   members: many(familyMembers),
   careLogs: many(careLogs),
+  eventAttendance: many(eventAttendance),
 }));
 
-export const familyMembersRelations = relations(familyMembers, ({ one }) => ({
+export const familyMembersRelations = relations(familyMembers, ({ one, many }) => ({
   family: one(families, {
     fields: [familyMembers.familyId],
     references: [families.id],
   }),
+  eventAttendance: many(eventAttendance),
 }));
 
 export const staffRelations = relations(staff, ({ many }) => ({
   careLogs: many(careLogs),
   announcements: many(announcements),
+  createdEvents: many(events),
+  updatedAttendance: many(eventAttendance),
 }));
 
 export const careLogsRelations = relations(careLogs, ({ one }) => ({
@@ -127,6 +157,33 @@ export const careLogsRelations = relations(careLogs, ({ one }) => ({
 export const announcementsRelations = relations(announcements, ({ one }) => ({
   createdByStaff: one(staff, {
     fields: [announcements.createdBy],
+    references: [staff.id],
+  }),
+}));
+
+export const eventsRelations = relations(events, ({ one, many }) => ({
+  createdByStaff: one(staff, {
+    fields: [events.createdBy],
+    references: [staff.id],
+  }),
+  attendance: many(eventAttendance),
+}));
+
+export const eventAttendanceRelations = relations(eventAttendance, ({ one }) => ({
+  event: one(events, {
+    fields: [eventAttendance.eventId],
+    references: [events.id],
+  }),
+  family: one(families, {
+    fields: [eventAttendance.familyId],
+    references: [families.id],
+  }),
+  familyMember: one(familyMembers, {
+    fields: [eventAttendance.familyMemberId],
+    references: [familyMembers.id],
+  }),
+  updatedByStaff: one(staff, {
+    fields: [eventAttendance.updatedBy],
     references: [staff.id],
   }),
 }));
@@ -166,6 +223,18 @@ export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
   endDate: z.string().transform((str) => new Date(str)),
 });
 
+export const insertEventSchema = createInsertSchema(events).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEventAttendanceSchema = createInsertSchema(eventAttendance).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Staff = typeof staff.$inferSelect;
 export type InsertStaff = z.infer<typeof insertStaffSchema>;
@@ -196,6 +265,61 @@ export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
 
 export type AnnouncementWithStaff = Announcement & {
   createdByStaff: {
+    id: string;
+    fullName: string;
+    nickName: string;
+  };
+};
+
+export type Event = typeof events.$inferSelect;
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+
+export type EventAttendance = typeof eventAttendance.$inferSelect;
+export type InsertEventAttendance = z.infer<typeof insertEventAttendanceSchema>;
+
+export type EventWithStaff = Event & {
+  createdByStaff: {
+    id: string;
+    fullName: string;
+    nickName: string;
+  };
+};
+
+export type EventWithAttendance = Event & {
+  createdByStaff: {
+    id: string;
+    fullName: string;
+    nickName: string;
+  };
+  attendance: (EventAttendance & {
+    family: {
+      id: string;
+      familyName: string;
+    };
+    familyMember?: {
+      id: string;
+      koreanName: string;
+      englishName: string;
+      relationship: string;
+      gradeGroup: string | null;
+    };
+  })[];
+};
+
+export type EventAttendanceWithDetails = EventAttendance & {
+  event: Event;
+  family: {
+    id: string;
+    familyName: string;
+  };
+  familyMember?: {
+    id: string;
+    koreanName: string;
+    englishName: string;
+    relationship: string;
+    gradeGroup: string | null;
+  };
+  updatedByStaff: {
     id: string;
     fullName: string;
     nickName: string;

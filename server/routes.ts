@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertFamilySchema, insertFamilyMemberSchema, insertStaffSchema, insertAnnouncementSchema } from "@shared/schema";
+import { insertFamilySchema, insertFamilyMemberSchema, insertStaffSchema, insertAnnouncementSchema, insertEventSchema, insertEventAttendanceSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
@@ -685,6 +685,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete care log error:", error);
       res.status(500).json({ message: "Failed to delete care log" });
+    }
+  });
+
+  // Event routes
+  app.get("/api/events", requireAuth, async (req, res) => {
+    try {
+      const events = req.query.active === 'true' ? await storage.getActiveEvents() : await storage.getEvents();
+      res.json(events);
+    } catch (error) {
+      console.error("Get events error:", error);
+      res.status(500).json({ message: "Failed to get events" });
+    }
+  });
+
+  app.get("/api/events/:id", requireAuth, async (req, res) => {
+    try {
+      const event = await storage.getEvent(req.params.id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.json(event);
+    } catch (error) {
+      console.error("Get event error:", error);
+      res.status(500).json({ message: "Failed to get event" });
+    }
+  });
+
+  app.post("/api/events", requireAuth, requireAdminAccess, async (req, res) => {
+    try {
+      const eventData = insertEventSchema.parse({
+        ...req.body,
+        createdBy: req.session.staffId
+      });
+      const event = await storage.createEvent(eventData);
+      
+      // Initialize attendance for all families
+      await storage.initializeEventAttendance(event.id, req.session.staffId!);
+      
+      res.json(event);
+    } catch (error) {
+      console.error("Create event error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create event" });
+    }
+  });
+
+  app.put("/api/events/:id", requireAuth, requireAdminAccess, async (req, res) => {
+    try {
+      const eventData = insertEventSchema.partial().parse(req.body);
+      const updatedEvent = await storage.updateEvent(req.params.id, eventData);
+      if (!updatedEvent) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.json(updatedEvent);
+    } catch (error) {
+      console.error("Update event error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update event" });
+    }
+  });
+
+  app.delete("/api/events/:id", requireAuth, requireAdminAccess, async (req, res) => {
+    try {
+      await storage.deleteEvent(req.params.id);
+      res.json({ message: "Event deleted successfully" });
+    } catch (error) {
+      console.error("Delete event error:", error);
+      res.status(500).json({ message: "Failed to delete event" });
+    }
+  });
+
+  // Event attendance routes
+  app.get("/api/events/:eventId/attendance", requireAuth, async (req, res) => {
+    try {
+      const attendance = await storage.getEventAttendance(req.params.eventId);
+      res.json(attendance);
+    } catch (error) {
+      console.error("Get event attendance error:", error);
+      res.status(500).json({ message: "Failed to get event attendance" });
+    }
+  });
+
+  // Permission middleware for attendance updates
+  const requireAttendanceUpdatePermission = async (req: any, res: any, next: any) => {
+    try {
+      // ADM and MGM can update all attendance
+      if (req.session.staffGroup === 'ADM' || req.session.staffGroup === 'MGM') {
+        return next();
+      }
+
+      // For non-admin users, implement family-specific permissions
+      // This is a placeholder for when family-staff relationships are implemented
+      // For now, we'll restrict non-admin users to only view attendance
+      return res.status(403).json({ 
+        message: "Permission denied. Only administrators can update attendance records." 
+      });
+    } catch (error) {
+      console.error("Attendance permission check error:", error);
+      res.status(500).json({ message: "Failed to check permissions" });
+    }
+  };
+
+  app.put("/api/attendance/:id", requireAuth, requireAttendanceUpdatePermission, async (req, res) => {
+    try {
+      const attendanceData = insertEventAttendanceSchema.partial().parse({
+        ...req.body,
+        updatedBy: req.session.staffId
+      });
+      
+      const updatedAttendance = await storage.updateEventAttendance(req.params.id, attendanceData);
+      if (!updatedAttendance) {
+        return res.status(404).json({ message: "Attendance record not found" });
+      }
+      res.json(updatedAttendance);
+    } catch (error) {
+      console.error("Update attendance error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update attendance" });
     }
   });
 
