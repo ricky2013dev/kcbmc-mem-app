@@ -19,6 +19,9 @@ export function useAuth() {
   const { data: user, isLoading } = useQuery<AuthUser | null>({
     queryKey: ['/api/auth/me'],
     retry: false,
+    staleTime: 15 * 60 * 1000, // 15 minutes - longer cache for better performance
+    refetchOnMount: false,
+    refetchOnWindowFocus: false, // Avoid performance hits
     queryFn: async () => {
       const res = await fetch('/api/auth/me', {
         credentials: 'include',

@@ -7,6 +7,9 @@
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "prefer_related_applications": false,
+  "display_override": ["standalone", "minimal-ui"],
   "icons": [
     {
       "src": "/favicon.ico",
@@ -32,5 +35,8 @@
     }
   ],
   "categories": ["productivity", "business", "lifestyle"],
-  "lang": "ko-KR"
+  "lang": "ko-KR",
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
 }
