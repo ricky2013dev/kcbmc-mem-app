@@ -49,12 +49,14 @@ function Router() {
 }
 
 function App() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Router />
-        <RefreshButton />
+        {isAuthenticated && <RefreshButton />}
       </TooltipProvider>
     </QueryClientProvider>
   );
