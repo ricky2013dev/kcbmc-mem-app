@@ -395,6 +395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         memberStatus: req.query.memberStatus as string,
         dateFrom: req.query.dateFrom as string,
         dateTo: req.query.dateTo as string,
+        courses: req.query.courses as string,
       };
 
       // Remove undefined values

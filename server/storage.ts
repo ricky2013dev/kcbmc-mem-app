@@ -65,6 +65,7 @@ export interface IStorage {
     memberStatus?: string;
     dateFrom?: string;
     dateTo?: string;
+    courses?: string;
   }): Promise<FamilyWithMembers[]>;
   createFamily(family: InsertFamily, members: InsertFamilyMember[]): Promise<FamilyWithMembers>;
   updateFamily(id: string, family: Partial<InsertFamily>, members: InsertFamilyMember[]): Promise<FamilyWithMembers>;
@@ -166,6 +167,7 @@ export class DatabaseStorage implements IStorage {
     memberStatus?: string;
     dateFrom?: string;
     dateTo?: string;
+    courses?: string;
   }): Promise<FamilyWithMembers[]> {
     const conditions = [];
     
@@ -211,6 +213,29 @@ export class DatabaseStorage implements IStorage {
         .orderBy(familyMembers.relationship);
       
       familiesWithMembers.push({ ...family, members });
+    }
+    
+    // Apply courses filtering with husband priority logic
+    if (filters?.courses) {
+      const courseList = filters.courses.split(',').map(c => c.trim());
+      
+      return familiesWithMembers.filter(family => {
+        const husband = family.members.find(m => m.relationship === 'husband');
+        const wife = family.members.find(m => m.relationship === 'wife');
+        
+        // Check husband first
+        if (husband && husband.courses && husband.courses.length > 0) {
+          return courseList.some(course => husband.courses.includes(course));
+        }
+        
+        // If no husband or husband has no courses, check wife
+        if (wife && wife.courses && wife.courses.length > 0) {
+          return courseList.some(course => wife.courses.includes(course));
+        }
+        
+        // If neither husband nor wife has courses, exclude from results
+        return false;
+      });
     }
     
     return familiesWithMembers;

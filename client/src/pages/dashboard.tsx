@@ -14,9 +14,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { SundayDatePicker } from '@/components/sunday-date-picker';
 import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
-import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
+import { SearchFilters, MEMBER_STATUS_OPTIONS, COURSE_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User } from 'lucide-react';
+import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, BookOpen } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { CareLogList } from '@/components/CareLogList';
 import { RefreshButton } from '@/components/RefreshButton';
@@ -70,7 +70,8 @@ export default function DashboardPage() {
     supportTeamMember: '',
     memberStatus: 'all',
     dateFrom: defaultDateRange.dateFrom,
-    dateTo: defaultDateRange.dateTo
+    dateTo: defaultDateRange.dateTo,
+    courses: []
   });
 
   const [hasSearched, setHasSearched] = useState(true);
@@ -80,6 +81,7 @@ export default function DashboardPage() {
   const [magnifiedImage, setMagnifiedImage] = useState<{ src: string; alt: string } | null>(null);
   const [selectedQuickFilter, setSelectedQuickFilter] = useState<'thisWeek' | 'lastWeek' | 'lastMonth' | 'last3Months' | null>(null);
   const [selectedMemberStatuses, setSelectedMemberStatuses] = useState<Set<string>>(new Set());
+  const [selectedCourses, setSelectedCourses] = useState<Set<string>>(new Set());
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [unmaskedFamilyNotes, setUnmaskedFamilyNotes] = useState<Set<string>>(new Set());
@@ -109,6 +111,7 @@ export default function DashboardPage() {
       if (filters.memberStatus && filters.memberStatus !== 'all') queryParams.append('memberStatus', filters.memberStatus);
       if (filters.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
       if (filters.dateTo) queryParams.append('dateTo', filters.dateTo);
+      if (filters.courses && filters.courses.length > 0) queryParams.append('courses', filters.courses.join(','));
       queryParams.append('sortBy', 'visitedDate');
       queryParams.append('sortOrder', 'desc');
       
@@ -283,10 +286,12 @@ export default function DashboardPage() {
       supportTeamMember: '',
       memberStatus: 'all',
       dateFrom: defaultDateRange.dateFrom,
-      dateTo: defaultDateRange.dateTo
+      dateTo: defaultDateRange.dateTo,
+      courses: []
     });
     setSelectedQuickFilter(null);
     setSelectedMemberStatuses(new Set());
+    setSelectedCourses(new Set());
     setHasSearched(true);
   };
 
@@ -309,6 +314,23 @@ export default function DashboardPage() {
     setFilters(prev => ({ 
       ...prev, 
       memberStatus: memberStatusFilter 
+    }));
+    setHasSearched(true);
+  };
+
+  const toggleCourse = (course: string) => {
+    const newSelected = new Set(selectedCourses);
+    if (newSelected.has(course)) {
+      newSelected.delete(course);
+    } else {
+      newSelected.add(course);
+    }
+    setSelectedCourses(newSelected);
+    
+    // Update the filter based on selected courses
+    setFilters(prev => ({ 
+      ...prev, 
+      courses: Array.from(newSelected) 
     }));
     setHasSearched(true);
   };
@@ -356,6 +378,13 @@ export default function DashboardPage() {
       const statusLabel = getStatusDisplayLabel(filters.memberStatus);
       activeFilters.push({ label: 'Status', value: statusLabel });
     }
+    if (filters.courses && filters.courses.length > 0) {
+      const coursesLabel = filters.courses.map(course => {
+        const courseOption = COURSE_OPTIONS.find(opt => opt.value === course);
+        return courseOption ? courseOption.label : course;
+      }).join(', ');
+      activeFilters.push({ label: 'Courses', value: coursesLabel });
+    }
     
     return activeFilters;
   };
@@ -379,6 +408,36 @@ export default function DashboardPage() {
     if (husband?.phoneNumber) count++;
     if (wife?.phoneNumber) count++;
     return count;
+  };
+
+  const getPrimaryCourses = (family: FamilyWithMembers) => {
+    const husband = family.members.find(m => m.relationship === 'husband');
+    const wife = family.members.find(m => m.relationship === 'wife');
+    
+    // Check husband first (if he has a name)
+    if (husband && (husband.koreanName || husband.englishName)) {
+      return {
+        person: 'husband',
+        personName: husband.koreanName || husband.englishName || '남편',
+        courses: husband.courses || []
+      };
+    }
+    
+    // If no husband or husband has no name, use wife
+    if (wife) {
+      return {
+        person: 'wife',
+        personName: wife.koreanName || wife.englishName || '아내',
+        courses: wife.courses || []
+      };
+    }
+    
+    return null;
+  };
+
+  const getCourseCount = (family: FamilyWithMembers) => {
+    const coursesInfo = getPrimaryCourses(family);
+    return coursesInfo ? coursesInfo.courses.length : 0;
   };
 
   const toggleFamilyExpanded = (familyId: string) => {
@@ -1112,6 +1171,28 @@ export default function DashboardPage() {
                     />
                   </div>
                   
+                  {/* Courses Filter with Multiple Selection */}
+                  <div className="col-span-2">
+                    <Label>Courses</Label>
+                    <div className="flex gap-2 mt-2 flex-wrap">
+                      {COURSE_OPTIONS.map((course) => (
+                        <Button
+                          key={course.value}
+                          variant={selectedCourses.has(course.value) ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => toggleCourse(course.value)}
+                          className={`text-xs flex items-center gap-1 ${
+                            selectedCourses.has(course.value) 
+                              ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600' 
+                              : ''
+                          }`}
+                        >
+                          {selectedCourses.has(course.value) && <Check className="w-3 h-3" />}
+                          {course.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
     
                 </div>
               )}
@@ -1274,6 +1355,12 @@ export default function DashboardPage() {
                                 
                               </Badge>
                             )}
+                            {getCourseCount(family) > 0 && (
+                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                <BookOpen className="w-3 h-3 mr-1" />
+                                {getCourseCount(family)}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1335,6 +1422,30 @@ export default function DashboardPage() {
                                             )}
                                           </div>
                                         ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                {(() => {
+                                  const coursesInfo = getPrimaryCourses(family);
+                                  return coursesInfo && coursesInfo.courses.length > 0 && (
+                                    <div className={styles.infoItem}>
+                                      <span className={styles.infoLabel}>Courses ({coursesInfo.personName}):</span>
+                                      <div className="flex flex-wrap gap-2">
+                                        {coursesInfo.courses.map((courseValue, index) => {
+                                          const courseOption = COURSE_OPTIONS.find(opt => opt.value === courseValue);
+                                          const courseLabel = courseOption ? courseOption.label : courseValue;
+                                          
+                                          return (
+                                            <Badge 
+                                              key={`${courseValue}-${index}`} 
+                                              variant="default" 
+                                              className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200"
+                                            >
+                                              {courseLabel}
+                                            </Badge>
+                                          );
+                                        })}
                                       </div>
                                     </div>
                                   );

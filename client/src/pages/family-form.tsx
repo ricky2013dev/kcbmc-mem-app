@@ -471,6 +471,36 @@ export default function FamilyFormPage({
     form.setValue(fieldName as any, formatted);
   };
 
+  // Helper function to determine who should have courses (husband priority)
+  const getCoursesPrimaryPerson = () => {
+    const husbandKoreanName = form.watch("husband.koreanName");
+    const husbandEnglishName = form.watch("husband.englishName");
+    
+    // If husband has any name (Korean or English), use husband
+    if (husbandKoreanName || husbandEnglishName) {
+      return "husband";
+    }
+    
+    // Otherwise, use wife
+    return "wife";
+  };
+
+  // Function to handle course changes for the primary person
+  const handleCourseChange = (courseValue: string, checked: boolean) => {
+    const primaryPerson = getCoursesPrimaryPerson();
+    const currentCourses = form.getValues(`${primaryPerson}.courses`) || [];
+    
+    if (checked) {
+      form.setValue(`${primaryPerson}.courses`, [...currentCourses, courseValue]);
+    } else {
+      form.setValue(`${primaryPerson}.courses`, currentCourses.filter(c => c !== courseValue));
+    }
+    
+    // Clear courses from the other person
+    const otherPerson = primaryPerson === "husband" ? "wife" : "husband";
+    form.setValue(`${otherPerson}.courses`, []);
+  };
+
   const handleImageUpload = (imageUrl: string) => {
     form.setValue("familyPicture", imageUrl);
     setPicturePreview(imageUrl);
@@ -1234,52 +1264,39 @@ export default function FamilyFormPage({
                     />
                   </div>
 
+                  {/* Unified Courses Section - shows for primary person */}
                   <div className={styles.fullWidth}>
-                    <FormField
-                      control={form.control}
-                      name="husband.courses"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Courses</FormLabel>
-                          <div className={styles.checkboxGrid}>
-                            {COURSE_OPTIONS.map((course) => (
-                              <div
-                                key={course.value}
-                                className="flex items-center space-x-2"
+                    <div>
+                      <FormLabel>Courses ({getCoursesPrimaryPerson() === "husband" ? "남편" : "아내"})</FormLabel>
+                      <div className={styles.checkboxGrid}>
+                        {COURSE_OPTIONS.map((course) => {
+                          const primaryPerson = getCoursesPrimaryPerson();
+                          const currentCourses = form.watch(`${primaryPerson}.courses`) || [];
+                          
+                          return (
+                            <div
+                              key={course.value}
+                              className="flex items-center space-x-2"
+                            >
+                              <Checkbox
+                                id={`course-${course.value}`}
+                                checked={currentCourses.includes(course.value)}
+                                onCheckedChange={(checked) => {
+                                  handleCourseChange(course.value, !!checked);
+                                }}
+                                data-testid={`checkbox-course-${course.value}`}
+                              />
+                              <Label
+                                htmlFor={`course-${course.value}`}
+                                className="text-sm"
                               >
-                                <Checkbox
-                                  id={`husband-course-${course.value}`}
-                                  checked={field.value?.includes(course.value)}
-                                  onCheckedChange={(checked) => {
-                                    const currentCourses = field.value || [];
-                                    if (checked) {
-                                      field.onChange([
-                                        ...currentCourses,
-                                        course.value,
-                                      ]);
-                                    } else {
-                                      field.onChange(
-                                        currentCourses.filter(
-                                          (c) => c !== course.value,
-                                        ),
-                                      );
-                                    }
-                                  }}
-                                  data-testid={`checkbox-husband-course-${course.value}`}
-                                />
-                                <Label
-                                  htmlFor={`husband-course-${course.value}`}
-                                  className="text-sm"
-                                >
-                                  {course.label}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                                {course.label}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -1378,53 +1395,6 @@ export default function FamilyFormPage({
                     />
                   </div>
 
-                  <div className={styles.fullWidth}>
-                    <FormField
-                      control={form.control}
-                      name="wife.courses"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Courses</FormLabel>
-                          <div className={styles.checkboxGrid}>
-                            {COURSE_OPTIONS.map((course) => (
-                              <div
-                                key={course.value}
-                                className="flex items-center space-x-2"
-                              >
-                                <Checkbox
-                                  id={`wife-course-${course.value}`}
-                                  checked={field.value?.includes(course.value)}
-                                  onCheckedChange={(checked) => {
-                                    const currentCourses = field.value || [];
-                                    if (checked) {
-                                      field.onChange([
-                                        ...currentCourses,
-                                        course.value,
-                                      ]);
-                                    } else {
-                                      field.onChange(
-                                        currentCourses.filter(
-                                          (c) => c !== course.value,
-                                        ),
-                                      );
-                                    }
-                                  }}
-                                  data-testid={`checkbox-wife-course-${course.value}`}
-                                />
-                                <Label
-                                  htmlFor={`wife-course-${course.value}`}
-                                  className="text-sm"
-                                >
-                                  {course.label}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
                 </div>
               </CardContent>
                 </Card>

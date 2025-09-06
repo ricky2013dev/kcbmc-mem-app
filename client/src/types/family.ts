@@ -40,6 +40,7 @@ export interface SearchFilters {
   memberStatus: string;
   dateFrom: string;
   dateTo: string;
+  courses: string[];
 }
 
 export const MEMBER_STATUS_OPTIONS = [
