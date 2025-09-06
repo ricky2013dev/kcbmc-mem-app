@@ -244,7 +244,8 @@ export default function LoginPage() {
                 <div className="relative">
                   <Input
                     id="pin"
-                    type="text"
+                    type="password"
+                    inputMode="numeric"
                     pattern="[0-9]*"
                     maxLength={4}
                     value={pin}
