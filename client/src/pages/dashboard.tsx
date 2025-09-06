@@ -805,7 +805,7 @@ export default function DashboardPage() {
                     className="text-blue-700 hover:text-primary-foreground/80"
                     title="Staff Management"
                   >
-                    <Settings className="w-4 h-4" />
+                    <Settings className="w-4 h-4" />Staff
                   </Button>
                   <Button 
                     variant="secondary"
@@ -815,8 +815,11 @@ export default function DashboardPage() {
                     className="text-green-700 hover:text-primary-foreground/80"
                     title="News Management"
                   >
-                    <Globe className="w-4 h-4" />
+                    <Globe className="w-4 h-4" />News
                   </Button>
+
+                </div>
+              )}
                   <Button 
                     variant="secondary"
                     size="sm"
@@ -825,11 +828,8 @@ export default function DashboardPage() {
                     className="text-purple-700 hover:text-primary-foreground/80"
                     title="Event Management"
                   >
-                    <Calendar className="w-4 h-4" />
+                    <Calendar className="w-4 h-4" /> Event
                   </Button>
-                </div>
-              )}
-
               <span className={styles.userName} data-testid="text-current-user">
                 {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
               </span>
@@ -870,18 +870,18 @@ export default function DashboardPage() {
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => setLocation('/staff-management')}>
                         <Settings className="w-4 h-4 mr-2" />
-                        Staff Management
+                        Staff 
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setLocation('/news-management')}>
                         <Globe className="w-4 h-4 mr-2" />
-                        News Management
+                        News 
                       </DropdownMenuItem>
                     </>
                   )}
                   
                   <DropdownMenuItem onClick={() => setLocation('/events')}>
                     <Calendar className="w-4 h-4 mr-2" />
-                    Events Management
+                    Events 
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
