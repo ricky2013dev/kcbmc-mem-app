@@ -335,7 +335,9 @@ export default function FamilyFormPage({
       }
     },
     onSuccess: () => {
+      // Invalidate all family-related queries
       queryClient.invalidateQueries({ queryKey: ["families"] });
+      queryClient.refetchQueries({ queryKey: ["families"] });
       toast({
         title: "Success",
         description:
@@ -489,7 +491,9 @@ export default function FamilyFormPage({
       return await apiRequest("DELETE", `/api/families/${familyId}`);
     },
     onSuccess: () => {
+      // Invalidate all family-related queries
       queryClient.invalidateQueries({ queryKey: ["families"] });
+      queryClient.refetchQueries({ queryKey: ["families"] });
       toast({
         title: "Success",
         description: "Family deleted successfully.",
