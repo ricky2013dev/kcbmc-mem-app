@@ -758,6 +758,7 @@
 .footerRight {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
 }
 
 .footerDate {
@@ -925,5 +926,103 @@
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Footer Announcement Styles */
+.footerAnnouncements {
+  position: relative;
+  animation: slideInRight 0.8s ease-out 0.2s both;
+}
+
+.footerAnnouncementButton {
+  height: 1.75rem;
+  width: 1.75rem;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  transition: all 0.2s ease;
+}
+
+.footerAnnouncementButton:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  transform: translateY(-1px);
+}
+
+@media (min-width: 768px) {
+  .footerAnnouncementButton {
+    height: 2rem;
+    width: 2rem;
+  }
+}
+
+.footerAnnouncementBadge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  height: 0.875rem;
+  width: 0.875rem;
+  background: #ef4444;
+  color: white;
+  font-size: 0.625rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  animation: pulseNotification 2s ease-in-out infinite;
+}
+
+@media (min-width: 768px) {
+  .footerAnnouncementBadge {
+    height: 1rem;
+    width: 1rem;
+    font-size: 0.75rem;
+    top: -4px;
+    right: -4px;
+  }
+}
+
+.footerAnnouncementDropdown {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 0.5rem;
+  width: 20rem;
+  background: white;
+  border: 1px solid rgba(226, 232, 240, 0.3);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.2s ease;
+  z-index: 1100;
+  backdrop-filter: blur(12px);
+}
+
+.footerAnnouncements .group:hover .footerAnnouncementDropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .footerAnnouncementDropdown {
+    width: 18rem;
+    right: -2rem;
+  }
+}
+
+@keyframes pulseNotification {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
   }
 }

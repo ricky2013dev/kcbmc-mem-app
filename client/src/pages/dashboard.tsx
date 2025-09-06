@@ -16,7 +16,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu } from 'lucide-react';
+import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { CareLogList } from '@/components/CareLogList';
 import { RefreshButton } from '@/components/RefreshButton';
@@ -89,6 +89,7 @@ export default function DashboardPage() {
   const [shownMajorAnnouncements, setShownMajorAnnouncements] = useState<Set<string>>(new Set());
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showAnnouncementDropdown, setShowAnnouncementDropdown] = useState(false);
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters],
@@ -116,6 +117,17 @@ export default function DashboardPage() {
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/announcements/active');
       return response.json();
+    },
+  });
+
+  // Query for ALL announcements (including inactive) for footer display
+  const { data: footerAnnouncements = [] } = useQuery<AnnouncementWithStaff[]>({
+    queryKey: ['announcements/all'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/announcements');
+      const announcements = await response.json();
+      // Filter only active announcements
+      return announcements.filter((ann: any) => ann.isActive);
     },
   });
 
@@ -1598,6 +1610,89 @@ export default function DashboardPage() {
             <span className={styles.footerUser}>
               {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
             </span>
+            
+            {/* News Announcement Icon */}
+            {footerAnnouncements.length > 0 && (
+              <div className={styles.footerAnnouncements}>
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={styles.footerAnnouncementButton}
+                    onClick={() => {
+                      if (footerAnnouncements.length === 1) {
+                        setLocation(`/announcement/${footerAnnouncements[0].id}`);
+                      } else {
+                        setShowAnnouncementDropdown(!showAnnouncementDropdown);
+                      }
+                    }}
+                    title={footerAnnouncements.length === 1 
+                      ? `View announcement: ${footerAnnouncements[0].title}` 
+                      : `${footerAnnouncements.length} announcements available`}
+                  >
+                    <Bell className="h-4 w-4 text-blue-600" />
+                  </Button>
+                  
+                  {/* Notification badge */}
+                  <div className={styles.footerAnnouncementBadge}>
+                    {footerAnnouncements.length > 9 ? '9+' : footerAnnouncements.length}
+                  </div>
+                  
+                  {/* Dropdown for multiple announcements */}
+                  {footerAnnouncements.length > 1 && showAnnouncementDropdown && (
+                    <>
+                      {/* Backdrop */}
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setShowAnnouncementDropdown(false)}
+                      />
+                      
+                      {/* Dropdown content */}
+                      <div className="absolute bottom-full right-0 mb-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                        <div className="p-3 border-b border-gray-100">
+                          <h3 className="text-sm font-semibold text-gray-900">Announcements</h3>
+                        </div>
+                        <div className="max-h-48 overflow-y-auto">
+                          {footerAnnouncements.map((announcement) => (
+                            <div
+                              key={announcement.id}
+                              className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0"
+                              onClick={() => {
+                                setLocation(`/announcement/${announcement.id}`);
+                                setShowAnnouncementDropdown(false);
+                              }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {announcement.title}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                      announcement.type === 'Major' 
+                                        ? 'bg-red-100 text-red-700' 
+                                        : announcement.type === 'Medium' 
+                                        ? 'bg-blue-100 text-blue-700' 
+                                        : 'bg-gray-100 text-gray-700'
+                                    }`}>
+                                      {announcement.type}
+                                    </span>
+                                    {!announcement.isLoginRequired && (
+                                      <span className="text-xs text-green-600">Public</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <ExternalLink className="h-3 w-3 text-gray-400 flex-shrink-0 ml-2" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </footer>
