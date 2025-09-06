@@ -28,35 +28,35 @@ function Router() {
   }
 
   return (
-    <Switch>
-      {/* Public routes (no authentication required) */}
-      <Route path="/announcement/:id" component={PublicAnnouncementPage} />
-      
-      {!isAuthenticated ? (
-        <Route path="/" component={LoginPage} />
-      ) : (
-        <>
-          <Route path="/" component={DashboardPage} />
-          <Route path="/family/new" component={() => <FamilyFormPage mode="create" />} />
-          <Route path="/family/:id/edit" component={({ params }) => <FamilyFormPage mode="edit" familyId={params.id} />} />
-          <Route path="/staff-management" component={StaffManagementPage} />
-          <Route path="/news-management" component={NewsManagementPage} />
-        </>
-      )}
-      <Route component={NotFound} />
-    </Switch>
+    <>
+      <Switch>
+        {/* Public routes (no authentication required) */}
+        <Route path="/announcement/:id" component={PublicAnnouncementPage} />
+        
+        {!isAuthenticated ? (
+          <Route path="/" component={LoginPage} />
+        ) : (
+          <>
+            <Route path="/" component={DashboardPage} />
+            <Route path="/family/new" component={() => <FamilyFormPage mode="create" />} />
+            <Route path="/family/:id/edit" component={({ params }) => <FamilyFormPage mode="edit" familyId={params.id} />} />
+            <Route path="/staff-management" component={StaffManagementPage} />
+            <Route path="/news-management" component={NewsManagementPage} />
+          </>
+        )}
+        <Route component={NotFound} />
+      </Switch>
+      {isAuthenticated && <RefreshButton />}
+    </>
   );
 }
 
 function App() {
-  const { isAuthenticated } = useAuth();
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Router />
-        {isAuthenticated && <RefreshButton />}
       </TooltipProvider>
     </QueryClientProvider>
   );
