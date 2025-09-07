@@ -38,6 +38,7 @@ export function useAuth() {
     staleTime: 15 * 60 * 1000, // 15 minutes - longer cache for better performance
     refetchOnMount: false,
     refetchOnWindowFocus: false, // Avoid performance hits
+    enabled: true, // Always check for auth state
     queryFn: async () => {
       // First try to get user from localStorage
       const savedUser = localStorage.getItem('currentUser');
@@ -48,7 +49,7 @@ export function useAuth() {
         });
         
         if (res.status === 401) {
-          // Clear saved user data if unauthorized
+          // Clear saved user data if unauthorized - this is expected when not logged in
           localStorage.removeItem('currentUser');
           return null;
         }
@@ -73,6 +74,10 @@ export function useAuth() {
         if (savedUser) {
           console.log('Network error, using cached user data');
           return JSON.parse(savedUser);
+        }
+        // Don't throw for 401 errors - they're expected when not authenticated
+        if (error instanceof Error && error.message.includes('401')) {
+          return null;
         }
         throw error;
       }
