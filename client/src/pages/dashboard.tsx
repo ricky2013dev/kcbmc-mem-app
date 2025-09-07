@@ -1129,37 +1129,10 @@ export default function DashboardPage() {
                 </Button>
               </div>
 
-              {/* Date Range - Always Visible */}
-              <div className={styles.dateGrid}>
-                <div>
-                  <Label htmlFor="dateFrom">방문일 (From)</Label>
-                  <SundayDatePicker
-                    value={filters.dateFrom}
-                    onChange={(value) => {
-                      setFilters(prev => ({ ...prev, dateFrom: value }));
-                      setHasSearched(true);
-                    }}
-                    data-testid="input-date-from"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="dateTo">방문일(To)</Label>
-                  <SundayDatePicker
-                    value={filters.dateTo}
-                    onChange={(value) => {
-                      setFilters(prev => ({ ...prev, dateTo: value }));
-                      setHasSearched(true);
-                    }}
-                    data-testid="input-date-to"
-                  />
-                </div>
-              </div>
-
               {/* Courses Filter - Always Visible */}
-              <div className="mt-3">
+              <div className="mt-3 md:mt-3 mt-2">
                 <Label className="text-sm">미수료</Label>
-                <div className="flex gap-1 mt-2">
+                <div className="flex gap-1 mt-1 md:mt-2">
                   {COURSE_OPTIONS.map((course) => (
                     <Button
                       key={course.value}
@@ -1181,33 +1154,63 @@ export default function DashboardPage() {
 
               {/* Additional Filters - Conditionally Visible */}
               {showMoreFilters && (
-                <div className={styles.searchGrid}>
-                  <div>
-                    <Label htmlFor="name">이름</Label>
-                    <Input
-                      id="name"
-                      placeholder="Search by name..."
-                      value={filters.name}
-                      onChange={(e) => {
-                        setFilters(prev => ({ ...prev, name: e.target.value }));
-                        setHasSearched(true);
-                      }}
-                      data-testid="input-search-name"
-                    />
+                <div className="space-y-4">
+                  {/* Date Range */}
+                  <div className={styles.dateGrid}>
+                    <div>
+                      <Label htmlFor="dateFrom">방문일 (From)</Label>
+                      <SundayDatePicker
+                        value={filters.dateFrom}
+                        onChange={(value) => {
+                          setFilters(prev => ({ ...prev, dateFrom: value }));
+                          setHasSearched(true);
+                        }}
+                        data-testid="input-date-from"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="dateTo">방문일(To)</Label>
+                      <SundayDatePicker
+                        value={filters.dateTo}
+                        onChange={(value) => {
+                          setFilters(prev => ({ ...prev, dateTo: value }));
+                          setHasSearched(true);
+                        }}
+                        data-testid="input-date-to"
+                      />
+                    </div>
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="supportTeam">섬김이</Label>
-                    <Input
-                      id="supportTeam"
-                      placeholder="Support team member..."
-                      value={filters.supportTeamMember}
-                      onChange={(e) => {
-                        setFilters(prev => ({ ...prev, supportTeamMember: e.target.value }));
-                        setHasSearched(true);
-                      }}
-                      data-testid="input-search-support-team"
-                    />
+
+                  {/* Other filters */}
+                  <div className={styles.searchGrid}>
+                    <div>
+                      <Label htmlFor="name">이름</Label>
+                      <Input
+                        id="name"
+                        placeholder="Search by name..."
+                        value={filters.name}
+                        onChange={(e) => {
+                          setFilters(prev => ({ ...prev, name: e.target.value }));
+                          setHasSearched(true);
+                        }}
+                        data-testid="input-search-name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="supportTeam">섬김이</Label>
+                      <Input
+                        id="supportTeam"
+                        placeholder="Support team member..."
+                        value={filters.supportTeamMember}
+                        onChange={(e) => {
+                          setFilters(prev => ({ ...prev, supportTeamMember: e.target.value }));
+                          setHasSearched(true);
+                        }}
+                        data-testid="input-search-support-team"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
