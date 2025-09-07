@@ -688,6 +688,7 @@ export class DatabaseStorage implements IStorage {
       family: {
         id: families.id,
         familyName: families.familyName,
+        supportTeamMember: families.supportTeamMember,
       },
       familyMember: {
         id: familyMembers.id,

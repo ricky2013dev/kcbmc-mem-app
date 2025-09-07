@@ -662,7 +662,16 @@ export default function EventDetailPage({ eventId: propEventId }: EventDetailPag
                             <Users className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-base sm:text-lg truncate">{familyGroup.family.familyName}</p>
+                            <div className="font-semibold text-base sm:text-lg truncate">{familyGroup.family.familyName}
+                              <span>
+                                                            {familyGroup.family.supportTeamMember && (
+                              <Badge variant="outline" className="ml-2 bg-green-100 text-green-800 border-green-300">
+                                {familyGroup.family.supportTeamMember}
+                              </Badge>
+                            )}
+                              </span>
+
+                            </div>
                             <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-muted-foreground">
                               <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">{familyStats.total}</span>
                               •
