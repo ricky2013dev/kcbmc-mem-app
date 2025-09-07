@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -96,6 +96,7 @@ export default function DashboardPage() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editProfileData, setEditProfileData] = useState({
     fullName: '',
+    nickName: '',
     email: '',
     personalPin: ''
   });
@@ -225,6 +226,7 @@ export default function DashboardPage() {
       await apiRequest('GET', '/api/auth/me');
       setEditProfileData({
         fullName: user?.fullName || '',
+        nickName: user?.nickName || '',
         email: user?.email || '',
         personalPin: ''
       });
@@ -252,6 +254,7 @@ export default function DashboardPage() {
       // Update user data in context and localStorage
       updateUser({
         fullName: updatedUser.fullName,
+        nickName: updatedUser.nickName,
         email: updatedUser.email,
         // Don't update other fields that weren't changed
       });
@@ -1698,6 +1701,10 @@ export default function DashboardPage() {
       {/* Magnified Image Dialog */}
       <Dialog open={!!magnifiedImage} onOpenChange={() => setMagnifiedImage(null)}>
         <DialogContent className="max-w-4xl p-4 [&>button]:w-10 [&>button]:h-10 [&>button]:text-lg sm:[&>button]:w-12 sm:[&>button]:h-12 sm:[&>button]:text-xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Family Image</DialogTitle>
+            <DialogDescription>Enlarged view of the family photo</DialogDescription>
+          </DialogHeader>
           {magnifiedImage && (
             <div className="flex justify-center">
               <img 
@@ -1726,6 +1733,9 @@ export default function DashboardPage() {
                     {selectedAnnouncement.type}
                   </Badge>
                 </DialogTitle>
+                <DialogDescription>
+                  View full announcement details and information
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div 
@@ -1760,6 +1770,9 @@ export default function DashboardPage() {
                     {majorAnnouncementModal.type}
                   </Badge>
                 </DialogTitle>
+                <DialogDescription>
+                  Important announcement that requires your attention
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div 
@@ -1805,6 +1818,10 @@ export default function DashboardPage() {
         }
       }}>
         <DialogContent className="max-w-md">
+          <DialogHeader className="sr-only">
+            <DialogTitle>PIN Verification Required</DialogTitle>
+            <DialogDescription>Enter your PIN to view protected family notes</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="text-center">
               <h3 className="text-lg font-semibold">Family notes are protected.</h3>
@@ -1902,6 +1919,9 @@ export default function DashboardPage() {
               </div>
               User Profile
             </DialogTitle>
+            <DialogDescription>
+              View your profile information and account details
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
@@ -1911,6 +1931,11 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-gray-600">Full Name:</span>
                   <span className="font-semibold text-gray-900">{user?.fullName || 'N/A'}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-600">Nickname:</span>
+                  <span className="font-semibold text-gray-900">{user?.nickName || 'N/A'}</span>
                 </div>
                 
                 <div className="flex justify-between items-center">
@@ -1964,17 +1989,41 @@ export default function DashboardPage() {
               </div>
               Edit Profile
             </DialogTitle>
+            <DialogDescription>
+              Update your profile information including name, email, and PIN
+            </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
-            {/* Full Name */}
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleUpdateProfile();
+            }}
+            className="space-y-4"
+          >
+            {/* Full Name - Read Only */}
             <div className="space-y-2">
               <Label htmlFor="edit-fullName">Full Name</Label>
               <Input
                 id="edit-fullName"
+                autoComplete="name"
                 value={editProfileData.fullName}
-                onChange={(e) => setEditProfileData(prev => ({ ...prev, fullName: e.target.value }))}
-                placeholder="Enter your full name"
+                readOnly
+                disabled
+                className="bg-gray-50 cursor-not-allowed"
+                placeholder="Full name (read-only)"
+              />
+            </div>
+
+            {/* Nickname */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-nickName">Nickname</Label>
+              <Input
+                id="edit-nickName"
+                autoComplete="nickname"
+                value={editProfileData.nickName}
+                onChange={(e) => setEditProfileData(prev => ({ ...prev, nickName: e.target.value }))}
+                placeholder="Enter your nickname"
               />
             </div>
 
@@ -1984,6 +2033,7 @@ export default function DashboardPage() {
               <Input
                 id="edit-email"
                 type="email"
+                autoComplete="email"
                 value={editProfileData.email}
                 onChange={(e) => setEditProfileData(prev => ({ ...prev, email: e.target.value }))}
                 placeholder="Enter your email address"
@@ -1996,9 +2046,13 @@ export default function DashboardPage() {
               <Input
                 id="edit-pin"
                 type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                autoComplete="new-password"
                 value={editProfileData.personalPin}
-                onChange={(e) => setEditProfileData(prev => ({ ...prev, personalPin: e.target.value }))}
-                placeholder="Enter new PIN (leave blank to keep current)"
+                onChange={(e) => setEditProfileData(prev => ({ ...prev, personalPin: e.target.value.replace(/\D/g, "") }))}
+                placeholder="••••"
               />
               <p className="text-xs text-gray-500">
                 Leave blank to keep your current PIN
@@ -2008,16 +2062,17 @@ export default function DashboardPage() {
             {/* Action Buttons */}
             <div className="flex gap-2 pt-4">
               <Button 
+                type="submit"
                 variant="default"
-                onClick={handleUpdateProfile}
                 className="flex-1"
-                disabled={!editProfileData.fullName.trim()}
+                disabled={!editProfileData.nickName.trim()}
               >
                 <Check className="w-4 h-4 mr-2" />
                 Update Profile
               </Button>
               
               <Button 
+                type="button"
                 variant="outline"
                 onClick={() => setShowEditProfileModal(false)}
                 className="flex-1"
@@ -2025,7 +2080,7 @@ export default function DashboardPage() {
                 Cancel
               </Button>
             </div>
-          </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

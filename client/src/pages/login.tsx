@@ -219,6 +219,18 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className={styles.form}>
+              {/* Hidden username field for accessibility */}
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                value={selectedStaff}
+                onChange={() => {}} // Read-only, controlled by Select
+                style={{ display: 'none' }}
+                tabIndex={-1}
+                aria-hidden="true"
+              />
+              
               <div className={styles.field}>
                 <Label htmlFor="staff-select" className={styles.label}>
                   팀원
@@ -248,6 +260,7 @@ export default function LoginPage() {
                     inputMode="numeric"
                     pattern="[0-9]*"
                     maxLength={4}
+                    autoComplete="current-password"
                     value={pin}
                     onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
                     placeholder="••••"

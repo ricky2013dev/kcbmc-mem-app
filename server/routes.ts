@@ -147,23 +147,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User profile update route (users can update their own profile)
   app.put("/api/auth/profile", requireAuth, async (req, res) => {
     try {
+      console.log("Profile update request body:", req.body);
+      
       // Users can only update specific fields of their own profile
       const allowedFields = {
         fullName: req.body.fullName,
+        nickName: req.body.nickName,
         email: req.body.email,
         personalPin: req.body.personalPin
       };
+      
+      console.log("Allowed fields:", allowedFields);
 
-      // Remove undefined values
+      // Remove undefined values (but allow empty strings for email)
       const updateData = Object.fromEntries(
-        Object.entries(allowedFields).filter(([_, value]) => value !== undefined && value !== '')
+        Object.entries(allowedFields).filter(([key, value]) => {
+          if (value === undefined) return false;
+          if (key === 'email') return true; // Allow empty email
+          if (key === 'personalPin' && value === '') return false; // Don't update PIN if empty
+          return value !== '';
+        })
       );
+      
+      console.log("Final update data:", updateData);
 
       if (Object.keys(updateData).length === 0) {
         return res.status(400).json({ message: "No valid fields to update" });
       }
 
       const updatedStaff = await storage.updateStaff(req.session.staffId!, updateData);
+      console.log("Updated staff result:", updatedStaff);
       if (!updatedStaff) {
         return res.status(404).json({ message: "Staff not found" });
       }
