@@ -1156,7 +1156,28 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-
+              {/* Courses Filter - Always Visible */}
+              <div className="mt-3">
+                <Label className="text-sm">미수료</Label>
+                <div className="flex gap-1 mt-2">
+                  {COURSE_OPTIONS.map((course) => (
+                    <Button
+                      key={course.value}
+                      variant={selectedCourses.has(course.value) ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => toggleCourse(course.value)}
+                      className={`h-7 px-2 text-xs flex items-center gap-1 ${
+                        selectedCourses.has(course.value) 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600' 
+                          : ''
+                      }`}
+                    >
+                      {selectedCourses.has(course.value) && <Check className="w-3 h-3" />}
+                      {course.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
 
               {/* Additional Filters - Conditionally Visible */}
               {showMoreFilters && (
@@ -1188,30 +1209,6 @@ export default function DashboardPage() {
                       data-testid="input-search-support-team"
                     />
                   </div>
-                  
-                  {/* Courses Filter with Multiple Selection */}
-                  <div className="col-span-2">
-                    <Label>Courses</Label>
-                    <div className="flex gap-2 mt-2 flex-wrap">
-                      {COURSE_OPTIONS.map((course) => (
-                        <Button
-                          key={course.value}
-                          variant={selectedCourses.has(course.value) ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => toggleCourse(course.value)}
-                          className={`text-xs flex items-center gap-1 ${
-                            selectedCourses.has(course.value) 
-                              ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600' 
-                              : ''
-                          }`}
-                        >
-                          {selectedCourses.has(course.value) && <Check className="w-3 h-3" />}
-                          {course.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-    
                 </div>
               )}
               

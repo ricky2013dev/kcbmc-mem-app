@@ -239,7 +239,7 @@ export class DatabaseStorage implements IStorage {
       familiesWithMembers.push({ ...family, members });
     }
     
-    // Apply courses filtering with husband priority logic
+    // Apply courses filtering - show families where NEITHER husband nor wife completed the selected course
     if (filters?.courses) {
       const courseList = filters.courses.split(',').map(c => c.trim());
       
@@ -247,18 +247,18 @@ export class DatabaseStorage implements IStorage {
         const husband = family.members.find(m => m.relationship === 'husband');
         const wife = family.members.find(m => m.relationship === 'wife');
         
-        // Check husband first
-        if (husband && husband.courses && husband.courses.length > 0) {
-          return courseList.some(course => husband.courses.includes(course));
-        }
+        // Check if husband has completed any of the selected courses
+        const husbandCompleted = husband && husband.courses && husband.courses.length > 0 
+          ? courseList.some(course => husband.courses.includes(course))
+          : false;
         
-        // If no husband or husband has no courses, check wife
-        if (wife && wife.courses && wife.courses.length > 0) {
-          return courseList.some(course => wife.courses.includes(course));
-        }
+        // Check if wife has completed any of the selected courses
+        const wifeCompleted = wife && wife.courses && wife.courses.length > 0
+          ? courseList.some(course => wife.courses.includes(course))
+          : false;
         
-        // If neither husband nor wife has courses, exclude from results
-        return false;
+        // Return true if NEITHER husband nor wife has completed any of the selected courses
+        return !husbandCompleted && !wifeCompleted;
       });
     }
     
