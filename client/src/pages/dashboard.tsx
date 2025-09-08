@@ -84,9 +84,8 @@ export default function DashboardPage() {
   const [selectedQuickFilter, setSelectedQuickFilter] = useState<'thisWeek' | 'lastWeek' | 'lastMonth' | 'last3Months' | null>(null);
   const [selectedMemberStatuses, setSelectedMemberStatuses] = useState<Set<string>>(new Set());
   const [selectedCourses, setSelectedCourses] = useState<Set<string>>(new Set());
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [pinInput, setPinInput] = useState('');
-  const [unmaskedFamilyNotes, setUnmaskedFamilyNotes] = useState<Set<string>>(new Set());
+  const [showFamilyNotesProtectionModal, setShowFamilyNotesProtectionModal] = useState(false);
+  const [accessedFamilyNotes, setAccessedFamilyNotes] = useState<Set<string>>(new Set());
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementWithStaff | null>(null);
   const [dismissedAnnouncements, setDismissedAnnouncements] = useState<Set<string>>(new Set());
   const [majorAnnouncementModal, setMajorAnnouncementModal] = useState<AnnouncementWithStaff | null>(null);
@@ -181,43 +180,29 @@ export default function DashboardPage() {
     return '*'.repeat(Math.min(text.length, 10));
   };
 
-  // PIN verification function
-  const verifyPinAndUnmaskNotes = async (familyId: string) => {
-    try {
-      const response = await apiRequest('POST', '/api/auth/verify-pin', { pin: pinInput });
-      const isValid = await response.json();
-      
-      if (isValid.success) {
-        setUnmaskedFamilyNotes(prev => new Set(prev).add(familyId));
-        setShowPinModal(false);
-        setPinInput('');
-        toast({
-          title: "PIN verified",
-        });
-      } else {
-        toast({
-          title: "Invalid PIN",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "PIN verification failed",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Function to handle showing PIN modal for specific family
+  // Function to handle showing family notes protection modal
   const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
   
-  const handleViewSecureNotes = (familyId: string) => {
-    if (unmaskedFamilyNotes.has(familyId)) {
-      // Already unmasked, no need to verify PIN again
+  const handleViewFamilyNotes = (familyId: string) => {
+    if (accessedFamilyNotes.has(familyId)) {
+      // Already acknowledged protection notice
       return;
     }
     setSelectedFamilyId(familyId);
-    setShowPinModal(true);
+    setShowFamilyNotesProtectionModal(true);
+  };
+
+  const handleAgreeToProtection = () => {
+    if (selectedFamilyId) {
+      setAccessedFamilyNotes(prev => new Set(prev).add(selectedFamilyId));
+      setShowFamilyNotesProtectionModal(false);
+      setSelectedFamilyId(null);
+    }
+  };
+
+  const handleCancelProtection = () => {
+    setShowFamilyNotesProtectionModal(false);
+    setSelectedFamilyId(null);
   };
 
   // Handle opening profile edit modal
@@ -1603,7 +1588,7 @@ export default function DashboardPage() {
                                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                   <div className="flex justify-between items-center mb-2">
                                     <h5 className="font-medium text-blue-900">Family Notes</h5>
-                                    {unmaskedFamilyNotes.has(family.id) && editingFamilyNotes !== family.id && (
+                                    {accessedFamilyNotes.has(family.id) && editingFamilyNotes !== family.id && (
                                       <Button
                                         size="sm"
                                         variant="ghost"
@@ -1646,7 +1631,7 @@ export default function DashboardPage() {
                                         </Button>
                                       </div>
                                     </div>
-                                  ) : unmaskedFamilyNotes.has(family.id) ? (
+                                  ) : accessedFamilyNotes.has(family.id) ? (
                                     <div 
                                       className="text-blue-800 whitespace-pre-wrap"
                                       title="Notes are visible"
@@ -1654,15 +1639,15 @@ export default function DashboardPage() {
                                       {family.familyNotes || 'No notes available'}
                                     </div>
                                   ) : (
-                                    <div onClick={() => handleViewSecureNotes(family.id)}>
+                                    <div onClick={() => handleViewFamilyNotes(family.id)}>
                                       <div 
                                         className="text-blue-800 whitespace-pre-wrap cursor-pointer hover:bg-blue-100 p-2 rounded transition-colors"
-                                        title="Click to enter PIN and view notes"
+                                        title="Click to agree to protection terms and view notes"
                                       >
                                         {maskText(family.familyNotes || '')}
                                       </div>
                                       <p className="text-sm text-blue-600 mt-2 italic">
-                                        🔒 Click above to view notes
+                                        🔒 Click above to view protected notes
                                       </p>
                                     </div>
                                   )}
@@ -1818,61 +1803,47 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* PIN Verification Modal */}
-      <Dialog open={showPinModal} onOpenChange={(open) => {
-        setShowPinModal(open);
-        if (!open) {
-          setPinInput('');
-          setSelectedFamilyId(null);
-        }
-      }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader className="sr-only">
-            <DialogTitle>PIN Verification Required</DialogTitle>
-            <DialogDescription>Enter your PIN to view protected family notes</DialogDescription>
+      {/* Family Notes Protection Modal */}
+      <Dialog open={showFamilyNotesProtectionModal} onOpenChange={handleCancelProtection}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-center">
+              Family notes are protected.
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Family notes protection agreement modal
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="text-center">
-              <h3 className="text-lg font-semibold">Family notes are protected.</h3>
-              <p className="text-sm text-muted-foreground mt-2">
-                 Please enter your PIN to view them.
+              <p className="text-gray-600 text-lg mb-6">
+                Do not share confidential information with others.
               </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="pin-input">PIN</Label>
-              <Input
-                id="pin-input"
-                type="text"
-                value={pinInput}
-                               pattern="[0-9]*"
-                onChange={(e) => setPinInput(e.target.value)}
-                placeholder="Enter your PIN"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && selectedFamilyId) {
-                    verifyPinAndUnmaskNotes(selectedFamilyId);
-                  }
-                }}
-                autoFocus
-              />
+            
+            <div className="space-y-3 text-gray-700">
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 rounded-full bg-gray-400 mt-2 flex-shrink-0"></div>
+                <p>This information contains sensitive family care notes</p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 rounded-full bg-gray-400 mt-2 flex-shrink-0"></div>
+                <p>Strictly confidential - authorized staff only</p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 rounded-full bg-gray-400 mt-2 flex-shrink-0"></div>
+                <p>Do not discuss, copy, or distribute</p>
+              </div>
+
             </div>
-            <div className="flex space-x-2">
+            
+            <div className="flex space-x-3 pt-4">
+
               <Button
-                variant="outline"
-                onClick={() => {
-                  setShowPinModal(false);
-                  setPinInput('');
-                  setSelectedFamilyId(null);
-                }}
-                className="flex-1"
+                onClick={handleAgreeToProtection}
+                className="flex-1 py-3 text-base font-medium bg-blue-600 hover:bg-blue-700 text-white"
               >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => selectedFamilyId && verifyPinAndUnmaskNotes(selectedFamilyId)}
-                disabled={!pinInput.trim()}
-                className="flex-1"
-              >
-                Verify PIN
+                I Agree
               </Button>
             </div>
           </div>

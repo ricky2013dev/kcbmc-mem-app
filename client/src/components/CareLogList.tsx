@@ -45,7 +45,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
   const [editingLog, setEditingLog] = useState<CareLogWithStaff | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'merged'>('list');
   const [showMergedDialog, setShowMergedDialog] = useState(false);
-  const [hasAcceptedAgreement, setHasAcceptedAgreement] = useState(false);
+
   const [showAgreementDialog, setShowAgreementDialog] = useState(false);
   const [formData, setFormData] = useState({
     date: formatDateForInput(new Date()),
@@ -222,10 +222,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
     }
   };
 
-  const handleAcceptAgreement = () => {
-    setHasAcceptedAgreement(true);
-    setShowAgreementDialog(false);
-  };
+
 
   if (isLoading) {
     return (
@@ -238,53 +235,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
     );
   }
 
-  // Show confidentiality agreement before displaying sensitive data
-  if (!hasAcceptedAgreement) {
-    console.log('CareLogList: Showing agreement dialog');
-    return (
-      <>
-        {/* Confidentiality Agreement Dialog - shown immediately */}
-        <Dialog open={!hasAcceptedAgreement} onOpenChange={() => {}}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-center text-xl font-semibold text-gray-900">
-                Family notes are protected.
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6 py-4">
-              <p className="text-center text-gray-600">
-                Do not share confidential information with others.
-              </p>
-              
-              <div className="space-y-3 text-sm text-gray-700">
-                <p>• This information contains sensitive family care notes</p>
-                <p>• Strictly confidential - authorized staff only</p>
-                <p>• Do not discuss, copy, or distribute</p>
-                <p>• Access is logged and monitored</p>
-                <p>• Protect family privacy and dignity</p>
-              </div>
 
-              <div className="flex space-x-3 pt-4">
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => window.history.back()}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleAcceptAgreement}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  I Agree
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </>
-    );
-  }
 
   return (
     <div className="space-y-4">
