@@ -40,10 +40,10 @@ export function RefreshButton() {
       disabled={isRefreshing}
       variant="ghost"
       size="sm"
-      className="w-9 h-9 p-0"
+      className="w-9 h-9 p-0 mr-4"
       title={isRefreshing ? 'Refreshing...' : 'Refresh the latest data'}
     >
-      <RefreshCw 
+      Refresh<RefreshCw 
         className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
       />
     </Button>

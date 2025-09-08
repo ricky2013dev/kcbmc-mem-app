@@ -71,16 +71,14 @@ export function CareLogList({ familyId }: CareLogListProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['care-logs', familyId] });
       toast({
-        title: 'Success',
-        description: 'Care log created successfully.',
+        title: 'Care log created',
       });
       setShowCreateDialog(false);
       resetForm();
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to create care log.',
+        title: 'Failed to create',
         variant: 'destructive',
       });
     },
@@ -96,16 +94,14 @@ export function CareLogList({ familyId }: CareLogListProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['care-logs', familyId] });
       toast({
-        title: 'Success',
-        description: 'Care log updated successfully.',
+        title: 'Care log updated',
       });
       setEditingLog(null);
       resetForm();
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to update care log.',
+        title: 'Failed to update',
         variant: 'destructive',
       });
     },
@@ -120,14 +116,12 @@ export function CareLogList({ familyId }: CareLogListProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['care-logs', familyId] });
       toast({
-        title: 'Success',
-        description: 'Care log deleted successfully.',
+        title: 'Care log deleted',
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete care log.',
+        title: 'Failed to delete',
         variant: 'destructive',
       });
     },
@@ -135,7 +129,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
 
   const resetForm = () => {
     setFormData({
-      date: formatDateForInput(new Date()),
+      date: formatDateForInput(new Date()), // Always reset to today's date
       type: 'visit',
       description: '',
       status: 'pending',
@@ -209,7 +203,13 @@ export function CareLogList({ familyId }: CareLogListProps) {
       {/* Header with Add Button */}
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Care Log </h3>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <Dialog open={showCreateDialog} onOpenChange={(open) => {
+          setShowCreateDialog(open);
+          if (open) {
+            // Reset form with today's date when dialog opens
+            resetForm();
+          }
+        }}>
           <DialogTrigger asChild>
             <Button size="sm" data-testid="button-add-care-log">
               <Plus className="w-4 h-4 mr-2" />
@@ -221,23 +221,12 @@ export function CareLogList({ familyId }: CareLogListProps) {
               <DialogTitle>Add New Care Log</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
-                    data-testid="input-care-log-date"
-                  />
-                </div>
-
-              </div>
-              <div>
-
-              </div>
+              {/* Hidden date field - automatically set to today */}
+              <input
+                type="hidden"
+                value={formData.date}
+              />
+              
               <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea

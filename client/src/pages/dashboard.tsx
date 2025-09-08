@@ -188,20 +188,17 @@ export default function DashboardPage() {
         setShowPinModal(false);
         setPinInput('');
         toast({
-          title: "Success",
-          description: "PIN verified. Family notes are now visible.",
+          title: "PIN verified",
         });
       } else {
         toast({
-          title: "Error",
-          description: "Invalid PIN. Please try again.",
+          title: "Invalid PIN",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to verify PIN. Please try again.",
+        title: "PIN verification failed",
         variant: "destructive",
       });
     }
@@ -260,8 +257,7 @@ export default function DashboardPage() {
       });
       
       toast({
-        title: "Success",
-        description: "Profile updated successfully!",
+        title: "Profile updated",
       });
       
       setShowEditProfileModal(false);
@@ -700,91 +696,12 @@ export default function DashboardPage() {
             <h1 className={styles.navTitle}>Member</h1>
           </div>
           
-          <div className={styles.navRight}>
-            {/* Refresh Button - Always Visible */}
+          {/* Refresh Button - Center */}
+          <div className="flex-1 flex justify-center">
             <RefreshButton />
-            
-            {/* News Announcement Bell - Always Visible */}
-            {footerAnnouncements.length > 0 && (
-              <div className="relative mr-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="p-2"
-                  onClick={() => {
-                    if (footerAnnouncements.length === 1) {
-                      setLocation(`/announcement/${footerAnnouncements[0].id}`);
-                    } else {
-                      setShowAnnouncementDropdown(!showAnnouncementDropdown);
-                    }
-                  }}
-                  title={footerAnnouncements.length === 1 
-                    ? `View announcement: ${footerAnnouncements[0].title}` 
-                    : `${footerAnnouncements.length} announcements available`}
-                >
-                  <Bell className="h-4 w-4 text-blue-600" />
-                </Button>
-                
-                {/* Notification badge */}
-                <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
-                  {footerAnnouncements.length > 9 ? '9+' : footerAnnouncements.length}
-                </div>
-                
-                {/* Dropdown for multiple announcements */}
-                {footerAnnouncements.length > 1 && showAnnouncementDropdown && (
-                  <>
-                    {/* Backdrop */}
-                    <div 
-                      className="fixed inset-0 z-40" 
-                      onClick={() => setShowAnnouncementDropdown(false)}
-                    />
-                    
-                    {/* Dropdown content */}
-                    <div className="absolute top-full right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                      <div className="p-3 border-b border-gray-100">
-                        <h3 className="text-sm font-semibold text-gray-900">Announcements</h3>
-                      </div>
-                      <div className="max-h-48 overflow-y-auto">
-                        {footerAnnouncements.map((announcement) => (
-                          <div
-                            key={announcement.id}
-                            className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0"
-                            onClick={() => {
-                              setLocation(`/announcement/${announcement.id}`);
-                              setShowAnnouncementDropdown(false);
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">
-                                  {announcement.title}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                    announcement.type === 'Major' 
-                                      ? 'bg-red-100 text-red-700' 
-                                      : announcement.type === 'Medium' 
-                                      ? 'bg-blue-100 text-blue-700' 
-                                      : 'bg-gray-100 text-gray-700'
-                                  }`}>
-                                    {announcement.type}
-                                  </span>
-                                  {!announcement.isLoginRequired && (
-                                    <span className="text-xs text-green-600">Public</span>
-                                  )}
-                                </div>
-                              </div>
-                              <ExternalLink className="h-3 w-3 text-gray-400 flex-shrink-0 ml-2" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-            
+          </div>
+          
+          <div className={styles.navRight}>
             {/* Add New Button - Desktop Only */}
             <Button 
               variant="default"
@@ -1389,8 +1306,9 @@ export default function DashboardPage() {
                         <Tabs defaultValue="current-info" className="w-full">
                           <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="current-info">가족사항 </TabsTrigger>
-                            <TabsTrigger value="family-notes">추가정보</TabsTrigger>
+                            
                             <TabsTrigger value="care-logs">섬김이 로그</TabsTrigger>
+                            <TabsTrigger value="family-notes">추가정보</TabsTrigger>
                           </TabsList>
                           
                           <TabsContent value="current-info" className="mt-4">
@@ -1491,12 +1409,10 @@ export default function DashboardPage() {
                                               navigator.clipboard.writeText(fullAddress).then(() => {
                                                 toast({
                                                   title: "Copied",
-                                                  description: "Address copied to clipboard",
                                                 });
                                               }).catch(() => {
                                                 toast({
                                                   title: "Copy failed",
-                                                  description: "Could not copy address",
                                                   variant: "destructive",
                                                 });
                                               });
@@ -1892,6 +1808,90 @@ export default function DashboardPage() {
               })()}
             </span>
           </div>
+          
+          {/* News Announcement Bell - Center */}
+          <div className="flex-1 flex justify-center">
+            {footerAnnouncements.length > 0 && (
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-2"
+                  onClick={() => {
+                    if (footerAnnouncements.length === 1) {
+                      setLocation(`/announcement/${footerAnnouncements[0].id}`);
+                    } else {
+                      setShowAnnouncementDropdown(!showAnnouncementDropdown);
+                    }
+                  }}
+                  title={footerAnnouncements.length === 1 
+                    ? `View announcement: ${footerAnnouncements[0].title}` 
+                    : `${footerAnnouncements.length} announcements available`}
+                >
+                  <Bell className="h-4 w-4 text-blue-600" />
+                </Button>
+                
+                {/* Notification badge */}
+                <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                  {footerAnnouncements.length > 9 ? '9+' : footerAnnouncements.length}
+                </div>
+                
+                {/* Dropdown for multiple announcements */}
+                {footerAnnouncements.length > 1 && showAnnouncementDropdown && (
+                  <>
+                    {/* Backdrop */}
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowAnnouncementDropdown(false)}
+                    />
+                    
+                    {/* Dropdown content - positioned above footer */}
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <div className="p-3 border-b border-gray-100">
+                        <h3 className="text-sm font-semibold text-gray-900">Announcements</h3>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {footerAnnouncements.map((announcement) => (
+                          <div
+                            key={announcement.id}
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0"
+                            onClick={() => {
+                              setLocation(`/announcement/${announcement.id}`);
+                              setShowAnnouncementDropdown(false);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {announcement.title}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                    announcement.type === 'Major' 
+                                      ? 'bg-red-100 text-red-700' 
+                                      : announcement.type === 'Medium' 
+                                      ? 'bg-blue-100 text-blue-700' 
+                                      : 'bg-gray-100 text-gray-700'
+                                  }`}>
+                                    {announcement.type}
+                                  </span>
+                                  {!announcement.isLoginRequired && (
+                                    <span className="text-xs text-green-600">Public</span>
+                                  )}
+                                </div>
+                              </div>
+                              <ExternalLink className="h-3 w-3 text-gray-400 flex-shrink-0 ml-2" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          
           <div className={styles.footerRight}>
             <div 
               className={styles.footerUser}
