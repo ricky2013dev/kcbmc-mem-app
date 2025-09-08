@@ -460,16 +460,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/families/:id", requireAuth, async (req, res) => {
     try {
-      // For family updates, members might not have familyId (will be added by storage)
-      const memberSchemaForUpdate = insertFamilyMemberSchema.omit({ familyId: true });
-      const familySchema = insertFamilySchema.extend({
-        members: z.array(memberSchemaForUpdate)
-      }).partial();
-
-      const { members, ...familyData } = familySchema.parse(req.body);
+      const { members, ...familyData } = req.body;
       
-      const family = await storage.updateFamily(req.params.id, familyData, members || []);
-      res.json(family);
+      // If members are provided, do a full update
+      if (members && Array.isArray(members)) {
+        // For full family updates, members might not have familyId (will be added by storage)
+        const memberSchemaForUpdate = insertFamilyMemberSchema.omit({ familyId: true });
+        const familySchema = insertFamilySchema.extend({
+          members: z.array(memberSchemaForUpdate)
+        }).partial();
+
+        const validatedData = familySchema.parse(req.body);
+        const { members: validatedMembers, ...validatedFamilyData } = validatedData;
+        
+        const family = await storage.updateFamily(req.params.id, validatedFamilyData, validatedMembers || []);
+        res.json(family);
+      } else {
+        // For partial updates (like just family notes), only update family data
+        const partialFamilySchema = insertFamilySchema.partial();
+        const validatedFamilyData = partialFamilySchema.parse(familyData);
+        
+        const family = await storage.updateFamilyOnly(req.params.id, validatedFamilyData);
+        res.json(family);
+      }
     } catch (error) {
       console.error("Update family error:", error);
       if (error instanceof z.ZodError) {

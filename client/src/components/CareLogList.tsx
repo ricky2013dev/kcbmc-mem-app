@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
 import { CareLogWithStaff } from '@shared/schema';
 import { formatDateForInput } from '@/utils/date-utils';
-import { Plus, Edit, Trash2, Calendar, User, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, User, FileText, List, AlignLeft, Copy, Shield, AlertTriangle } from 'lucide-react';
 
 interface CareLogListProps {
   familyId: string;
@@ -43,6 +43,10 @@ export function CareLogList({ familyId }: CareLogListProps) {
   
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingLog, setEditingLog] = useState<CareLogWithStaff | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'merged'>('list');
+  const [showMergedDialog, setShowMergedDialog] = useState(false);
+  const [hasAcceptedAgreement, setHasAcceptedAgreement] = useState(false);
+  const [showAgreementDialog, setShowAgreementDialog] = useState(false);
   const [formData, setFormData] = useState({
     date: formatDateForInput(new Date()),
     type: 'visit',
@@ -165,6 +169,37 @@ export function CareLogList({ familyId }: CareLogListProps) {
     return user?.group === 'ADM' || log.staffId === user?.id;
   };
 
+  const generateMergedText = () => {
+    if (careLogs.length === 0) return 'No care logs available.';
+    
+    // Sort logs by date (newest first)
+    const sortedLogs = [...careLogs].sort((a, b) => 
+      new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()
+    );
+    
+    return sortedLogs.map((log, index) => {
+      const date = new Date(log.createdAt || log.date).toLocaleDateString();
+      const author = log.staff.nickName;
+      return `${log.description}`;
+    }).join('\n');
+  };
+
+  const copyMergedText = () => {
+    const mergedText = generateMergedText();
+    navigator.clipboard.writeText(mergedText).then(() => {
+      toast({
+        title: "Copied to clipboard",
+        description: "All care logs have been copied as text.",
+      });
+    }).catch(() => {
+      toast({
+        title: "Copy failed",
+        description: "Failed to copy to clipboard.",
+        variant: "destructive",
+      });
+    });
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800 border-green-200';
@@ -187,6 +222,11 @@ export function CareLogList({ familyId }: CareLogListProps) {
     }
   };
 
+  const handleAcceptAgreement = () => {
+    setHasAcceptedAgreement(true);
+    setShowAgreementDialog(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -198,24 +238,84 @@ export function CareLogList({ familyId }: CareLogListProps) {
     );
   }
 
+  // Show confidentiality agreement before displaying sensitive data
+  if (!hasAcceptedAgreement) {
+    console.log('CareLogList: Showing agreement dialog');
+    return (
+      <>
+        {/* Confidentiality Agreement Dialog - shown immediately */}
+        <Dialog open={!hasAcceptedAgreement} onOpenChange={() => {}}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-center text-xl font-semibold text-gray-900">
+                Family notes are protected.
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <p className="text-center text-gray-600">
+                Do not share confidential information with others.
+              </p>
+              
+              <div className="space-y-3 text-sm text-gray-700">
+                <p>• This information contains sensitive family care notes</p>
+                <p>• Strictly confidential - authorized staff only</p>
+                <p>• Do not discuss, copy, or distribute</p>
+                <p>• Access is logged and monitored</p>
+                <p>• Protect family privacy and dignity</p>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => window.history.back()}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleAcceptAgreement}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  I Agree
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Header with Add Button */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Care Log </h3>
-        <Dialog open={showCreateDialog} onOpenChange={(open) => {
-          setShowCreateDialog(open);
-          if (open) {
-            // Reset form with today's date when dialog opens
-            resetForm();
-          }
-        }}>
-          <DialogTrigger asChild>
-            <Button size="sm" data-testid="button-add-care-log">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Care Log
+  
+        <div className="flex items-center gap-2">
+          {careLogs.length > 0 && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => setShowMergedDialog(true)}
+              title="View all care logs as merged text"
+            >
+              <AlignLeft className="w-4 h-4 mr-2" />
+              Merged
             </Button>
-          </DialogTrigger>
+          )}
+          <Dialog open={showCreateDialog} onOpenChange={(open) => {
+            setShowCreateDialog(open);
+            if (open) {
+              // Reset form with today's date when dialog opens
+              resetForm();
+            }
+          }}>
+            <DialogTrigger asChild>
+              <Button size="sm" data-testid="button-add-care-log">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Care Log
+              </Button>
+            </DialogTrigger>
           <DialogContent data-testid="dialog-create-care-log">
             <DialogHeader>
               <DialogTitle>Add New Care Log</DialogTitle>
@@ -249,7 +349,8 @@ export function CareLogList({ familyId }: CareLogListProps) {
               </div>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {/* Care Logs List */}
@@ -336,6 +437,42 @@ export function CareLogList({ familyId }: CareLogListProps) {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Merged View Dialog */}
+      <Dialog open={showMergedDialog} onOpenChange={setShowMergedDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlignLeft className="w-5 h-5" />
+              All Care Logs 
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={copyMergedText}
+                title="Copy all care logs to clipboard"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy All
+              </Button>
+            </div>
+            <div className="border rounded-lg p-4 bg-gray-50 max-h-[60vh] overflow-y-auto">
+              <pre className="whitespace-pre-wrap text-sm font-mono text-gray-800 leading-relaxed">
+                {generateMergedText()}
+              </pre>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setShowMergedDialog(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

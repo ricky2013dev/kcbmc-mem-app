@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +17,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS, COURSE_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, BookOpen, Calendar } from 'lucide-react';
+import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, BookOpen, Calendar, Save } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { CareLogList } from '@/components/CareLogList';
 import { RefreshButton } from '@/components/RefreshButton';
@@ -61,6 +62,7 @@ export default function DashboardPage() {
   const [, setLocation] = useLocation();
   const { user, logout, updateUser } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const defaultDateRange = getDefaultDateRange();
 
@@ -100,6 +102,8 @@ export default function DashboardPage() {
     email: '',
     personalPin: ''
   });
+  const [editingFamilyNotes, setEditingFamilyNotes] = useState<string | null>(null);
+  const [familyNotesText, setFamilyNotesText] = useState('');
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters],
@@ -275,6 +279,43 @@ export default function DashboardPage() {
         logout();
       }
     }
+  };
+
+  // Family notes update mutation
+  const updateFamilyNotesMutation = useMutation({
+    mutationFn: async ({ familyId, familyNotes }: { familyId: string; familyNotes: string }) => {
+      const response = await apiRequest('PUT', `/api/families/${familyId}`, { familyNotes });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['families', filters] });
+      toast({
+        title: "Family notes updated",
+      });
+      setEditingFamilyNotes(null);
+      setFamilyNotesText('');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: "Failed to update family notes. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditFamilyNotes = (family: FamilyWithMembers) => {
+    setEditingFamilyNotes(family.id);
+    setFamilyNotesText(family.familyNotes || '');
+  };
+
+  const handleSaveFamilyNotes = (familyId: string) => {
+    updateFamilyNotesMutation.mutate({ familyId, familyNotes: familyNotesText });
+  };
+
+  const handleCancelFamilyNotesEdit = () => {
+    setEditingFamilyNotes(null);
+    setFamilyNotesText('');
   };
 
   const clearFilters = () => {
@@ -738,8 +779,6 @@ export default function DashboardPage() {
                     <Globe className="w-4 h-4" />News
                   </Button>
 
-                </div>
-              )}
                   <Button 
                     variant="secondary"
                     size="sm"
@@ -750,6 +789,8 @@ export default function DashboardPage() {
                   >
                     <Calendar className="w-4 h-4" /> Event
                   </Button>
+                </div>
+              )}
               <span className={styles.userName} data-testid="text-current-user">
                 {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
               </span>
@@ -796,13 +837,12 @@ export default function DashboardPage() {
                         <Globe className="w-4 h-4 mr-2" />
                         News 
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setLocation('/events')}>
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Events 
+                      </DropdownMenuItem>
                     </>
                   )}
-                  
-                  <DropdownMenuItem onClick={() => setLocation('/events')}>
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Events 
-                  </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
                   
@@ -1559,35 +1599,88 @@ export default function DashboardPage() {
                           
                           <TabsContent value="family-notes" className="mt-4">
                             <div className="space-y-4">
-                              {family.familyNotes ? (
-                                <div onClick={() => handleViewSecureNotes(family.id)}
-                                className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                  <h5 className="font-medium text-blue-900 mb-2">Family Notes</h5>
-                                  {unmaskedFamilyNotes.has(family.id) ? (
+                              {family.familyNotes || editingFamilyNotes === family.id ? (
+                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <h5 className="font-medium text-blue-900">Family Notes</h5>
+                                    {unmaskedFamilyNotes.has(family.id) && editingFamilyNotes !== family.id && (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleEditFamilyNotes(family)}
+                                        className="text-blue-600 hover:text-blue-800"
+                                        title="Edit family notes"
+                                      >
+                                        <Edit className="w-3 h-3 mr-1" />
+                                        Edit
+                                      </Button>
+                                    )}
+                                  </div>
+                                  
+                                  {editingFamilyNotes === family.id ? (
+                                    <div className="space-y-3">
+                                      <Textarea
+                                        value={familyNotesText}
+                                        onChange={(e) => setFamilyNotesText(e.target.value)}
+                                        placeholder="Enter family notes..."
+                                        rows={4}
+                                        className="w-full text-blue-800 bg-white"
+                                      />
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          onClick={() => handleSaveFamilyNotes(family.id)}
+                                          disabled={updateFamilyNotesMutation.isPending}
+                                          className="bg-blue-600 hover:bg-blue-700"
+                                        >
+                                          <Save className="w-3 h-3 mr-1" />
+                                          {updateFamilyNotesMutation.isPending ? 'Saving...' : 'Save'}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={handleCancelFamilyNotesEdit}
+                                          disabled={updateFamilyNotesMutation.isPending}
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : unmaskedFamilyNotes.has(family.id) ? (
                                     <div 
                                       className="text-blue-800 whitespace-pre-wrap"
                                       title="Notes are visible"
                                     >
-                                      {family.familyNotes}
+                                      {family.familyNotes || 'No notes available'}
                                     </div>
                                   ) : (
-                                    <>
+                                    <div onClick={() => handleViewSecureNotes(family.id)}>
                                       <div 
                                         className="text-blue-800 whitespace-pre-wrap cursor-pointer hover:bg-blue-100 p-2 rounded transition-colors"
                                         title="Click to enter PIN and view notes"
                                       >
-                                        {maskText(family.familyNotes)}
+                                        {maskText(family.familyNotes || '')}
                                       </div>
                                       <p className="text-sm text-blue-600 mt-2 italic">
                                         🔒 Click above to view notes
                                       </p>
-                                    </>
+                                    </div>
                                   )}
                                 </div>
                               ) : (
                                 <div className="p-4 border border-dashed border-gray-300 rounded-lg text-center text-muted-foreground">
-                                  
-                                
+                                  <div className="space-y-3">
+                                    <p>No family notes available</p>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleEditFamilyNotes(family)}
+                                      className="text-gray-600 hover:text-gray-800"
+                                    >
+                                      <Plus className="w-3 h-3 mr-1" />
+                                      Add Notes
+                                    </Button>
+                                  </div>
                                 </div>
                               )}
                             </div>

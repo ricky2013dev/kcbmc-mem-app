@@ -78,6 +78,7 @@ export interface IStorage {
   }): Promise<FamilyWithMembers[]>;
   createFamily(family: InsertFamily, members: InsertFamilyMember[]): Promise<FamilyWithMembers>;
   updateFamily(id: string, family: Partial<InsertFamily>, members: InsertFamilyMember[]): Promise<FamilyWithMembers>;
+  updateFamilyOnly(id: string, family: Partial<InsertFamily>): Promise<FamilyWithMembers>;
   deleteFamily(id: string): Promise<void>;
   
   // Care log operations
@@ -314,6 +315,21 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return { ...family, members: updatedMembers };
+  }
+
+  async updateFamilyOnly(id: string, familyData: Partial<InsertFamily>): Promise<FamilyWithMembers> {
+    const cleanedFamilyData = cleanDateFields(familyData);
+    const [family] = await db.update(families)
+      .set({ ...cleanedFamilyData, updatedAt: new Date() })
+      .where(eq(families.id, id))
+      .returning();
+    
+    // Get existing members without modifying them
+    const existingMembers = await db.select()
+      .from(familyMembers)
+      .where(eq(familyMembers.familyId, id));
+    
+    return { ...family, members: existingMembers };
   }
 
   async deleteFamily(id: string): Promise<void> {

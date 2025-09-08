@@ -98,6 +98,7 @@ export default function EventListPage({}: EventListPageProps) {
   };
 
   const isAdmin = user?.group === 'ADM' || user?.group === 'MGM';
+  const canAddEvent = user?.group === 'ADM';
 
   if (isLoading) {
     return (
@@ -133,7 +134,7 @@ export default function EventListPage({}: EventListPageProps) {
             <div className="flex items-center space-x-1 sm:space-x-2">
               <RefreshButton onRefresh={() => refetch()} />
 
-              {isAdmin && (
+              {canAddEvent && (
                 <Button onClick={handleCreateEvent} size="sm" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
                   <Plus className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">New Event</span>
@@ -216,7 +217,7 @@ export default function EventListPage({}: EventListPageProps) {
                 <p className="text-muted-foreground mb-4">
                   {activeOnly ? "No active events at the moment." : "No events have been created yet."}
                 </p>
-                {isAdmin && (
+                {canAddEvent && (
                   <Button onClick={handleCreateEvent} className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
                     <Plus className="h-4 w-4 mr-2" />
                     Create First Event

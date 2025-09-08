@@ -2,6 +2,12 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    if (res.status === 401) {
+      // Clear auth data and redirect to login on unauthorized
+      localStorage.removeItem('currentUser');
+      window.location.href = '/';
+      return;
+    }
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
@@ -52,8 +58,16 @@ export const getQueryFn: <T>(options: {
       credentials: "include",
     });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    if (res.status === 401) {
+      if (unauthorizedBehavior === "returnNull") {
+        // Clear auth data and redirect to login on unauthorized
+        localStorage.removeItem('currentUser');
+        window.location.href = '/';
+        return null;
+      }
+      // For "throw" behavior, also redirect but let the error bubble up
+      localStorage.removeItem('currentUser');
+      window.location.href = '/';
     }
 
     await throwIfResNotOk(res);
