@@ -23,6 +23,7 @@ export const staff = pgTable("staff", {
   email: varchar("email", { length: 255 }),
   displayOrder: integer("display_order").default(0),
   isActive: boolean("is_active").default(true),
+  lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

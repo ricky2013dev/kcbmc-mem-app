@@ -62,7 +62,7 @@ export interface IStorage {
   getAllActiveStaff(): Promise<Staff[]>;
   getAllStaffForManagement(): Promise<Staff[]>;
   createStaff(staff: InsertStaff): Promise<Staff>;
-  updateStaff(id: string, staff: Partial<InsertStaff>): Promise<Staff | undefined>;
+  updateStaff(id: string, staff: Partial<InsertStaff & { lastLogin?: Date }>): Promise<Staff | undefined>;
   deleteStaff(id: string): Promise<void>;
   
   // Family operations
@@ -158,7 +158,7 @@ export class DatabaseStorage implements IStorage {
     return newStaff;
   }
 
-  async updateStaff(id: string, staffData: Partial<InsertStaff>): Promise<Staff | undefined> {
+  async updateStaff(id: string, staffData: Partial<InsertStaff & { lastLogin?: Date }>): Promise<Staff | undefined> {
     const [updatedStaff] = await db.update(staff)
       .set({ ...staffData, updatedAt: new Date() })
       .where(eq(staff.id, id))

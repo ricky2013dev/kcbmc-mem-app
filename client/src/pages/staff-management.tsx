@@ -353,6 +353,24 @@ export default function StaffManagementPage() {
                               Order: <span className="font-medium">{staffMember.displayOrder}</span>
                             </div>
                           )}
+                          {staffMember.lastLogin && (
+                            <div className="sm:inline sm:ml-4">
+                              Last Login: <span className="font-medium">
+                                {new Date(staffMember.lastLogin).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                          )}
+                          {!staffMember.lastLogin && (
+                            <div className="sm:inline sm:ml-4">
+                              Last Login: <span className="font-medium text-gray-400">Never</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
