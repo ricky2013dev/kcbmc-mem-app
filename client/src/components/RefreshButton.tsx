@@ -4,7 +4,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 
-export function RefreshButton() {
+interface RefreshButtonProps {
+  onRefresh?: () => void;
+}
+
+export function RefreshButton({ onRefresh }: RefreshButtonProps = {}) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -14,6 +18,9 @@ export function RefreshButton() {
     
     setIsRefreshing(true);
     try {
+      // Call the optional callback first (e.g., to collapse families)
+      onRefresh?.();
+      
       // Invalidate and refetch all queries
       await queryClient.invalidateQueries();
       await queryClient.refetchQueries();

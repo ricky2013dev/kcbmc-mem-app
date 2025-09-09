@@ -378,12 +378,12 @@ export default function DashboardPage() {
   const getActiveFilters = () => {
     const activeFilters = [];
     
-    if (filters.dateFrom) {
-      activeFilters.push({ label: 'From', value: filters.dateFrom });
-    }
-    if (filters.dateTo) {
-      activeFilters.push({ label: 'To', value: filters.dateTo });
-    }
+    // if (filters.dateFrom) {
+    //   activeFilters.push({ label: 'From', value: filters.dateFrom });
+    // }
+    // if (filters.dateTo) {
+    //   activeFilters.push({ label: 'To', value: filters.dateTo });
+    // }
     if (filters.name) {
       activeFilters.push({ label: 'Name', value: filters.name });
     }
@@ -649,12 +649,11 @@ export default function DashboardPage() {
           
           ${childrenInfo.length > 0 ? `
           <div class="section">
-            <div class="section-title">Children</div>
             ${childrenInfo.map(child => `
               <div class="child-item">
                 <strong>${child.name}</strong>
                 ${child.grade ? ` - Grade: ${child.grade}` : ''}
-                ${child.gradeGroup ? ` (${child.gradeGroup})` : ''}
+                ${child.gradeGroup ? ` (${child.gradeGroup.substring(0, 3)})` : ''}
               </div>
             `).join('')}
           </div>
@@ -715,7 +714,7 @@ export default function DashboardPage() {
           
           {/* Refresh Button - Center */}
           <div className="flex-1 flex justify-center">
-            <RefreshButton />
+            <RefreshButton onRefresh={() => setExpandedFamilies(new Set())} />
           </div>
           
           <div className={styles.navRight}>
@@ -1283,7 +1282,7 @@ export default function DashboardPage() {
                               variant={getStatusBadgeVariant(family.memberStatus)}
                               className={getStatusBadgeClassName(family.memberStatus)}
                             >
-                              {getStatusDisplayLabel(family.memberStatus)} - {family.visitedDate}
+                              {getStatusDisplayLabel(family.memberStatus)} - {new Date(family.visitedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </Badge>
                             {family.supportTeamMember && (
                               <Badge variant="outline" className={styles.supportTeamBadge}>
@@ -1295,17 +1294,7 @@ export default function DashboardPage() {
                                 {getChildGrades(family)}
                               </Badge>
                             )}
-                            {hasAddress(family) && (
-                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                                <Home className="w-3 h-3 mr-1" />
-                              </Badge>
-                            )}
-                            {getPhoneCount(family) > 0 && (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                <Phone className="w-3 h-3 mr-1" />
-                                
-                              </Badge>
-                            )}
+
                             {getCourseCount(family) > 0 && (
                               <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
                                 <BookOpen className="w-3 h-3 mr-1" />
@@ -1353,10 +1342,159 @@ export default function DashboardPage() {
                               
                               <div className={styles.contactInfo}>
                                 {(() => {
+                                  const fullAddress = [
+                                    family.address,
+                                    family.city,
+                                    family.state,
+                                    family.zipCode
+                                  ].filter(Boolean).join(', ');
+                                  
+                                  return (
+                                    <div className={styles.infoItem}>
+                                      <div className="flex flex-wrap gap-2 justify-between items-center">
+                                        <div className="flex flex-wrap gap-2">
+                                          {fullAddress ? (
+                                            <>
+                                              <Badge 
+                                                variant="outline" 
+                                                className="bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 cursor-pointer"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  navigator.clipboard.writeText(fullAddress).then(() => {
+                                                    toast({
+                                                      title: "Copied",
+                                                    });
+                                                  }).catch(() => {
+                                                    toast({
+                                                      title: "Copy failed",
+                                                      variant: "destructive",
+                                                    });
+                                                  });
+                                                }}
+                                                title="Click to copy address"
+                                              >
+                                                <Copy className="h-3 w-3 mr-1" />
+                                                {fullAddress}
+                                              </Badge>
+                                              <Badge 
+                                                variant="outline" 
+                                                className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 cursor-pointer"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+                                                  window.open(mapsUrl, '_blank');
+                                                }}
+                                                title="Click to open in Google Maps"
+                                              >
+                                                <MapPin className="h-3 w-3 mr-1" />
+                                                Maps
+                                              </Badge>
+                                            </>
+                                          ) : (
+                                            <Badge variant="secondary" className="text-muted-foreground">
+                                              <MapPin className="h-3 w-3 mr-1" />
+                                              No address
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleFamilyExpanded(family.id);
+                                          }}
+                                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground ml-auto"
+                                          title="Collapse"
+                                        >
+                                          <ChevronUp className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                {(() => {
+                                  const husband = family.members.find(m => m.relationship === 'husband');
+                                  const wife = family.members.find(m => m.relationship === 'wife');
+                                  const hasPhoneNumber = husband?.phoneNumber || wife?.phoneNumber;
+                                  
+                                  return (
+                                    <div className={styles.infoItem}>
+                                      <div className="flex flex-wrap gap-2">
+                                        {hasPhoneNumber ? (
+                                          <>
+                                            {husband?.phoneNumber && (
+                                              <>
+                                                <Badge 
+                                                  variant="outline" 
+                                                  className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 cursor-pointer text-sm font-medium px-3 py-1"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(`tel:${husband.phoneNumber}`, '_self');
+                                                  }}
+                                                  title="Click to call husband"
+                                                >
+                                                  <Phone className="h-3 w-3 mr-1" />
+                                                  H: {husband.phoneNumber}
+                                                </Badge>
+                                                <Badge 
+                                                  variant="outline" 
+                                                  className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 cursor-pointer"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(`sms:${husband.phoneNumber}`, '_self');
+                                                  }}
+                                                  title="Click to text husband"
+                                                >
+                                                  <MessageSquare className="h-3 w-3 mr-1" />
+                                                  Text
+                                                </Badge>
+                                              </>
+                                            )}
+                                            {wife?.phoneNumber && (
+                                              <>
+                                                <Badge 
+                                                  variant="outline" 
+                                                  className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 cursor-pointer text-sm font-medium px-3 py-1"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(`tel:${wife.phoneNumber}`, '_self');
+                                                  }}
+                                                  title="Click to call wife"
+                                                >
+                                                  <Phone className="h-3 w-3 mr-1" />
+                                                  W: {wife.phoneNumber}
+                                                </Badge>
+                                                <Badge 
+                                                  variant="outline" 
+                                                  className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 cursor-pointer"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(`sms:${wife.phoneNumber}`, '_self');
+                                                  }}
+                                                  title="Click to text wife"
+                                                >
+                                                  <MessageSquare className="h-3 w-3 mr-1" />
+                                                  Text
+                                                </Badge>
+                                              </>
+                                            )}
+                                          </>
+                                        ) : (
+                                          <Badge variant="secondary" className="text-muted-foreground">
+                                            <Phone className="h-3 w-3 mr-1" />
+                                            No phone
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                {(() => {
                                   const children = family.members.filter(m => m.relationship === 'child');
                                   return children.length > 0 && (
                                     <div className={styles.infoItem}>
-                                      <span className={styles.infoLabel}>Children:</span>
+                                      
                                       <div className="flex flex-wrap gap-2">
                                         {children.map((child, index) => (
                                           <div key={child.id || index} className="bg-green-50 border border-green-200 rounded px-2 py-1 text-sm">
@@ -1365,13 +1503,14 @@ export default function DashboardPage() {
                                                 ? `${child.koreanName} (${child.englishName})`
                                                 : child.koreanName || child.englishName
                                               }
-                                            </div>
                                             {child.gradeLevel && (
                                               <span className="text-green-700">
                                                 {child.gradeLevel}
-                                                {child.gradeGroup && ` (${child.gradeGroup})`}
+                                                {child.gradeGroup && ` (${child.gradeGroup.substring(0, 3)})`}
                                               </span>
                                             )}
+                                            </div>
+
                                           </div>
                                         ))}
                                       </div>
@@ -1382,7 +1521,6 @@ export default function DashboardPage() {
                                   const coursesInfo = getPrimaryCourses(family);
                                   return coursesInfo && coursesInfo.courses.length > 0 && (
                                     <div className={styles.infoItem}>
-                                      <span className={styles.infoLabel}>Courses ({coursesInfo.personName}):</span>
                                       <div className="flex flex-wrap gap-2">
                                         {coursesInfo.courses.map((courseValue, index) => {
                                           const courseOption = COURSE_OPTIONS.find(opt => opt.value === courseValue);
@@ -1398,133 +1536,6 @@ export default function DashboardPage() {
                                             </Badge>
                                           );
                                         })}
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                                {(() => {
-                                  const fullAddress = [
-                                    family.address,
-                                    family.city,
-                                    family.state,
-                                    family.zipCode
-                                  ].filter(Boolean).join(', ');
-                                  
-                                  return fullAddress && (
-                                    <div className={styles.infoItem}>
-                            
-                                      <div className="flex items-center gap-2">
-                                        <span>{fullAddress}</span>
-                                        <div className="flex gap-1">
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              navigator.clipboard.writeText(fullAddress).then(() => {
-                                                toast({
-                                                  title: "Copied",
-                                                });
-                                              }).catch(() => {
-                                                toast({
-                                                  title: "Copy failed",
-                                                  variant: "destructive",
-                                                });
-                                              });
-                                            }}
-                                            title="Copy address"
-                                          >
-                                            <Copy className="h-3 w-3" />
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
-                                              window.open(mapsUrl, '_blank');
-                                            }}
-                                            title="Open in Google Maps"
-                                          >
-                                            <MapPin className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                                {(() => {
-                                  const husband = family.members.find(m => m.relationship === 'husband');
-                                  return husband?.phoneNumber && (
-                                    <div className={styles.infoItem}>
-                                      <span className={styles.infoLabel}>Phone</span>
-                                      <div className="flex items-center gap-2">
-                                        <span>H:{husband.phoneNumber}</span>
-                                        <div className="flex gap-1">
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              window.open(`tel:${husband.phoneNumber}`, '_self');
-                                            }}
-                                            title="Call"
-                                          >
-                                            <Phone className="h-3 w-3" />
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              window.open(`sms:${husband.phoneNumber}`, '_self');
-                                            }}
-                                            title="Text"
-                                          >
-                                            <MessageSquare className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                                {(() => {
-                                  const wife = family.members.find(m => m.relationship === 'wife');
-                                  return wife?.phoneNumber && (
-                                    <div className={styles.infoItem}>
-                                     
-                                      <div className="flex items-center gap-2">
-                                        <span>W: {wife.phoneNumber}</span>
-                                        <div className="flex gap-1">
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              window.open(`tel:${wife.phoneNumber}`, '_self');
-                                            }}
-                                            title="Call"
-                                          >
-                                            <Phone className="h-3 w-3" />
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              window.open(`sms:${wife.phoneNumber}`, '_self');
-                                            }}
-                                            title="Text"
-                                          >
-                                            <MessageSquare className="h-3 w-3" />
-                                          </Button>
-                                        </div>
                                       </div>
                                     </div>
                                   );
