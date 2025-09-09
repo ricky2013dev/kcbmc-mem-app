@@ -1559,7 +1559,7 @@ export default function DashboardPage() {
                                         {fullAddress ? (
                                           <Badge 
                                             variant="outline" 
-                                            className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 cursor-pointer py-2 px-2 h-auto whitespace-nowrap overflow-hidden text-ellipsis max-w-full"
+                                            className="bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100 cursor-pointer py-2 px-2 h-auto whitespace-nowrap overflow-hidden text-ellipsis max-w-full"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
