@@ -1514,22 +1514,14 @@ export default function DashboardPage() {
                                                 }
                                               </span>
                                               {child.gradeLevel && (
-                                                <span className="text-green-700 flex items-center gap-1 text-xs">
-                                                  <GraduationCap className={`h-2.5 w-2.5 ${
-                                                    child.gradeGroup
-                                                      ? child.gradeGroup.toLowerCase().includes('team') 
-                                                        ? 'text-purple-600' 
-                                                        : child.gradeGroup.toLowerCase().includes('kid') 
-                                                        ? 'text-orange-600' 
-                                                        : child.gradeGroup.toLowerCase().includes('high') 
-                                                        ? 'text-indigo-600' 
-                                                        : child.gradeGroup.toLowerCase().includes('youth') 
-                                                        ? 'text-red-600' 
-                                                        : 'text-blue-600'
-                                                      : 'text-green-700'
-                                                  }`} />
-                                                  {child.gradeLevel}
-                                                </span>
+                                                <div className="relative">
+                                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                                    <GraduationCap className="w-3 h-3" />
+                                                  </Badge>
+                                                  <div className="absolute -top-1 -right-1 h-4 w-4 border border-green-200 text-green-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
+                                                    {index + 1}
+                                                  </div>
+                                                </div>
                                               )}
                                               {child.gradeGroup && expandedGradeGroups.has(child.id || `${family.id}-${index}`) && (
                                                 <span className={`flex items-center gap-1 text-xs ${
