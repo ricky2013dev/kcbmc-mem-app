@@ -410,7 +410,7 @@ export default function DashboardPage() {
       member.relationship === 'child' && member.gradeLevel
     );
     const grades = children.map(child => child.gradeLevel).filter(Boolean);
-    return grades.length > 0 ? grades.join(', ') : null;
+    return grades.length > 0 ? grades.join(',') : null;
   };
 
   const hasAddress = (family: FamilyWithMembers) => {
@@ -1277,29 +1277,46 @@ export default function DashboardPage() {
                           <h4 className={styles.familyName} data-testid={`text-family-name-${family.id}`}>
                             {family.familyName}
                           </h4>
-                          <div className={styles.familyBadges}>
-                            <Badge 
-                              variant={getStatusBadgeVariant(family.memberStatus)}
-                              className={getStatusBadgeClassName(family.memberStatus)}
-                            >
-                              {getStatusDisplayLabel(family.memberStatus)} - {new Date(family.visitedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </Badge>
-                            {family.supportTeamMember && (
-                              <Badge variant="outline" className={styles.supportTeamBadge}>
-                                {family.supportTeamMember}
+                          <div className="flex items-center gap-2">
+                            <div className={styles.familyBadges}>
+                              <Badge 
+                                variant={getStatusBadgeVariant(family.memberStatus)}
+                                className={getStatusBadgeClassName(family.memberStatus)}
+                              >
+                                {getStatusDisplayLabel(family.memberStatus)}{new Date(family.visitedDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}
                               </Badge>
-                            )}
-                            {getChildGrades(family) && (
-                              <Badge variant="secondary" className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200">
-                                {getChildGrades(family)}
-                              </Badge>
-                            )}
+                              {family.supportTeamMember && (
+                                <Badge variant="outline" className={styles.supportTeamBadge}>
+                                  {family.supportTeamMember}
+                                </Badge>
+                              )}
+                              {!expandedFamilies.has(family.id) && getChildGrades(family) && (
+                                <Badge variant="secondary" className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200">
+                                  {getChildGrades(family)}
+                                </Badge>
+                              )}
 
-                            {getCourseCount(family) > 0 && (
-                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                                <BookOpen className="w-3 h-3 mr-1" />
-                                {getCourseCount(family)}
-                              </Badge>
+                              {!expandedFamilies.has(family.id) && getCourseCount(family) > 0 && (
+                                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                  <BookOpen className="w-2 h-3 mr-1" />
+                                  {getCourseCount(family)}
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {expandedFamilies.has(family.id) && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFamilyExpanded(family.id);
+                                }}
+                                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                                title="Collapse"
+                              >
+                                <ChevronUp className="h-3 w-3" />
+                              </Button>
                             )}
                           </div>
                         </div>
@@ -1341,78 +1358,6 @@ export default function DashboardPage() {
                               )}
                               
                               <div className={styles.contactInfo}>
-                                {(() => {
-                                  const fullAddress = [
-                                    family.address,
-                                    family.city,
-                                    family.state,
-                                    family.zipCode
-                                  ].filter(Boolean).join(', ');
-                                  
-                                  return (
-                                    <div className={styles.infoItem}>
-                                      <div className="flex flex-wrap gap-2 justify-between items-center">
-                                        <div className="flex flex-wrap gap-2">
-                                          {fullAddress ? (
-                                            <>
-                                              <Badge 
-                                                variant="outline" 
-                                                className="bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 cursor-pointer"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  navigator.clipboard.writeText(fullAddress).then(() => {
-                                                    toast({
-                                                      title: "Copied",
-                                                    });
-                                                  }).catch(() => {
-                                                    toast({
-                                                      title: "Copy failed",
-                                                      variant: "destructive",
-                                                    });
-                                                  });
-                                                }}
-                                                title="Click to copy address"
-                                              >
-                                                <Copy className="h-3 w-3 mr-1" />
-                                                {fullAddress}
-                                              </Badge>
-                                              <Badge 
-                                                variant="outline" 
-                                                className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 cursor-pointer"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
-                                                  window.open(mapsUrl, '_blank');
-                                                }}
-                                                title="Click to open in Google Maps"
-                                              >
-                                                <MapPin className="h-3 w-3 mr-1" />
-                                                Maps
-                                              </Badge>
-                                            </>
-                                          ) : (
-                                            <Badge variant="secondary" className="text-muted-foreground">
-                                              <MapPin className="h-3 w-3 mr-1" />
-                                              No address
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleFamilyExpanded(family.id);
-                                          }}
-                                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground ml-auto"
-                                          title="Collapse"
-                                        >
-                                          <ChevronUp className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
                                 {(() => {
                                   const husband = family.members.find(m => m.relationship === 'husband');
                                   const wife = family.members.find(m => m.relationship === 'wife');
@@ -1484,6 +1429,64 @@ export default function DashboardPage() {
                                           <Badge variant="secondary" className="text-muted-foreground">
                                             <Phone className="h-3 w-3 mr-1" />
                                             No phone
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                {(() => {
+                                  const fullAddress = [
+                                    family.address,
+                                    family.city,
+                                    family.state,
+                                    family.zipCode
+                                  ].filter(Boolean).join(', ');
+                                  
+                                  return (
+                                    <div className={styles.infoItem}>
+                                      <div className="flex flex-wrap gap-2">
+                                        {fullAddress ? (
+                                          <>
+                                            <Badge 
+                                              variant="outline" 
+                                              className="bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 cursor-pointer"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigator.clipboard.writeText(fullAddress).then(() => {
+                                                  toast({
+                                                    title: "Copied",
+                                                  });
+                                                }).catch(() => {
+                                                  toast({
+                                                    title: "Copy failed",
+                                                    variant: "destructive",
+                                                  });
+                                                });
+                                              }}
+                                              title="Click to copy address"
+                                            >
+                                              <Copy className="h-3 w-3 mr-1" />
+                                              {fullAddress}
+                                            </Badge>
+                                            <Badge 
+                                              variant="outline" 
+                                              className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 cursor-pointer"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+                                                window.open(mapsUrl, '_blank');
+                                              }}
+                                              title="Click to open in Google Maps"
+                                            >
+                                              <MapPin className="h-3 w-3 mr-1" />
+                                              Maps
+                                            </Badge>
+                                          </>
+                                        ) : (
+                                          <Badge variant="secondary" className="text-muted-foreground">
+                                            <MapPin className="h-3 w-3 mr-1" />
+                                            No address
                                           </Badge>
                                         )}
                                       </div>
