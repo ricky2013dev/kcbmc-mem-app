@@ -12,11 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { apiRequest } from '@/lib/queryClient';
-import { insertStaffSchema, type Staff } from '@shared/schema';
+import { insertStaffSchema, type Staff, type StaffLoginLogWithStaff } from '@shared/schema';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Users, Plus, Edit, Trash2, Settings, ArrowLeft } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Settings, ArrowLeft, History, Clock } from 'lucide-react';
 
 const staffFormSchema = insertStaffSchema.extend({
   personalPin: z.string().length(4, "PIN must be exactly 4 digits").regex(/^\d+$/, "PIN must contain only numbers")
@@ -41,6 +41,8 @@ export default function StaffManagementPage() {
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [staffToDelete, setStaffToDelete] = useState<Staff | null>(null);
+  const [showLoginHistoryDialog, setShowLoginHistoryDialog] = useState(false);
+  const [selectedStaffForHistory, setSelectedStaffForHistory] = useState<Staff | null>(null);
 
   // Check if user has super admin access
   if (user?.group !== 'ADM') {
@@ -172,6 +174,17 @@ export default function StaffManagementPage() {
     },
   });
 
+  // Login history query
+  const { data: loginHistory = [], isLoading: isLoadingHistory } = useQuery<StaffLoginLogWithStaff[]>({
+    queryKey: ['staff-login-history', selectedStaffForHistory?.id],
+    queryFn: async () => {
+      if (!selectedStaffForHistory) return [];
+      const response = await apiRequest('GET', `/api/staff/${selectedStaffForHistory.id}/login-logs?limit=20`);
+      return await response.json();
+    },
+    enabled: !!selectedStaffForHistory && showLoginHistoryDialog,
+  });
+
   const handleAddStaff = () => {
     setEditingStaff(null);
     form.reset({
@@ -221,6 +234,16 @@ export default function StaffManagementPage() {
     if (staffToDelete) {
       deleteMutation.mutate(staffToDelete.id);
     }
+  };
+
+  const handleShowLoginHistory = (staffMember: Staff) => {
+    setSelectedStaffForHistory(staffMember);
+    setShowLoginHistoryDialog(true);
+  };
+
+  const handleCloseLoginHistory = () => {
+    setShowLoginHistoryDialog(false);
+    setSelectedStaffForHistory(null);
   };
 
   const getGroupBadgeVariant = (group: string) => {
@@ -375,6 +398,15 @@ export default function StaffManagementPage() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 sm:flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleShowLoginHistory(staffMember)}
+                        className="flex-1 sm:flex-none text-xs sm:text-sm text-blue-600 border-blue-200 hover:bg-blue-50"
+                      >
+                        <History className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                        History
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -561,6 +593,92 @@ export default function StaffManagementPage() {
                 className="w-full sm:w-auto order-1 sm:order-2"
               >
                 {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Login History Dialog */}
+        <Dialog open={showLoginHistoryDialog} onOpenChange={setShowLoginHistoryDialog}>
+          <DialogContent className="max-w-lg mx-2 sm:mx-auto max-h-[85vh] overflow-hidden">
+            <DialogHeader className="pb-2">
+              <DialogTitle className="text-base sm:text-lg flex items-center">
+                <History className="w-4 h-4 mr-2" />
+                <span className="truncate">
+                  Login History - {selectedStaffForHistory?.fullName}
+                </span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto max-h-[60vh]">
+              {isLoadingHistory ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <span className="ml-2 text-gray-600 text-sm">Loading...</span>
+                </div>
+              ) : loginHistory.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm">No login history found.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {loginHistory.map((log) => (
+                    <div
+                      key={log.id}
+                      className={`p-3 border rounded-lg ${
+                        log.success 
+                          ? 'border-green-200 bg-green-50' 
+                          : 'border-red-200 bg-red-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex items-center space-x-2 min-w-0 flex-1">
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            log.success ? 'bg-green-500' : 'bg-red-500'
+                          }`}></div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-sm font-medium">
+                              {log.success ? 'Success' : 'Failed'}
+                            </span>
+                            {!log.success && log.failureReason && (
+                              <span className="text-xs text-red-600 block">
+                                {log.failureReason}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
+                          {new Date(log.loginTime).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-600 space-y-1">
+                        <div>IP: <span className="font-mono">{log.ipAddress || 'Unknown'}</span></div>
+                        <div className="break-all">
+                          Agent: {log.userAgent ? (
+                            log.userAgent.length > 50 ? 
+                            `${log.userAgent.substring(0, 50)}...` : 
+                            log.userAgent
+                          ) : 'Unknown'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <DialogFooter className="pt-3">
+              <Button
+                variant="outline"
+                onClick={handleCloseLoginHistory}
+                className="w-full"
+                size="sm"
+              >
+                Close
               </Button>
             </DialogFooter>
           </DialogContent>

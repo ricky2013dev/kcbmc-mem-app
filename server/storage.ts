@@ -6,6 +6,7 @@ import {
   announcements,
   events,
   eventAttendance,
+  staffLoginLogs,
   type Staff, 
   type InsertStaff,
   type Family,
@@ -25,7 +26,10 @@ import {
   type EventWithAttendance,
   type EventAttendance,
   type InsertEventAttendance,
-  type EventAttendanceWithDetails
+  type EventAttendanceWithDetails,
+  type StaffLoginLog,
+  type InsertStaffLoginLog,
+  type StaffLoginLogWithStaff
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, like, gte, lte, desc, isNotNull } from "drizzle-orm";
@@ -803,6 +807,80 @@ export class DatabaseStorage implements IStorage {
     if (attendanceRecords.length > 0) {
       await db.insert(eventAttendance).values(attendanceRecords);
     }
+  }
+
+  // Staff login log methods
+  async createStaffLoginLog(data: InsertStaffLoginLog): Promise<StaffLoginLog> {
+    const [loginLog] = await db.insert(staffLoginLogs).values(data).returning();
+    return loginLog;
+  }
+
+  async getStaffLoginLogs(staffId: string, limit: number = 50): Promise<StaffLoginLogWithStaff[]> {
+    const logs = await db
+      .select({
+        id: staffLoginLogs.id,
+        staffId: staffLoginLogs.staffId,
+        loginTime: staffLoginLogs.loginTime,
+        ipAddress: staffLoginLogs.ipAddress,
+        userAgent: staffLoginLogs.userAgent,
+        success: staffLoginLogs.success,
+        failureReason: staffLoginLogs.failureReason,
+        createdAt: staffLoginLogs.createdAt,
+        staff: {
+          id: staff.id,
+          fullName: staff.fullName,
+          nickName: staff.nickName,
+          group: staff.group,
+        },
+      })
+      .from(staffLoginLogs)
+      .innerJoin(staff, eq(staffLoginLogs.staffId, staff.id))
+      .where(eq(staffLoginLogs.staffId, staffId))
+      .orderBy(desc(staffLoginLogs.loginTime))
+      .limit(limit);
+
+    return logs;
+  }
+
+  async getAllStaffLoginLogs(limit: number = 100): Promise<StaffLoginLogWithStaff[]> {
+    const logs = await db
+      .select({
+        id: staffLoginLogs.id,
+        staffId: staffLoginLogs.staffId,
+        loginTime: staffLoginLogs.loginTime,
+        ipAddress: staffLoginLogs.ipAddress,
+        userAgent: staffLoginLogs.userAgent,
+        success: staffLoginLogs.success,
+        failureReason: staffLoginLogs.failureReason,
+        createdAt: staffLoginLogs.createdAt,
+        staff: {
+          id: staff.id,
+          fullName: staff.fullName,
+          nickName: staff.nickName,
+          group: staff.group,
+        },
+      })
+      .from(staffLoginLogs)
+      .innerJoin(staff, eq(staffLoginLogs.staffId, staff.id))
+      .orderBy(desc(staffLoginLogs.loginTime))
+      .limit(limit);
+
+    return logs;
+  }
+
+  async getFailedLoginAttempts(staffId: string, timeWindow: Date): Promise<number> {
+    const failedAttempts = await db
+      .select({ count: staffLoginLogs.id })
+      .from(staffLoginLogs)
+      .where(
+        and(
+          eq(staffLoginLogs.staffId, staffId),
+          eq(staffLoginLogs.success, false),
+          gte(staffLoginLogs.loginTime, timeWindow)
+        )
+      );
+
+    return failedAttempts.length;
   }
 }
 

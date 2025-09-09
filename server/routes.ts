@@ -87,20 +87,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth routes
   app.post("/api/auth/login", async (req, res) => {
+    const loginTime = new Date();
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.get('User-Agent') || 'unknown';
+    let staffForLogging = null;
+
     try {
       const { nickname, pin } = req.body;
       
       if (!nickname || !pin) {
+        // Log failed attempt with missing credentials
+        if (nickname) {
+          staffForLogging = await storage.getStaffByNickname(nickname);
+        }
+        
+        if (staffForLogging) {
+          await storage.createStaffLoginLog({
+            staffId: staffForLogging.id,
+            loginTime,
+            ipAddress,
+            userAgent,
+            success: false,
+            failureReason: 'Missing credentials',
+          });
+        }
+        
         return res.status(400).json({ message: "Nickname and PIN are required" });
       }
 
       const staff = await storage.getStaffByNickname(nickname);
+      
       if (!staff || staff.personalPin !== pin) {
+        // Log failed login attempt
+        if (staff) {
+          await storage.createStaffLoginLog({
+            staffId: staff.id,
+            loginTime,
+            ipAddress,
+            userAgent,
+            success: false,
+            failureReason: 'Invalid credentials',
+          });
+        }
+        
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
+      // Log successful login
+      await storage.createStaffLoginLog({
+        staffId: staff.id,
+        loginTime,
+        ipAddress,
+        userAgent,
+        success: true,
+      });
+
       // Update last login timestamp
-      await storage.updateStaff(staff.id, { lastLogin: new Date() });
+      await storage.updateStaff(staff.id, { lastLogin: loginTime });
 
       req.session.staffId = staff.id;
       req.session.staffGroup = staff.group;
@@ -113,6 +156,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Login error:", error);
+      
+      // Log system error if we have staff info
+      if (staffForLogging) {
+        try {
+          await storage.createStaffLoginLog({
+            staffId: staffForLogging.id,
+            loginTime,
+            ipAddress,
+            userAgent,
+            success: false,
+            failureReason: 'System error',
+          });
+        } catch (logError) {
+          console.error("Failed to log login error:", logError);
+        }
+      }
+      
       res.status(500).json({ message: "Login failed" });
     }
   });
@@ -304,6 +364,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete staff error:", error);
       res.status(500).json({ message: "Failed to delete staff" });
+    }
+  });
+
+  // Staff login log routes
+  app.get("/api/staff/:staffId/login-logs", requireAuth, async (req, res) => {
+    try {
+      // Users can view their own login logs, ADM can view any staff's logs
+      if (req.session.staffId !== req.params.staffId && req.session.staffGroup !== 'ADM') {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 50;
+      const loginLogs = await storage.getStaffLoginLogs(req.params.staffId, limit);
+      res.json(loginLogs);
+    } catch (error) {
+      console.error("Get staff login logs error:", error);
+      res.status(500).json({ message: "Failed to get login logs" });
+    }
+  });
+
+  app.get("/api/staff/login-logs/all", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const loginLogs = await storage.getAllStaffLoginLogs(limit);
+      res.json(loginLogs);
+    } catch (error) {
+      console.error("Get all staff login logs error:", error);
+      res.status(500).json({ message: "Failed to get all login logs" });
     }
   });
 

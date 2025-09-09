@@ -28,6 +28,18 @@ export const staff = pgTable("staff", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Staff login logs table
+export const staffLoginLogs = pgTable("staff_login_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  staffId: varchar("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  loginTime: timestamp("login_time").notNull().defaultNow(),
+  ipAddress: varchar("ip_address", { length: 45 }), // IPv6 support
+  userAgent: varchar("user_agent", { length: 500 }),
+  success: boolean("success").notNull().default(true),
+  failureReason: varchar("failure_reason", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Families table
 export const families = pgTable("families", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -142,6 +154,7 @@ export const staffRelations = relations(staff, ({ many }) => ({
   announcements: many(announcements),
   createdEvents: many(events),
   updatedAttendance: many(eventAttendance),
+  loginLogs: many(staffLoginLogs),
 }));
 
 export const careLogsRelations = relations(careLogs, ({ one }) => ({
@@ -185,6 +198,13 @@ export const eventAttendanceRelations = relations(eventAttendance, ({ one }) => 
   }),
   updatedByStaff: one(staff, {
     fields: [eventAttendance.updatedBy],
+    references: [staff.id],
+  }),
+}));
+
+export const staffLoginLogsRelations = relations(staffLoginLogs, ({ one }) => ({
+  staff: one(staff, {
+    fields: [staffLoginLogs.staffId],
     references: [staff.id],
   }),
 }));
@@ -234,6 +254,11 @@ export const insertEventAttendanceSchema = createInsertSchema(eventAttendance).o
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+export const insertStaffLoginLogSchema = createInsertSchema(staffLoginLogs).omit({
+  id: true,
+  createdAt: true,
 });
 
 // Types
@@ -324,5 +349,17 @@ export type EventAttendanceWithDetails = EventAttendance & {
     id: string;
     fullName: string;
     nickName: string;
+  };
+};
+
+export type StaffLoginLog = typeof staffLoginLogs.$inferSelect;
+export type InsertStaffLoginLog = z.infer<typeof insertStaffLoginLogSchema>;
+
+export type StaffLoginLogWithStaff = StaffLoginLog & {
+  staff: {
+    id: string;
+    fullName: string;
+    nickName: string;
+    group: string;
   };
 };
