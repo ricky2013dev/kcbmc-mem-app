@@ -370,6 +370,14 @@ export default function DashboardPage() {
       default: return '';
     }
   };
+  const getStatusBorderClassName = (status: string) => {
+    switch (status) {
+      case 'member': return 'border-blue-200';
+      case 'visit': return 'border-green-200';
+      case 'pending': return 'border-gray-300';
+      default: return 'border-primary/20';
+    }
+  };
 
   const getStatusDisplayLabel = (status: string) => {
     const option = MEMBER_STATUS_OPTIONS.find(opt => opt.value === status);
@@ -1287,17 +1295,21 @@ export default function DashboardPage() {
                       
                       <div className={styles.familyDetails}>
                         <div className={styles.familyLine1}>
-                          <h4 className={styles.familyName} data-testid={`text-family-name-${family.id}`}>
-                            {family.familyName}
-                          </h4>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={getStatusBadgeVariant(family.memberStatus)}
+                              className={getStatusBadgeClassName(family.memberStatus)}
+                            >
+                              {getStatusDisplayLabel(family.memberStatus)}
+                            </Badge>
+                            <h4 className={styles.familyName} data-testid={`text-family-name-${family.id}`}>
+                              {family.familyName}
+                            </h4>
+                          </div>
                           <div className="flex items-center gap-2">
                             <div className={styles.familyBadges}>
-                              <Badge 
-                                variant={getStatusBadgeVariant(family.memberStatus)}
-                                className={getStatusBadgeClassName(family.memberStatus)}
-                              >
-
-                                {getStatusDisplayLabel(family.memberStatus)}{(() => {
+                              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                                {(() => {
                                   // Parse date string to avoid timezone issues
                                   const [year, month, day] = family.visitedDate.split('-').map(Number);
                                   const date = new Date(year, month - 1, day);
@@ -1361,10 +1373,8 @@ export default function DashboardPage() {
                               {/* Large Family Picture */}
                               {family.familyPicture && (
                                 <div className="mb-6 flex justify-center">
-                                  <img 
-                                    src={family.familyPicture} 
-                                    alt={`${family.familyName} family`}
-                                    className="w-32 h-32 object-cover rounded-lg border-4 border-primary/20 shadow-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                  <div 
+                                    className="relative cursor-pointer hover:opacity-80 transition-opacity"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setMagnifiedImage({
@@ -1372,11 +1382,20 @@ export default function DashboardPage() {
                                         alt: `${family.familyName} family`
                                       });
                                     }}
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.style.display = 'none';
-                                    }}
-                                  />
+                                  >
+                                    <img 
+                                      src={family.familyPicture} 
+                                      alt={`${family.familyName} family`}
+                                      className={`w-32 h-32 object-cover rounded-lg border-4 ${getStatusBorderClassName(family.memberStatus)} shadow-lg`}
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                      }}
+                                    />
+                                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-1.5 hover:bg-opacity-70 transition-all">
+                                      <Search className="w-4 h-4 text-white" />
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                               
