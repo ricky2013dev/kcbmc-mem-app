@@ -51,7 +51,7 @@ export function RefreshButton({ onRefresh }: RefreshButtonProps = {}) {
       title={isRefreshing ? 'Refreshing...' : 'Refresh the latest data'}
     >
       Refresh<RefreshCw 
-        className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
+        className={`w-4 h-4 text-blue-600 ${isRefreshing ? 'animate-spin' : ''}`}
       />
     </Button>
   );

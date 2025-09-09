@@ -799,8 +799,8 @@ export default function DashboardPage() {
             <div className="md:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-2">
-                    <Menu className="w-5 h-5" />
+                  <Button variant="ghost" size="lg" className="p-3">
+                    <Menu className="w-7 h-7 stroke-[4px] text-blue-600 font-black" />
                     <span className="sr-only">Open menu</span>
                   </Button>
                 </DropdownMenuTrigger>
@@ -918,13 +918,13 @@ export default function DashboardPage() {
               >
                 {showFilters ? (
                   <>
-                    <ChevronUp className="w-4 h-4 mr-2" />
-                    Hide Filters
+                    <ChevronUp className="w-4 h-4 mr-2 text-blue-600" />
+                    <span className="text-blue-600">Hide Filters</span>
                   </>
                 ) : (
                   <>
-                    <ChevronDown className="w-4 h-4 mr-2" />
-                    Search Filters
+                    <ChevronDown className="w-4 h-4 mr-2 text-blue-600" />
+                    <span className="text-blue-600">Search Filters</span>
                   </>
                 )}
               </Button>
@@ -1170,16 +1170,16 @@ export default function DashboardPage() {
                   variant="outline" 
                   size="sm" 
                   onClick={() => setShowMoreFilters(!showMoreFilters)}
-                  className="text-muted-foreground hover:text-primary"
+                  className="text-blue-600 hover:text-blue-700 border-blue-600"
                 >
                   {showMoreFilters ? (
                     <>
-                      <ChevronUp className="w-4 h-4 mr-2" />
+                      <ChevronUp className="w-4 h-4 mr-2 text-blue-600" />
                       Less
                     </>
                   ) : (
                     <>
-                      <ChevronDown className="w-4 h-4 mr-2" />
+                      <ChevronDown className="w-4 h-4 mr-2 text-blue-600" />
                       More
                     </>
                   )}
@@ -1192,8 +1192,8 @@ export default function DashboardPage() {
 
         {/* Results Section */}
         <Card className={styles.resultsCard}>
-          <CardHeader className={styles.resultsHeader}>
-            <div className="flex items-center justify-between">
+          <CardHeader className={`${styles.resultsHeader} py-2 px-4`}>
+            <div className="flex items-center justify-between min-h-0">
               <div className="flex items-center gap-2">
                 <h4 className={styles.resultsTitle}> Results {hasSearched && (
                   < >
@@ -1217,9 +1217,9 @@ export default function DashboardPage() {
                   variant="ghost" 
                   size="sm" 
                   onClick={() => setShowFilters(true)}
-                  className="text-muted-foreground hover:text-primary"
+                  className="text-blue-600 hover:text-blue-700"
                 >
-                  <ChevronDown className="w-4 h-4 mr-2" />
+                  <ChevronDown className="w-4 h-4 mr-2 text-blue-600" />
                   Change Filters
                 </Button>
               )}
@@ -1227,12 +1227,12 @@ export default function DashboardPage() {
             
             {/* Active Filters Display */}
             {hasSearched && getActiveFilters().length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-3 mt-3 border-t border-border">
-                <span className="text-sm font-medium text-muted-foreground mr-2"></span>
+              <div className="flex flex-nowrap gap-1 pt-1 mt-1 border-t border-border overflow-x-auto">
+                <span className="text-xs font-medium text-muted-foreground mr-1 flex-shrink-0"></span>
                 {getActiveFilters().map((filter, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
+                  <Badge key={index} variant="secondary" className="text-xs px-1.5 py-0.5 whitespace-nowrap flex-shrink-0">
                     <span className="font-medium">{filter.label}:</span>
-                    <span className="ml-1">{filter.value}</span>
+                    <span className="ml-0.5">{filter.value}</span>
                   </Badge>
                 ))}
               </div>
@@ -1316,10 +1316,14 @@ export default function DashboardPage() {
                               )}
 
                               {!expandedFamilies.has(family.id) && getCourseCount(family) > 0 && (
-                                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                                  <BookOpen className="w-2 h-3 mr-1" />
-                                  {getCourseCount(family)}
-                                </Badge>
+                                <div className="relative">
+                                  <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                    <BookOpen className="w-3 h-3" />
+                                  </Badge>
+                                  <div className="absolute -top-1 -right-1 h-4 w-4 border border-orange-200 text-orange-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
+                                    {getCourseCount(family) > 9 ? '9+' : getCourseCount(family)}
+                                  </div>
+                                </div>
                               )}
                             </div>
                             
@@ -2004,14 +2008,14 @@ export default function DashboardPage() {
           
           <div className={styles.footerRight}>
             <div 
-              className={styles.footerUser}
+              className={`${styles.footerUser} flex items-center gap-2 cursor-pointer`}
               onClick={() => setShowUserProfileModal(true)}
               title="Click to view profile"
             >
-              <div className={styles.footerUserIcon}>
-                <User className="w-3 h-3" />
+              <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md">
+                <User className="w-3 h-3 text-white drop-shadow-sm" />
               </div>
-              <span className={styles.footerUserText}>
+              <span className="text-blue-600 font-medium text-sm tracking-wide drop-shadow-sm">
                 {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
               </span>
             </div>
