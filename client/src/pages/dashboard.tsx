@@ -85,7 +85,7 @@ export default function DashboardPage() {
   const [selectedMemberStatuses, setSelectedMemberStatuses] = useState<Set<string>>(new Set());
   const [selectedCourses, setSelectedCourses] = useState<Set<string>>(new Set());
   const [showFamilyNotesProtectionModal, setShowFamilyNotesProtectionModal] = useState(false);
-  const [accessedFamilyNotes, setAccessedFamilyNotes] = useState<Set<string>>(new Set());
+  const [hasAgreedToFamilyNotesProtection, setHasAgreedToFamilyNotesProtection] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementWithStaff | null>(null);
   const [dismissedAnnouncements, setDismissedAnnouncements] = useState<Set<string>>(new Set());
   const [majorAnnouncementModal, setMajorAnnouncementModal] = useState<AnnouncementWithStaff | null>(null);
@@ -181,28 +181,19 @@ export default function DashboardPage() {
   };
 
   // Function to handle showing family notes protection modal
-  const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
-  
-  const handleViewFamilyNotes = (familyId: string) => {
-    if (accessedFamilyNotes.has(familyId)) {
-      // Already acknowledged protection notice
-      return;
+  const handleViewFamilyNotes = () => {
+    if (!hasAgreedToFamilyNotesProtection) {
+      setShowFamilyNotesProtectionModal(true);
     }
-    setSelectedFamilyId(familyId);
-    setShowFamilyNotesProtectionModal(true);
   };
 
   const handleAgreeToProtection = () => {
-    if (selectedFamilyId) {
-      setAccessedFamilyNotes(prev => new Set(prev).add(selectedFamilyId));
-      setShowFamilyNotesProtectionModal(false);
-      setSelectedFamilyId(null);
-    }
+    setHasAgreedToFamilyNotesProtection(true);
+    setShowFamilyNotesProtectionModal(false);
   };
 
   const handleCancelProtection = () => {
     setShowFamilyNotesProtectionModal(false);
-    setSelectedFamilyId(null);
   };
 
   // Handle opening profile edit modal
@@ -1588,7 +1579,7 @@ export default function DashboardPage() {
                                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                   <div className="flex justify-between items-center mb-2">
                                     <h5 className="font-medium text-blue-900">Family Notes</h5>
-                                    {accessedFamilyNotes.has(family.id) && editingFamilyNotes !== family.id && (
+                                    {hasAgreedToFamilyNotesProtection && editingFamilyNotes !== family.id && (
                                       <Button
                                         size="sm"
                                         variant="ghost"
@@ -1631,7 +1622,7 @@ export default function DashboardPage() {
                                         </Button>
                                       </div>
                                     </div>
-                                  ) : accessedFamilyNotes.has(family.id) ? (
+                                  ) : hasAgreedToFamilyNotesProtection ? (
                                     <div 
                                       className="text-blue-800 whitespace-pre-wrap"
                                       title="Notes are visible"
@@ -1639,7 +1630,7 @@ export default function DashboardPage() {
                                       {family.familyNotes || 'No notes available'}
                                     </div>
                                   ) : (
-                                    <div onClick={() => handleViewFamilyNotes(family.id)}>
+                                    <div onClick={handleViewFamilyNotes}>
                                       <div 
                                         className="text-blue-800 whitespace-pre-wrap cursor-pointer hover:bg-blue-100 p-2 rounded transition-colors"
                                         title="Click to agree to protection terms and view notes"
