@@ -1365,15 +1365,15 @@ export default function DashboardPage() {
                       <div className={styles.familyDetails}>
                         <div className={styles.familyLine1}>
                           <div className="flex items-center gap-2">
+                            <h4 className={styles.familyName} data-testid={`text-family-name-${family.id}`}>
+                              {family.familyName}
+                            </h4>
                             <Badge 
                               variant={getStatusBadgeVariant(family.memberStatus)}
                               className={getStatusBadgeClassName(family.memberStatus)}
                             >
                               {getStatusDisplayLabel(family.memberStatus)}
                             </Badge>
-                            <h4 className={styles.familyName} data-testid={`text-family-name-${family.id}`}>
-                              {family.familyName}
-                            </h4>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className={styles.familyBadges}>
