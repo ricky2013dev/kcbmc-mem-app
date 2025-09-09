@@ -1368,23 +1368,22 @@ export default function DashboardPage() {
                             <h4 className={styles.familyName} data-testid={`text-family-name-${family.id}`}>
                               {family.familyName}
                             </h4>
+
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className={styles.familyBadges}>
                             <Badge 
                               variant={getStatusBadgeVariant(family.memberStatus)}
                               className={getStatusBadgeClassName(family.memberStatus)}
                             >
-                              {getStatusDisplayLabel(family.memberStatus)}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className={styles.familyBadges}>
-                              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                              {getStatusDisplayLabel(family.memberStatus)}&nbsp;
                                 {(() => {
                                   // Parse date string to avoid timezone issues
                                   const [year, month, day] = family.visitedDate.split('-').map(Number);
                                   const date = new Date(year, month - 1, day);
                                   return date.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
                                 })()}
-                              </Badge>
+                            </Badge>
                               {family.supportTeamMember && (
                                 <Badge variant="outline" className={styles.supportTeamBadge}>
                                   {family.supportTeamMember}
@@ -1603,7 +1602,7 @@ export default function DashboardPage() {
                                               </span>
                                               {child.gradeLevel && (
                                                 <div className="relative">
-                                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                                  <Badge  className="bg-green-50 text-green-700 border-green-200">
                                                     <GraduationCap className="w-3 h-3" />
                                                   </Badge>
                                                   <div className="absolute -top-1 -right-1 h-4 w-4 border border-green-200 text-green-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
