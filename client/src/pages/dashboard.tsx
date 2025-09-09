@@ -1283,7 +1283,13 @@ export default function DashboardPage() {
                                 variant={getStatusBadgeVariant(family.memberStatus)}
                                 className={getStatusBadgeClassName(family.memberStatus)}
                               >
-                                {getStatusDisplayLabel(family.memberStatus)}{new Date(family.visitedDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}
+
+                                {getStatusDisplayLabel(family.memberStatus)}{(() => {
+                                  // Parse date string to avoid timezone issues
+                                  const [year, month, day] = family.visitedDate.split('-').map(Number);
+                                  const date = new Date(year, month - 1, day);
+                                  return date.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
+                                })()}
                               </Badge>
                               {family.supportTeamMember && (
                                 <Badge variant="outline" className={styles.supportTeamBadge}>
