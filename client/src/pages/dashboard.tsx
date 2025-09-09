@@ -17,7 +17,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS, COURSE_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
-import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Copy, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, BookOpen, Calendar, Save } from 'lucide-react';
+import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, BookOpen, Calendar, Save, GraduationCap, Info } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { CareLogList } from '@/components/CareLogList';
 import { RefreshButton } from '@/components/RefreshButton';
@@ -103,6 +103,7 @@ export default function DashboardPage() {
   });
   const [editingFamilyNotes, setEditingFamilyNotes] = useState<string | null>(null);
   const [familyNotesText, setFamilyNotesText] = useState('');
+  const [expandedGradeGroups, setExpandedGradeGroups] = useState<Set<string>>(new Set());
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters],
@@ -468,6 +469,18 @@ export default function DashboardPage() {
     });
   };
 
+  const toggleGradeGroup = (childId: string) => {
+    setExpandedGradeGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(childId)) {
+        newSet.delete(childId);
+      } else {
+        newSet.add(childId);
+      }
+      return newSet;
+    });
+  };
+
   const printSearchResults = () => {
     const printContent = `
       <html>
@@ -515,7 +528,7 @@ export default function DashboardPage() {
                   family.city,
                   family.state,
                   family.zipCode
-                ].filter(Boolean).join(', ');
+                ].filter(Boolean).join(',');
                 
                 const phoneInfo = [];
                 if (husband?.phoneNumber) phoneInfo.push(`H: ${husband.phoneNumber}`);
@@ -1445,50 +1458,26 @@ export default function DashboardPage() {
                                   const fullAddress = [
                                     family.address,
                                     family.city,
-                                    family.state,
-                                    family.zipCode
+                                    family.state
                                   ].filter(Boolean).join(', ');
                                   
                                   return (
                                     <div className={styles.infoItem}>
                                       <div className="flex flex-wrap gap-2">
                                         {fullAddress ? (
-                                          <>
-                                            <Badge 
-                                              variant="outline" 
-                                              className="bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 cursor-pointer"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigator.clipboard.writeText(fullAddress).then(() => {
-                                                  toast({
-                                                    title: "Copied",
-                                                  });
-                                                }).catch(() => {
-                                                  toast({
-                                                    title: "Copy failed",
-                                                    variant: "destructive",
-                                                  });
-                                                });
-                                              }}
-                                              title="Click to copy address"
-                                            >
-                                              <Copy className="h-3 w-3 mr-1" />
-                                              {fullAddress}
-                                            </Badge>
-                                            <Badge 
-                                              variant="outline" 
-                                              className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 cursor-pointer"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
-                                                window.open(mapsUrl, '_blank');
-                                              }}
-                                              title="Click to open in Google Maps"
-                                            >
-                                              <MapPin className="h-3 w-3 mr-1" />
-                                              Maps
-                                            </Badge>
-                                          </>
+                                          <Badge 
+                                            variant="outline" 
+                                            className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 cursor-pointer py-2 px-2 h-auto whitespace-nowrap overflow-hidden text-ellipsis max-w-full"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+                                              window.open(mapsUrl, '_blank');
+                                            }}
+                                            title="Click to open in Google Maps"
+                                          >
+                                            <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                                            <span className="truncate">{fullAddress}</span>
+                                          </Badge>
                                         ) : (
                                           <Badge variant="secondary" className="text-muted-foreground">
                                             <MapPin className="h-3 w-3 mr-1" />
@@ -1507,17 +1496,63 @@ export default function DashboardPage() {
                                       <div className="flex flex-wrap gap-2">
                                         {children.map((child, index) => (
                                           <div key={child.id || index} className="bg-green-50 border border-green-200 rounded px-2 py-1 text-sm">
-                                            <div className="font-medium">
-                                              {child.koreanName && child.englishName 
-                                                ? `${child.koreanName} (${child.englishName})`
-                                                : child.koreanName || child.englishName
-                                              }
-                                            {child.gradeLevel && (
-                                              <span className="text-green-700">
-                                                {child.gradeLevel}
-                                                {child.gradeGroup && ` (${child.gradeGroup.substring(0, 3)})`}
+                                            <div className="font-medium flex items-center gap-2">
+                                              <span 
+                                                className="cursor-pointer hover:text-blue-600 transition-colors text-xs"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  toggleGradeGroup(child.id || `${family.id}-${index}`);
+                                                }}
+                                              >
+                                                {child.koreanName && child.englishName 
+                                                  ? `${child.koreanName} (${child.englishName})`
+                                                  : child.koreanName || child.englishName
+                                                }
                                               </span>
-                                            )}
+                                              {child.gradeLevel && (
+                                                <span className="text-green-700 flex items-center gap-1 text-xs">
+                                                  <GraduationCap className={`h-2.5 w-2.5 ${
+                                                    child.gradeGroup
+                                                      ? child.gradeGroup.toLowerCase().includes('team') 
+                                                        ? 'text-purple-600' 
+                                                        : child.gradeGroup.toLowerCase().includes('kid') 
+                                                        ? 'text-orange-600' 
+                                                        : child.gradeGroup.toLowerCase().includes('high') 
+                                                        ? 'text-indigo-600' 
+                                                        : child.gradeGroup.toLowerCase().includes('youth') 
+                                                        ? 'text-red-600' 
+                                                        : 'text-blue-600'
+                                                      : 'text-green-700'
+                                                  }`} />
+                                                  {child.gradeLevel}
+                                                </span>
+                                              )}
+                                              {child.gradeGroup && expandedGradeGroups.has(child.id || `${family.id}-${index}`) && (
+                                                <span className={`flex items-center gap-1 text-xs ${
+                                                  child.gradeGroup.toLowerCase().includes('team') 
+                                                    ? 'text-purple-600' 
+                                                    : child.gradeGroup.toLowerCase().includes('kid') 
+                                                    ? 'text-orange-600' 
+                                                    : child.gradeGroup.toLowerCase().includes('high') 
+                                                    ? 'text-indigo-600' 
+                                                    : child.gradeGroup.toLowerCase().includes('youth') 
+                                                    ? 'text-red-600' 
+                                                    : 'text-blue-600'
+                                                }`}>
+                                                  <Info className={`h-2.5 w-2.5 ${
+                                                    child.gradeGroup.toLowerCase().includes('team') 
+                                                      ? 'text-purple-600' 
+                                                      : child.gradeGroup.toLowerCase().includes('kid') 
+                                                      ? 'text-orange-600' 
+                                                      : child.gradeGroup.toLowerCase().includes('high') 
+                                                      ? 'text-indigo-600' 
+                                                      : child.gradeGroup.toLowerCase().includes('youth') 
+                                                      ? 'text-red-600' 
+                                                      : 'text-blue-600'
+                                                  }`} />
+                                                  ({child.gradeGroup})
+                                                </span>
+                                              )}
                                             </div>
 
                                           </div>
