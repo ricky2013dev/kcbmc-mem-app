@@ -504,11 +504,11 @@ export default function DashboardPage() {
       <div className="relative">
         <Badge 
           variant="outline" 
-          className={`bg-blue-50 text-blue-700 border-blue-200 ${hasRecentLogs ? styles.careLogBadgeAlarm : ''}`}
+          className={`bg-orange-50 text-orange-700 border-orange-200 ${hasRecentLogs ? styles.careLogBadgeAlarm : ''}`}
         >
           <Calendar className="w-3 h-3" />
         </Badge>
-        <div className="absolute -top-1 -right-1 h-4 w-4 border border-blue-200 text-blue-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
+        <div className="absolute -top-1 -right-1 h-4 w-4 border border-orange-200 text-orange-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
           {careLogs.length > 9 ? '9+' : careLogs.length}
         </div>
       </div>
@@ -1451,10 +1451,10 @@ export default function DashboardPage() {
 
                               {!expandedFamilies.has(family.id) && getCourseCount(family) > 0 && (
                                 <div className="relative">
-                                  <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                                     <GraduationCap className="w-3 h-3" />
                                   </Badge>
-                                  <div className="absolute -top-1 -right-1 h-4 w-4 border border-orange-200 text-orange-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
+                                  <div className="absolute -top-1 -right-1 h-4 w-4 border border-blue-200 text-blue-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
                                     {getCourseCount(family) > 9 ? '9+' : getCourseCount(family)}
                                   </div>
                                 </div>
