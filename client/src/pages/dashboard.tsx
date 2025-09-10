@@ -516,6 +516,23 @@ export default function DashboardPage() {
     );
   };
 
+  // Component to display care log tab title with count
+  const CareLogTabTitle = ({ familyId }: { familyId: string }) => {
+    const { data: careLogs = [] } = useCareLogsData(familyId);
+    const careLogCount = careLogs.length;
+
+    return (
+      <div className="flex items-center gap-2">
+        <span>섬김이 로그</span>
+        {careLogCount > 0 && (
+          <span className="inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-full">
+            {careLogCount > 9 ? '9+' : careLogCount}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   const toggleFamilyExpanded = (familyId: string) => {
     setExpandedFamilies(prev => {
       const newSet = new Set(prev);
@@ -1485,7 +1502,9 @@ export default function DashboardPage() {
                           <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="current-info">가족사항 </TabsTrigger>
                             
-                            <TabsTrigger value="care-logs">섬김이 로그</TabsTrigger>
+                            <TabsTrigger value="care-logs">
+                              <CareLogTabTitle familyId={family.id} />
+                            </TabsTrigger>
                             <TabsTrigger value="family-notes">추가정보</TabsTrigger>
                           </TabsList>
                           
