@@ -479,17 +479,9 @@ export default function DashboardPage() {
     });
   };
 
-  // Component to display care log badge with count and animation for recent logs
-  const CareLogBadge = ({ familyId }: { familyId: string }) => {
-    const { data: careLogs = [], isLoading } = useCareLogsData(familyId);
-
-    if (isLoading) {
-      return null; // Don't show anything while loading
-    }
-
-    if (careLogs.length === 0) {
-      return null; // Don't show badge if no care logs
-    }
+  // Component to display support team badge with care log count and animation for recent logs
+  const SupportTeamBadgeWithCareLog = ({ familyId, supportTeamMember }: { familyId: string; supportTeamMember: string }) => {
+    const { data: careLogs = [] } = useCareLogsData(familyId);
 
     // Check if there are any care logs from the past week
     const oneWeekAgo = new Date();
@@ -500,17 +492,21 @@ export default function DashboardPage() {
       return logDate >= oneWeekAgo;
     });
 
+    const careLogCount = careLogs.length;
+
     return (
       <div className="relative">
         <Badge 
           variant="outline" 
-          className={`bg-orange-50 text-orange-700 border-orange-200 ${hasRecentLogs ? styles.careLogBadgeAlarm : ''}`}
+          className={`${styles.supportTeamBadge} ${hasRecentLogs ? styles.careLogBadgeAlarm : ''}`}
         >
-          <Calendar className="w-3 h-3" />
+          {supportTeamMember}
         </Badge>
-        <div className="absolute -top-1 -right-1 h-4 w-4 border border-orange-200 text-orange-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
-          {careLogs.length > 9 ? '9+' : careLogs.length}
-        </div>
+        {careLogCount > 0 && (
+          <div className="absolute -top-1 -right-1 h-4 w-4 border border-orange-200 text-orange-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
+            {careLogCount > 9 ? '9+' : careLogCount}
+          </div>
+        )}
       </div>
     );
   };
@@ -1418,9 +1414,6 @@ export default function DashboardPage() {
                             <h4 className={styles.familyName} data-testid={`text-family-name-${family.id}`}>
                               {family.familyName}
                             </h4>
-                            <div className="ml-2 ">{ (
-                                <CareLogBadge familyId={family.id} />
-                              )}</div>
                             
 
                           </div>
@@ -1439,9 +1432,10 @@ export default function DashboardPage() {
                                 })()}
                             </Badge>
                               {family.supportTeamMember && (
-                                <Badge variant="outline" className={styles.supportTeamBadge}>
-                                  {family.supportTeamMember}
-                                </Badge>
+                                <SupportTeamBadgeWithCareLog 
+                                  familyId={family.id} 
+                                  supportTeamMember={family.supportTeamMember} 
+                                />
                               )}
                               {!expandedFamilies.has(family.id) && getChildGrades(family) && (
                                 <Badge variant="secondary" className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200">
