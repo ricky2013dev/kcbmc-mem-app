@@ -17,6 +17,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS, COURSE_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
+import { getGradeGroupFirstChar } from '@/utils/grade-utils';
 import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, BookOpen, Calendar, Save, GraduationCap, Info } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { CareLogList } from '@/components/CareLogList';
@@ -1587,13 +1588,15 @@ export default function DashboardPage() {
                                       <div className="flex flex-wrap gap-2">
                                         {children.map((child, index) => (
                                           <div key={child.id || index} className="bg-green-50 border border-green-200 rounded px-2 py-1 text-sm">
-                                            <div className="font-medium flex items-center gap-2">
-                                              <span 
-                                                className="cursor-pointer hover:text-blue-600 transition-colors text-xs"
-                                                onClick={(e) => {
+                                            <div className="font-medium flex items-center gap-2"
+                                            onClick={(e) => {
                                                   e.stopPropagation();
                                                   toggleGradeGroup(child.id || `${family.id}-${index}`);
                                                 }}
+                                                >
+                                              <span 
+                                                className="cursor-pointer hover:text-blue-600 transition-colors text-xs"
+                                                
                                               >
                                                 {child.koreanName && child.englishName 
                                                   ? `${child.koreanName} (${child.englishName})`
@@ -1606,7 +1609,7 @@ export default function DashboardPage() {
                                                     <GraduationCap className="w-3 h-3" />
                                                   </Badge>
                                                   <div className="absolute -top-1 -right-1 h-4 w-4 border border-green-200 text-green-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
-                                                    {index + 1}
+                                                    {getGradeGroupFirstChar(child.gradeLevel) || (index + 1)}
                                                   </div>
                                                 </div>
                                               )}

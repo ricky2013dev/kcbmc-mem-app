@@ -21,6 +21,20 @@ export function getGradeGroup(gradeLevel: string): string {
   return GRADE_GROUPS[gradeLevel as keyof typeof GRADE_GROUPS] || '';
 }
 
+export function getGradeGroupFirstChar(gradeLevel: string): string {
+  const gradeGroup = getGradeGroup(gradeLevel);
+  if (!gradeGroup) return '';
+  
+  // Handle special cases for consistent first characters
+  if (gradeGroup.includes('Team Kid')) return 'T';
+  if (gradeGroup.includes('Youth')) return 'Y';
+  if (gradeGroup.includes('Dream Kid')) return 'D';
+  if (gradeGroup.includes('Sprouts')) return 'S';
+  if (gradeGroup.includes('College')) return 'C';
+  
+  return gradeGroup.charAt(0).toUpperCase();
+}
+
 export function generateFamilyName(husbandKoreanName: string, wifeKoreanName: string): string {
   if (!husbandKoreanName && !wifeKoreanName) return '';
   if (!husbandKoreanName) return wifeKoreanName;
