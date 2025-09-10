@@ -1170,19 +1170,16 @@
 /* Care Log Badge Alarm Animation */
 @keyframes careLogAlarm {
   0%, 100% {
-    transform: scale(1) rotate(0deg);
-  }
-  25% {
-    transform: scale(1.05) rotate(-3deg);
+    transform: scale(1);
   }
   50% {
-    transform: scale(1.1) rotate(0deg);
-  }
-  75% {
-    transform: scale(1.05) rotate(3deg);
+    transform: scale(1.02);
   }
 }
 
 .careLogBadgeAlarm {
-  animation: careLogAlarm 2s ease-in-out infinite;
+  animation: careLogAlarm 3s ease-in-out infinite;
+  background: #fef3e2 !important;
+  color: #f97316 !important;
+  border-color: #fed7aa !important;
 }

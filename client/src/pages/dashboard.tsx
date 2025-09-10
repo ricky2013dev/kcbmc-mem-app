@@ -480,7 +480,7 @@ export default function DashboardPage() {
   };
 
   // Component to display support team badge with care log count and animation for recent logs
-  const SupportTeamBadgeWithCareLog = ({ familyId, supportTeamMember }: { familyId: string; supportTeamMember: string }) => {
+  const SupportTeamBadgeWithCareLog = ({ familyId, supportTeamMember }: { familyId: string; supportTeamMember?: string }) => {
     const { data: careLogs = [] } = useCareLogsData(familyId);
 
     // Check if there are any care logs from the past week
@@ -494,16 +494,21 @@ export default function DashboardPage() {
 
     const careLogCount = careLogs.length;
 
+    // Don't show anything if no support team member and no care logs
+    if (!supportTeamMember && careLogCount === 0) {
+      return null;
+    }
+
     return (
       <div className="relative">
         <Badge 
           variant="outline" 
-          className={`${styles.supportTeamBadge} ${hasRecentLogs ? styles.careLogBadgeAlarm : ''}`}
+          className={styles.supportTeamBadge}
         >
-          {supportTeamMember}
+          {supportTeamMember || '섬김이'}
         </Badge>
         {careLogCount > 0 && (
-          <div className="absolute -top-1 -right-1 h-4 w-4 border border-orange-200 text-orange-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
+          <div className={`absolute -top-1 -right-1 h-4 w-4 border border-orange-200 text-orange-700 text-xs rounded-full flex items-center justify-center font-medium bg-white ${hasRecentLogs ? styles.careLogBadgeAlarm : ''}`}>
             {careLogCount > 9 ? '9+' : careLogCount}
           </div>
         )}
@@ -1431,12 +1436,10 @@ export default function DashboardPage() {
                                   return date.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
                                 })()}
                             </Badge>
-                              {family.supportTeamMember && (
-                                <SupportTeamBadgeWithCareLog 
-                                  familyId={family.id} 
-                                  supportTeamMember={family.supportTeamMember} 
-                                />
-                              )}
+                              <SupportTeamBadgeWithCareLog 
+                                familyId={family.id} 
+                                supportTeamMember={family.supportTeamMember || undefined} 
+                              />
                               {!expandedFamilies.has(family.id) && getChildGrades(family) && (
                                 <Badge variant="secondary" className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200">
                                   {getChildGrades(family)}

@@ -74,6 +74,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['care-logs', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['care-logs-data', familyId] });
       toast({
         title: 'Care log created',
       });
@@ -97,6 +98,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['care-logs', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['care-logs-data', familyId] });
       toast({
         title: 'Care log updated',
       });
@@ -119,6 +121,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['care-logs', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['care-logs-data', familyId] });
       toast({
         title: 'Care log deleted',
       });
