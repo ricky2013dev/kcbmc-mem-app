@@ -1609,7 +1609,7 @@ export default function DashboardPage() {
                                                     <GraduationCap className="w-3 h-3" />
                                                   </Badge>
                                                   <div className="absolute -top-1 -right-1 h-4 w-4 border border-green-200 text-green-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
-                                                    {getGradeGroupFirstChar(child.gradeLevel) || (index + 1)}
+                                                   {`${getGradeGroupFirstChar(child.gradeLevel) || (index + 1)}${child.gradeLevel}`}
                                                   </div>
                                                 </div>
                                               )}
