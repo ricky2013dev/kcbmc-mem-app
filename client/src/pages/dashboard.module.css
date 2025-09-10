@@ -1166,3 +1166,23 @@
     background-position: 200% center;
   }
 }
+
+/* Care Log Badge Alarm Animation */
+@keyframes careLogAlarm {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.05) rotate(-3deg);
+  }
+  50% {
+    transform: scale(1.1) rotate(0deg);
+  }
+  75% {
+    transform: scale(1.05) rotate(3deg);
+  }
+}
+
+.careLogBadgeAlarm {
+  animation: careLogAlarm 2s ease-in-out infinite;
+}

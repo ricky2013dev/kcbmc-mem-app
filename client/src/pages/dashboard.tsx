@@ -18,7 +18,7 @@ import { FamilyWithMembers } from '@shared/schema';
 import { SearchFilters, MEMBER_STATUS_OPTIONS, COURSE_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
 import { getGradeGroupFirstChar } from '@/utils/grade-utils';
-import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, BookOpen, Calendar, Save, GraduationCap, Info } from 'lucide-react';
+import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, Calendar, Save, GraduationCap, Info } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { CareLogList } from '@/components/CareLogList';
 import { RefreshButton } from '@/components/RefreshButton';
@@ -464,6 +464,55 @@ export default function DashboardPage() {
   const getCourseCount = (family: FamilyWithMembers) => {
     const coursesInfo = getPrimaryCourses(family);
     return coursesInfo ? coursesInfo.courses.length : 0;
+  };
+
+  // Hook to get care logs data for each family
+  const useCareLogsData = (familyId: string) => {
+    return useQuery({
+      queryKey: ['care-logs-data', familyId],
+      queryFn: async () => {
+        const res = await apiRequest('GET', `/api/families/${familyId}/care-logs`);
+        const careLogs = await res.json();
+        return careLogs;
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+  };
+
+  // Component to display care log badge with count and animation for recent logs
+  const CareLogBadge = ({ familyId }: { familyId: string }) => {
+    const { data: careLogs = [], isLoading } = useCareLogsData(familyId);
+
+    if (isLoading) {
+      return null; // Don't show anything while loading
+    }
+
+    if (careLogs.length === 0) {
+      return null; // Don't show badge if no care logs
+    }
+
+    // Check if there are any care logs from the past week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    const hasRecentLogs = careLogs.some((log: any) => {
+      const logDate = new Date(log.createdAt || log.date);
+      return logDate >= oneWeekAgo;
+    });
+
+    return (
+      <div className="relative">
+        <Badge 
+          variant="outline" 
+          className={`bg-blue-50 text-blue-700 border-blue-200 ${hasRecentLogs ? styles.careLogBadgeAlarm : ''}`}
+        >
+          <Calendar className="w-3 h-3" />
+        </Badge>
+        <div className="absolute -top-1 -right-1 h-4 w-4 border border-blue-200 text-blue-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
+          {careLogs.length > 9 ? '9+' : careLogs.length}
+        </div>
+      </div>
+    );
   };
 
   const toggleFamilyExpanded = (familyId: string) => {
@@ -1369,6 +1418,10 @@ export default function DashboardPage() {
                             <h4 className={styles.familyName} data-testid={`text-family-name-${family.id}`}>
                               {family.familyName}
                             </h4>
+                            <div className="ml-2 ">{ (
+                                <CareLogBadge familyId={family.id} />
+                              )}</div>
+                            
 
                           </div>
                           <div className="flex items-center gap-2">
@@ -1399,13 +1452,15 @@ export default function DashboardPage() {
                               {!expandedFamilies.has(family.id) && getCourseCount(family) > 0 && (
                                 <div className="relative">
                                   <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                                    <BookOpen className="w-3 h-3" />
+                                    <GraduationCap className="w-3 h-3" />
                                   </Badge>
                                   <div className="absolute -top-1 -right-1 h-4 w-4 border border-orange-200 text-orange-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
                                     {getCourseCount(family) > 9 ? '9+' : getCourseCount(family)}
                                   </div>
                                 </div>
                               )}
+                              
+                            
                             </div>
                             
                             {expandedFamilies.has(family.id) && (
