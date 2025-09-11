@@ -1,6 +1,6 @@
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
 }
 
 .nav {
@@ -52,12 +52,12 @@
 .navIcon {
   width: 2rem;
   height: 2rem;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #16a34a, #15803d);
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgb(59 130 246 / 0.3);
+  box-shadow: 0 4px 12px rgb(34 197 94 / 0.3);
   flex-shrink: 0;
 }
 
@@ -82,7 +82,7 @@
 .navTitle {
   font-size: 1rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #1e293b, #475569);
+  background: linear-gradient(135deg, #14532d, #166534);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -355,7 +355,7 @@
   background: rgba(255, 255, 255, 1);
   box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.15), 0 16px 40px -8px rgba(0, 0, 0, 0.1);
   transform: translateY(-3px);
-  border-color: rgba(59, 130, 246, 0.4);
+  border-color: rgba(34, 197, 94, 0.4);
 }
 
 .familyContent {
@@ -381,7 +381,7 @@
 .familyAvatar {
   width: 2.5rem;
   height: 2.5rem;
-  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
   border: 2px solid rgba(255, 255, 255, 0.8);
   border-radius: 0.5rem;
   display: flex;
@@ -542,7 +542,7 @@
 }
 
 .editButton {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #16a34a, #15803d);
   border: none;
   color: white;
   font-size: 0.875rem;
@@ -552,9 +552,9 @@
 }
 
 .editButton:hover {
-  background: linear-gradient(135deg, #2563eb, #1e40af);
+  background: linear-gradient(135deg, #15803d, #14532d);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
 }
 
 .deleteButton {
@@ -768,12 +768,12 @@
   position: relative;
   background: linear-gradient(
     90deg,
-    #3b82f6,
+    #16a34a,
     #10b981,
-    #8b5cf6,
+    #059669,
     #ef4444,
     #f59e0b,
-    #3b82f6
+    #16a34a
   );
   background-size: 300% 100%;
   -webkit-background-clip: text;
@@ -787,7 +787,7 @@
 .footerDate:hover {
   transform: translateY(-2px) scale(1.05);
   animation: waveFlowFast 30s linear infinite, slideInLeft 0.8s ease-out;
-  filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.3));
+  filter: drop-shadow(0 4px 8px rgba(34, 197, 94, 0.3));
 }
 
 .footerDate::before {
@@ -800,9 +800,9 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(59, 130, 246, 0.1),
+    rgba(34, 197, 94, 0.1),
     rgba(16, 185, 129, 0.1),
-    rgba(59, 130, 246, 0.1),
+    rgba(34, 197, 94, 0.1),
     transparent
   );
   background-size: 200% 100%;
@@ -833,7 +833,7 @@
   font-size: 0.875rem;
   color: hsl(var(--foreground));
   font-weight: 600;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8, #3b82f6);
+  background: linear-gradient(135deg, #16a34a, #15803d, #16a34a);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -845,7 +845,7 @@
 
 .footerTime:hover {
   transform: scale(1.05) translateY(-2px);
-  filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.3));
+  filter: drop-shadow(0 4px 8px rgba(34, 197, 94, 0.3));
 }
 
 @media (min-width: 768px) {
@@ -871,13 +871,13 @@
 }
 
 .footerUser:hover .footerUserIcon {
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(135deg, #16a34a, #059669);
   transform: rotate(360deg) scale(1.1);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
 }
 
 .footerUser:hover .footerUserText {
-  background: linear-gradient(90deg, #3b82f6, #10b981, #8b5cf6);
+  background: linear-gradient(90deg, #16a34a, #10b981, #059669);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -888,7 +888,7 @@
 .footerUserIcon {
   width: 1.5rem;
   height: 1.5rem;
-  background: linear-gradient(135deg, #6b7280, #9ca3af);
+  background: linear-gradient(135deg, #16a34a, #059669);
   border: 2px solid rgba(255, 255, 255, 0.8);
   border-radius: 50%;
   display: flex;
@@ -1029,14 +1029,14 @@
   width: 1.75rem;
   padding: 0;
   border-radius: 50%;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
   transition: all 0.2s ease;
 }
 
 .footerAnnouncementButton:hover {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.3);
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
   transform: translateY(-1px);
 }
 

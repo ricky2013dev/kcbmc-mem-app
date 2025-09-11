@@ -34,13 +34,8 @@ export interface ChildFormData extends FamilyMemberFormData {
 }
 
 export interface SearchFilters {
-  name: string;
-  lifeGroup: string;
-  supportTeamMember: string;
-  memberStatus: string;
-  dateFrom: string;
-  dateTo: string;
-  courses: string[];
+  departmentId: string;
+  teamId: string;
 }
 
 export const MEMBER_STATUS_OPTIONS = [

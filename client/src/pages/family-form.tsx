@@ -1058,23 +1058,7 @@ export default function FamilyFormPage({
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="supportTeamMember"
-                      render={({ field }) => (
-                        <FormItem>
-                         
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="섬김이"
-                              data-testid="input-support-team"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  
                   </div>
               </CardContent>
             </Card>

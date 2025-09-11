@@ -13,6 +13,7 @@ import EventListPage from "@/pages/event-list";
 import EventDetailPage from "@/pages/event-detail";
 import EventFormPage from "@/pages/event-form";
 import PublicAnnouncementPage from "@/pages/public-announcement";
+import DepartmentManagementPage from "@/pages/department-management";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -48,6 +49,7 @@ function Router() {
             <Route path="/events/new" component={() => <EventFormPage mode="create" />} />
             <Route path="/events/:id" component={EventDetailPage} />
             <Route path="/events/:id/edit" component={({ params }) => <EventFormPage mode="edit" eventId={params.id} />} />
+            <Route path="/departments" component={DepartmentManagementPage} />
           </>
         )}
         <Route component={NotFound} />

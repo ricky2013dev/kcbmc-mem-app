@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertFamilySchema, insertFamilyMemberSchema, insertStaffSchema, insertAnnouncementSchema, insertEventSchema, insertEventAttendanceSchema } from "@shared/schema";
+import { insertFamilySchema, insertFamilyMemberSchema, insertStaffSchema, insertAnnouncementSchema, insertEventSchema, insertEventAttendanceSchema, insertDepartmentSchema, insertTeamSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
@@ -549,6 +549,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Quick family member creation endpoint
+  app.post("/api/families/quick-member", requireAuth, requireAdminAccess, async (req, res) => {
+    try {
+      const quickFamilySchema = z.object({
+        koreanName: z.string().min(1, "Korean name is required"),
+        englishName: z.string().optional(),
+        phoneNumber: z.string().optional(),
+        email: z.string().email().optional().or(z.literal("")),
+        memberType: z.enum(["husband", "wife"]),
+        teamId: z.string().min(1, "Team ID is required"),
+        familyPicture: z.string().optional()
+      });
+      
+      const data = quickFamilySchema.parse(req.body);
+      
+      // Get team information to assign support team member
+      const team = await storage.getTeam(data.teamId);
+      let supportTeamMember = "";
+      
+      if (team && team.assignedStaff && team.assignedStaff.length > 0) {
+        // Get the first assigned staff member as the support team member
+        const firstStaffId = team.assignedStaff[0];
+        const staffMember = await storage.getStaff(firstStaffId);
+        if (staffMember) {
+          supportTeamMember = staffMember.fullName;
+        }
+      }
+      
+      // Auto-generate family name based on member type and names
+      const familyName = data.memberType === "husband" 
+        ? `${data.koreanName} Family`
+        : `${data.koreanName} Family`;
+      
+      // Create family data with teamId
+      const familyData = {
+        familyName,
+        visitedDate: new Date().toISOString().split('T')[0], // Today's date
+        memberStatus: "visit" as const,
+        phoneNumber: data.phoneNumber || "",
+        email: data.email || "",
+        address: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        fullAddress: "",
+        familyNotes: `Quick add from team: ${team?.name || 'Unknown'}. Created on ${new Date().toLocaleDateString()}`,
+        supportTeamMember,
+        familyPicture: data.familyPicture || "",
+        teamId: data.teamId, // Direct assignment to team
+      };
+      
+      // Create family member data
+      const memberData = {
+        koreanName: data.koreanName,
+        englishName: data.englishName || "",
+        phoneNumber: data.phoneNumber || "",
+        email: data.email || "",
+        relationship: data.memberType,
+        courses: [],
+      };
+      
+      const family = await storage.createFamily(familyData, [memberData]);
+      
+      res.json({ 
+        success: true, 
+        family,
+        message: `${data.memberType === "husband" ? "Husband" : "Wife"} and family created successfully`
+      });
+    } catch (error) {
+      console.error("Quick family member creation error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create family member" });
+    }
+  });
+
   app.put("/api/families/:id", requireAuth, async (req, res) => {
     try {
       const { members, ...familyData } = req.body;
@@ -926,6 +1003,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to update attendance" });
+    }
+  });
+
+  // Department routes (ADM only)
+  app.get("/api/departments", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const departments = await storage.getDepartments();
+      res.json(departments);
+    } catch (error) {
+      console.error("Get departments error:", error);
+      res.status(500).json({ message: "Failed to get departments" });
+    }
+  });
+
+  app.get("/api/departments/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const department = await storage.getDepartment(req.params.id);
+      if (!department) {
+        return res.status(404).json({ message: "Department not found" });
+      }
+      res.json(department);
+    } catch (error) {
+      console.error("Get department error:", error);
+      res.status(500).json({ message: "Failed to get department" });
+    }
+  });
+
+  app.post("/api/departments", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const departmentData = insertDepartmentSchema.parse(req.body);
+      const department = await storage.createDepartment(departmentData);
+      res.json(department);
+    } catch (error) {
+      console.error("Create department error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      if (error.message?.includes('unique')) {
+        return res.status(400).json({ message: "Department name already exists" });
+      }
+      res.status(500).json({ message: "Failed to create department" });
+    }
+  });
+
+  app.put("/api/departments/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const departmentData = insertDepartmentSchema.partial().parse(req.body);
+      const updatedDepartment = await storage.updateDepartment(req.params.id, departmentData);
+      if (!updatedDepartment) {
+        return res.status(404).json({ message: "Department not found" });
+      }
+      res.json(updatedDepartment);
+    } catch (error) {
+      console.error("Update department error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      if (error.message?.includes('unique')) {
+        return res.status(400).json({ message: "Department name already exists" });
+      }
+      res.status(500).json({ message: "Failed to update department" });
+    }
+  });
+
+  app.delete("/api/departments/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      await storage.deleteDepartment(req.params.id);
+      res.json({ message: "Department deleted successfully" });
+    } catch (error) {
+      console.error("Delete department error:", error);
+      if (error.message?.includes('foreign key')) {
+        return res.status(400).json({ message: "Cannot delete department that has teams. Please delete teams first." });
+      }
+      res.status(500).json({ message: "Failed to delete department" });
+    }
+  });
+
+  // Team routes (ADM only)
+  app.get("/api/teams", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const departmentId = req.query.departmentId as string;
+      if (departmentId) {
+        const teams = await storage.getTeamsByDepartment(departmentId);
+        res.json(teams);
+      } else {
+        const teams = await storage.getTeams();
+        res.json(teams);
+      }
+    } catch (error) {
+      console.error("Get teams error:", error);
+      res.status(500).json({ message: "Failed to get teams" });
+    }
+  });
+
+  app.get("/api/teams/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const team = await storage.getTeam(req.params.id);
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+      res.json(team);
+    } catch (error) {
+      console.error("Get team error:", error);
+      res.status(500).json({ message: "Failed to get team" });
+    }
+  });
+
+  app.post("/api/teams", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const teamData = insertTeamSchema.parse(req.body);
+      const team = await storage.createTeam(teamData);
+      res.json(team);
+    } catch (error) {
+      console.error("Create team error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      if (error.message?.includes('foreign key')) {
+        return res.status(400).json({ message: "Department not found" });
+      }
+      res.status(500).json({ message: "Failed to create team" });
+    }
+  });
+
+  app.put("/api/teams/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      const teamData = insertTeamSchema.partial().parse(req.body);
+      const updatedTeam = await storage.updateTeam(req.params.id, teamData);
+      if (!updatedTeam) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+      res.json(updatedTeam);
+    } catch (error) {
+      console.error("Update team error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      if (error.message?.includes('foreign key')) {
+        return res.status(400).json({ message: "Department not found" });
+      }
+      res.status(500).json({ message: "Failed to update team" });
+    }
+  });
+
+  app.delete("/api/teams/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+    try {
+      await storage.deleteTeam(req.params.id);
+      res.json({ message: "Team deleted successfully" });
+    } catch (error) {
+      console.error("Delete team error:", error);
+      res.status(500).json({ message: "Failed to delete team" });
     }
   });
 

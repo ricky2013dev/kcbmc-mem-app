@@ -159,7 +159,7 @@ export default function LoginPage() {
               <div className={styles.icon}>
                 <Users className="w-8 h-8 text-primary-foreground" />
               </div>
-              <h1 className={styles.title}>새가족</h1>
+              <h1 className={styles.title}>KCBMC Member</h1>
               {publicAnnouncements.length > 0 && (
                 <div className="absolute top-4 right-4">
                   <div className="relative group">
@@ -240,7 +240,7 @@ export default function LoginPage() {
                     <SelectValue placeholder="Choose your nickname..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {staff.map((member) => (
+                    {staff.filter((member) => member.nickName && member.nickName.trim() !== '').map((member) => (
                       <SelectItem key={member.id} value={member.nickName}>
                         {member.nickName} 
                       </SelectItem>

@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
 }
 
 .background {
@@ -13,7 +13,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 50%, #1e40af 100%);
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 50%, #14532d 100%);
   padding: 1rem;
   position: relative;
 }
@@ -52,13 +52,13 @@
 .icon {
   width: 4.5rem;
   height: 4.5rem;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #16a34a, #15803d);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.5rem auto;
-  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 8px 32px rgba(34, 197, 94, 0.3);
   position: relative;
 }
 
@@ -66,7 +66,7 @@
   content: '';
   position: absolute;
   inset: -2px;
-  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  background: linear-gradient(135deg, #22c55e, #16a34a);
   border-radius: 50%;
   z-index: -1;
   opacity: 0.5;
@@ -75,7 +75,7 @@
 .title {
   font-size: 1.75rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #1e293b, #475569);
+  background: linear-gradient(135deg, #14532d, #166534);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -114,20 +114,20 @@
 .submitButton {
   width: 100%;
   font-weight: 600;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #16a34a, #15803d);
   border: none;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4);
   transition: all 0.3s ease;
 }
 
 .submitButton:hover {
-  background: linear-gradient(135deg, #2563eb, #1e40af);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+  background: linear-gradient(135deg, #15803d, #14532d);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
   transform: translateY(-1px);
 }
 
 .submitButton:disabled {
   opacity: 0.6;
   transform: none;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.2);
 }

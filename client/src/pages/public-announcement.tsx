@@ -190,7 +190,7 @@ export default function PublicAnnouncementPage() {
         </Card>
 
         <div className="mt-8 text-center text-gray-500 text-sm">
-          <p>This is a public announcement from 새가족</p>
+          <p>This is a public announcement</p>
         </div>
         </div>
       </div>

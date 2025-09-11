@@ -12,13 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SundayDatePicker } from '@/components/sunday-date-picker';
 import { apiRequest } from '@/lib/queryClient';
-import { FamilyWithMembers } from '@shared/schema';
-import { SearchFilters, MEMBER_STATUS_OPTIONS, COURSE_OPTIONS } from '@/types/family';
+import { FamilyWithMembers, Department, Team } from '@shared/schema';
+import { SearchFilters } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
 import { getGradeGroupFirstChar } from '@/utils/grade-utils';
-import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, Calendar, Save, GraduationCap, Info } from 'lucide-react';
+import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, Calendar, Save, GraduationCap, Info, FolderOpen, UserCheck } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { CareLogList } from '@/components/CareLogList';
 import { RefreshButton } from '@/components/RefreshButton';
@@ -68,23 +69,24 @@ export default function DashboardPage() {
   const defaultDateRange = getDefaultDateRange();
 
   const [filters, setFilters] = useState<SearchFilters>({
-    name: '',
-    lifeGroup: '',
-    supportTeamMember: '',
-    memberStatus: 'all',
-    dateFrom: defaultDateRange.dateFrom,
-    dateTo: defaultDateRange.dateTo,
-    courses: []
+    departmentId: '',
+    teamId: ''
   });
 
   const [hasSearched, setHasSearched] = useState(true);
+
+  // Fetch departments
+  const { data: departments = [] } = useQuery<Department[]>({
+    queryKey: ["/api/departments"],
+  });
+
+  // Fetch teams
+  const { data: teams = [] } = useQuery<Team[]>({
+    queryKey: ["/api/teams"],
+  });
   const [showFilters, setShowFilters] = useState(false);
-  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
   const [magnifiedImage, setMagnifiedImage] = useState<{ src: string; alt: string } | null>(null);
-  const [selectedQuickFilter, setSelectedQuickFilter] = useState<'thisWeek' | 'lastWeek' | 'lastMonth' | 'last3Months' | null>(null);
-  const [selectedMemberStatuses, setSelectedMemberStatuses] = useState<Set<string>>(new Set());
-  const [selectedCourses, setSelectedCourses] = useState<Set<string>>(new Set());
   const [showFamilyNotesProtectionModal, setShowFamilyNotesProtectionModal] = useState(false);
   const [hasAgreedToFamilyNotesProtection, setHasAgreedToFamilyNotesProtection] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementWithStaff | null>(null);
@@ -111,13 +113,8 @@ export default function DashboardPage() {
     queryFn: async () => {
       const queryParams = new URLSearchParams();
       
-      if (filters.name) queryParams.append('name', filters.name);
-      if (filters.lifeGroup) queryParams.append('lifeGroup', filters.lifeGroup);
-      if (filters.supportTeamMember) queryParams.append('supportTeamMember', filters.supportTeamMember);
-      if (filters.memberStatus && filters.memberStatus !== 'all') queryParams.append('memberStatus', filters.memberStatus);
-      if (filters.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
-      if (filters.dateTo) queryParams.append('dateTo', filters.dateTo);
-      if (filters.courses && filters.courses.length > 0) queryParams.append('courses', filters.courses.join(','));
+      if (filters.departmentId) queryParams.append('departmentId', filters.departmentId);
+      if (filters.teamId) queryParams.append('teamId', filters.teamId);
       queryParams.append('sortBy', 'visitedDate');
       queryParams.append('sortOrder', 'desc');
       
@@ -297,61 +294,13 @@ export default function DashboardPage() {
   };
 
   const clearFilters = () => {
-    const defaultDateRange = getDefaultDateRange();
     setFilters({
-      name: '',
-      lifeGroup: '',
-      supportTeamMember: '',
-      memberStatus: 'all',
-      dateFrom: defaultDateRange.dateFrom,
-      dateTo: defaultDateRange.dateTo,
-      courses: []
+      departmentId: '',
+      teamId: ''
     });
-    setSelectedQuickFilter(null);
-    setSelectedMemberStatuses(new Set());
-    setSelectedCourses(new Set());
     setHasSearched(true);
   };
 
-  const toggleMemberStatus = (status: string) => {
-    const newSelected = new Set(selectedMemberStatuses);
-    if (newSelected.has(status)) {
-      newSelected.delete(status);
-    } else {
-      newSelected.add(status);
-    }
-    setSelectedMemberStatuses(newSelected);
-    
-    // Update the filter based on selected statuses
-    // If no statuses selected or if both 'visit' and 'member' are selected, show all
-    const memberStatusFilter = 
-      newSelected.size === 0 || 
-      (newSelected.has('visit') && newSelected.has('member')) 
-        ? 'all' 
-        : Array.from(newSelected).join(',');
-    setFilters(prev => ({ 
-      ...prev, 
-      memberStatus: memberStatusFilter 
-    }));
-    setHasSearched(true);
-  };
-
-  const toggleCourse = (course: string) => {
-    const newSelected = new Set(selectedCourses);
-    if (newSelected.has(course)) {
-      newSelected.delete(course);
-    } else {
-      newSelected.add(course);
-    }
-    setSelectedCourses(newSelected);
-    
-    // Update the filter based on selected courses
-    setFilters(prev => ({ 
-      ...prev, 
-      courses: Array.from(newSelected) 
-    }));
-    setHasSearched(true);
-  };
 
 
   const getStatusBadgeVariant = (status: string) => {
@@ -380,39 +329,25 @@ export default function DashboardPage() {
     }
   };
 
-  const getStatusDisplayLabel = (status: string) => {
-    const option = MEMBER_STATUS_OPTIONS.find(opt => opt.value === status);
-    return option ? option.label : status;
-  };
-
   const getActiveFilters = () => {
     const activeFilters = [];
     
-    // if (filters.dateFrom) {
-    //   activeFilters.push({ label: 'From', value: filters.dateFrom });
-    // }
-    // if (filters.dateTo) {
-    //   activeFilters.push({ label: 'To', value: filters.dateTo });
-    // }
-    if (filters.name) {
-      activeFilters.push({ label: 'Name', value: filters.name });
+    if (filters.departmentId) {
+      const department = departments.find(dept => dept.id === filters.departmentId);
+      activeFilters.push({ label: 'Department', value: department?.name || filters.departmentId });
     }
-    if (filters.supportTeamMember) {
-      activeFilters.push({ label: 'Support Team', value: filters.supportTeamMember });
-    }
-    if (filters.memberStatus && filters.memberStatus !== 'all') {
-      const statusLabel = getStatusDisplayLabel(filters.memberStatus);
-      activeFilters.push({ label: 'Status', value: statusLabel });
-    }
-    if (filters.courses && filters.courses.length > 0) {
-      const coursesLabel = filters.courses.map(course => {
-        const courseOption = COURSE_OPTIONS.find(opt => opt.value === course);
-        return courseOption ? courseOption.label : course;
-      }).join(', ');
-      activeFilters.push({ label: 'Courses', value: coursesLabel });
+    if (filters.teamId) {
+      const team = teams.find(team => team.id === filters.teamId);
+      activeFilters.push({ label: 'Team', value: team?.name || filters.teamId });
     }
     
     return activeFilters;
+  };
+
+  // Get teams filtered by selected department
+  const getAvailableTeams = () => {
+    if (!filters.departmentId) return [];
+    return teams.filter(team => team.departmentId === filters.departmentId);
   };
 
   const getChildGrades = (family: FamilyWithMembers) => {
@@ -505,7 +440,7 @@ export default function DashboardPage() {
           variant="outline" 
           className={styles.supportTeamBadge}
         >
-          {supportTeamMember || '섬김이'}
+          {supportTeamMember || 'Supporter'}
         </Badge>
         {careLogCount > 0 && (
           <div className={`absolute -top-1 -right-1 h-4 w-4 border border-orange-200 text-orange-700 text-xs rounded-full flex items-center justify-center font-medium bg-white ${hasRecentLogs ? styles.careLogBadgeAlarm : ''}`}>
@@ -523,7 +458,7 @@ export default function DashboardPage() {
 
     return (
       <div className="flex items-center gap-2">
-        <span>섬김이 로그</span>
+        <span>로그</span>
         {careLogCount > 0 && (
           <span className="inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-full">
             {careLogCount > 9 ? '9+' : careLogCount}
@@ -922,6 +857,26 @@ export default function DashboardPage() {
                   >
                     <Calendar className="w-4 h-4" /> Event
                   </Button>
+                  <Button 
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setLocation('/departments')}
+                    data-testid="button-departments"
+                    className="text-orange-700 hover:text-primary-foreground/80"
+                    title="Department Management"
+                  >
+                    <FolderOpen className="w-4 h-4" /> Dept
+                  </Button>
+                  <Button 
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setLocation('/teams')}
+                    data-testid="button-teams"
+                    className="text-teal-700 hover:text-primary-foreground/80"
+                    title="Team Management"
+                  >
+                    <UserCheck className="w-4 h-4" /> Team
+                  </Button>
                 </div>
               )}
               <span className={styles.userName} data-testid="text-current-user">
@@ -973,6 +928,14 @@ export default function DashboardPage() {
                       <DropdownMenuItem onClick={() => setLocation('/events')}>
                         <Calendar className="w-4 h-4 mr-2" />
                         Events 
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setLocation('/departments')}>
+                        <FolderOpen className="w-4 h-4 mr-2" />
+                        Departments 
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setLocation('/teams')}>
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        Teams 
                       </DropdownMenuItem>
                     </>
                   )}
@@ -1077,257 +1040,64 @@ export default function DashboardPage() {
           </CardHeader>
           {showFilters && (
             <CardContent className={styles.searchContent}>
-              {/* Quick Date Filter Buttons - Moved to top */}
-              <div className="flex gap-2 mb-4 flex-wrap">
-                <Button
-                  variant={selectedQuickFilter === 'thisWeek' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date();
-                    const thisWeekSunday = getPreviousSunday(today);
-                    const dateString = formatDateForInput(thisWeekSunday);
-                    setFilters(prev => ({ 
-                      ...prev, 
-                      dateFrom: dateString, 
-                      dateTo: dateString 
-                    }));
-                    setSelectedQuickFilter('thisWeek');
-                  }}
-                  className={`text-xs flex items-center gap-1 ${
-                    selectedQuickFilter === 'thisWeek' 
-                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
-                      : ''
-                  }`}
-                >
-                  {selectedQuickFilter === 'thisWeek' && <Check className="w-3 h-3" />}
-                  This Week
-                </Button>
-                <Button
-                  variant={selectedQuickFilter === 'lastWeek' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date();
-                    const thisWeekSunday = getPreviousSunday(today);
-                    const lastWeekSunday = new Date(thisWeekSunday);
-                    lastWeekSunday.setDate(thisWeekSunday.getDate() - 7);
-                    const dateString = formatDateForInput(lastWeekSunday);
-                    setFilters(prev => ({ 
-                      ...prev, 
-                      dateFrom: dateString, 
-                      dateTo: dateString 
-                    }));
-                    setSelectedQuickFilter('lastWeek');
-                  }}
-                  className={`text-xs flex items-center gap-1 ${
-                    selectedQuickFilter === 'lastWeek' 
-                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
-                      : ''
-                  }`}
-                >
-                  {selectedQuickFilter === 'lastWeek' && <Check className="w-3 h-3" />}
-                  Last Week
-                </Button>
-                <Button
-                  variant={selectedQuickFilter === 'lastMonth' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date();
-                    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-                    const dateFrom = formatDateForInput(getPreviousSunday(lastMonth));
-                    const dateTo = formatDateForInput(getPreviousSunday(lastMonthEnd));
-                    setFilters(prev => ({ 
-                      ...prev, 
-                      dateFrom: dateFrom, 
-                      dateTo: dateTo 
-                    }));
-                    setSelectedQuickFilter('lastMonth');
-                  }}
-                  className={`text-xs flex items-center gap-1 ${
-                    selectedQuickFilter === 'lastMonth' 
-                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
-                      : ''
-                  }`}
-                >
-                  {selectedQuickFilter === 'lastMonth' && <Check className="w-3 h-3" />}
-                  Last Month
-                </Button>
-                <Button
-                  variant={selectedQuickFilter === 'last3Months' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date();
-                    const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
-                    const dateFrom = formatDateForInput(getPreviousSunday(threeMonthsAgo));
-                    const dateTo = formatDateForInput(getPreviousSunday(today));
-                    setFilters(prev => ({ 
-                      ...prev, 
-                      dateFrom: dateFrom, 
-                      dateTo: dateTo 
-                    }));
-                    setSelectedQuickFilter('last3Months');
-                  }}
-                  className={`text-xs flex items-center gap-1 ${
-                    selectedQuickFilter === 'last3Months' 
-                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
-                      : ''
-                  }`}
-                >
-                  {selectedQuickFilter === 'last3Months' && <Check className="w-3 h-3" />}
-                  Last 3 Months
-                </Button>
-                
-                {/* Member Status Quick Filters - Multi-selection */}
-                <Button
-                  variant={selectedMemberStatuses.has('visit') ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => toggleMemberStatus('visit')}
-                  className={`text-xs flex items-center gap-1 ${
-                    selectedMemberStatuses.has('visit') 
-                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
-                      : ''
-                  }`}
-                >
-                  {selectedMemberStatuses.has('visit') && <Check className="w-3 h-3" />}
-                  방문
-                </Button>
-                <Button
-                  variant={selectedMemberStatuses.has('member') ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => toggleMemberStatus('member')}
-                  className={`text-xs flex items-center gap-1 ${
-                    selectedMemberStatuses.has('member') 
-                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
-                      : ''
-                  }`}
-                >
-                  {selectedMemberStatuses.has('member') && <Check className="w-3 h-3" />}
-                  등록
-                </Button>
-                <Button
-                  variant={selectedMemberStatuses.has('pending') ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => toggleMemberStatus('pending')}
-                  className={`text-xs flex items-center gap-1 ${
-                    selectedMemberStatuses.has('pending') 
-                      ? 'bg-green-600 text-white hover:bg-green-700 border-green-600' 
-                      : ''
-                  }`}
-                >
-                  {selectedMemberStatuses.has('pending') && <Check className="w-3 h-3" />}
-                  미정
-                </Button>
-              </div>
+              {/* Department and Team Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="department">Department</Label>
+                  <Select
+                    value={filters.departmentId}
+                    onValueChange={(value) => {
+                      setFilters(prev => ({ 
+                        ...prev, 
+                        departmentId: value,
+                        teamId: '' // Reset team when department changes
+                      }));
+                      setHasSearched(true);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Departments</SelectItem>
+                      {departments.map((department) => (
+                        <SelectItem key={department.id} value={department.id}>
+                          {department.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Courses Filter - Always Visible */}
-              <div className="mt-3 md:mt-3 mt-2">
-                <Label className="text-sm">미수료</Label>
-                <div className="flex gap-1 mt-1 md:mt-2">
-                  {COURSE_OPTIONS.map((course) => (
-                    <Button
-                      key={course.value}
-                      variant={selectedCourses.has(course.value) ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => toggleCourse(course.value)}
-                      className={`h-7 px-2 text-xs flex items-center gap-1 ${
-                        selectedCourses.has(course.value) 
-                          ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600' 
-                          : ''
-                      }`}
-                    >
-                      {selectedCourses.has(course.value) && <Check className="w-3 h-3" />}
-                      {course.label}
-                    </Button>
-                  ))}
+                <div>
+                  <Label htmlFor="team">Team</Label>
+                  <Select
+                    value={filters.teamId}
+                    onValueChange={(value) => {
+                      setFilters(prev => ({ ...prev, teamId: value }));
+                      setHasSearched(true);
+                    }}
+                    disabled={!filters.departmentId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={filters.departmentId ? "Select team..." : "Select department first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Teams</SelectItem>
+                      {getAvailableTeams().map((team) => (
+                        <SelectItem key={team.id} value={team.id}>
+                          {team.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-
-              {/* Additional Filters - Conditionally Visible */}
-              {showMoreFilters && (
-                <div className="space-y-4">
-                  {/* Date Range */}
-                  <div className={styles.dateGrid}>
-                    <div>
-                      <Label htmlFor="dateFrom">방문일 (From)</Label>
-                      <SundayDatePicker
-                        value={filters.dateFrom}
-                        onChange={(value) => {
-                          setFilters(prev => ({ ...prev, dateFrom: value }));
-                          setHasSearched(true);
-                        }}
-                        data-testid="input-date-from"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="dateTo">방문일(To)</Label>
-                      <SundayDatePicker
-                        value={filters.dateTo}
-                        onChange={(value) => {
-                          setFilters(prev => ({ ...prev, dateTo: value }));
-                          setHasSearched(true);
-                        }}
-                        data-testid="input-date-to"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Other filters */}
-                  <div className={styles.searchGrid}>
-                    <div>
-                      <Label htmlFor="name">이름</Label>
-                      <Input
-                        id="name"
-                        placeholder="Search by name..."
-                        value={filters.name}
-                        onChange={(e) => {
-                          setFilters(prev => ({ ...prev, name: e.target.value }));
-                          setHasSearched(true);
-                        }}
-                        data-testid="input-search-name"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="supportTeam">섬김이</Label>
-                      <Input
-                        id="supportTeam"
-                        placeholder="Support team member..."
-                        value={filters.supportTeamMember}
-                        onChange={(e) => {
-                          setFilters(prev => ({ ...prev, supportTeamMember: e.target.value }));
-                          setHasSearched(true);
-                        }}
-                        data-testid="input-search-support-team"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
               
               {/* Filter Actions */}
-              <div className={styles.searchActions}>
+              <div className="flex gap-2 mt-4">
                 <Button variant="secondary" onClick={clearFilters} data-testid="button-clear-filters">
-                  Clear 
-                </Button>
-
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setShowMoreFilters(!showMoreFilters)}
-                  className="text-blue-600 hover:text-blue-700 border-blue-600"
-                >
-                  {showMoreFilters ? (
-                    <>
-                      <ChevronUp className="w-4 h-4 mr-2 text-blue-600" />
-                      Less
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="w-4 h-4 mr-2 text-blue-600" />
-                      More
-                    </>
-                  )}
+                  Clear Filters
                 </Button>
               </div>
             </CardContent>
@@ -1441,18 +1211,7 @@ export default function DashboardPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <div className={styles.familyBadges}>
-                            <Badge 
-                              variant={getStatusBadgeVariant(family.memberStatus)}
-                              className={getStatusBadgeClassName(family.memberStatus)}
-                            >
-                              {getStatusDisplayLabel(family.memberStatus)}&nbsp;
-                                {(() => {
-                                  // Parse date string to avoid timezone issues
-                                  const [year, month, day] = family.visitedDate.split('-').map(Number);
-                                  const date = new Date(year, month - 1, day);
-                                  return date.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
-                                })()}
-                            </Badge>
+
                               <SupportTeamBadgeWithCareLog 
                                 familyId={family.id} 
                                 supportTeamMember={family.supportTeamMember || undefined} 

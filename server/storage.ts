@@ -7,6 +7,8 @@ import {
   events,
   eventAttendance,
   staffLoginLogs,
+  departments,
+  teams,
   type Staff, 
   type InsertStaff,
   type Family,
@@ -29,7 +31,14 @@ import {
   type EventAttendanceWithDetails,
   type StaffLoginLog,
   type InsertStaffLoginLog,
-  type StaffLoginLogWithStaff
+  type StaffLoginLogWithStaff,
+  type Department,
+  type InsertDepartment,
+  type Team,
+  type InsertTeam,
+  type DepartmentWithTeams,
+  type TeamWithDepartment,
+  type TeamWithFamilies
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, like, gte, lte, desc, isNotNull } from "drizzle-orm";
@@ -116,6 +125,26 @@ export interface IStorage {
   updateEventAttendance(id: string, attendance: Partial<InsertEventAttendance>): Promise<EventAttendance | undefined>;
   deleteEventAttendance(id: string): Promise<void>;
   initializeEventAttendance(eventId: string, createdBy: string): Promise<void>;
+
+  // Department operations
+  getDepartment(id: string): Promise<DepartmentWithTeams | undefined>;
+  getDepartments(): Promise<DepartmentWithTeams[]>;
+  createDepartment(department: InsertDepartment): Promise<Department>;
+  updateDepartment(id: string, department: Partial<InsertDepartment>): Promise<Department | undefined>;
+  deleteDepartment(id: string): Promise<void>;
+
+  // Team operations
+  getTeam(id: string): Promise<TeamWithDepartment | undefined>;
+  getTeams(): Promise<TeamWithDepartment[]>;
+  getTeamsByDepartment(departmentId: string): Promise<Team[]>;
+  createTeam(team: InsertTeam): Promise<Team>;
+  updateTeam(id: string, team: Partial<InsertTeam>): Promise<Team | undefined>;
+  deleteTeam(id: string): Promise<void>;
+  
+  // Team-Family relationship operations
+  assignFamilyToTeam(teamId: string, familyId: string): Promise<Family>;
+  removeFamilyFromTeam(familyId: string): Promise<Family>;
+  getTeamFamilies(teamId: string): Promise<FamilyWithMembers[]>;
 }
 
 // Helper function to clean date fields - convert empty strings to null for optional fields only
@@ -881,6 +910,252 @@ export class DatabaseStorage implements IStorage {
       );
 
     return failedAttempts.length;
+  }
+
+  // Department operations
+  async getDepartment(id: string): Promise<DepartmentWithTeams | undefined> {
+    const [department] = await db.select().from(departments).where(eq(departments.id, id));
+    if (!department) return undefined;
+
+    const departmentTeams = await db.select().from(teams)
+      .where(eq(teams.departmentId, id))
+      .orderBy(teams.name);
+
+    return { ...department, teams: departmentTeams };
+  }
+
+  async getDepartments(): Promise<DepartmentWithTeams[]> {
+    const allDepartments = await db.select().from(departments).orderBy(departments.name);
+    
+    const departmentsWithTeams: DepartmentWithTeams[] = [];
+    for (const department of allDepartments) {
+      const departmentTeams = await db.select().from(teams)
+        .where(eq(teams.departmentId, department.id))
+        .orderBy(teams.name);
+      
+      departmentsWithTeams.push({ ...department, teams: departmentTeams });
+    }
+    
+    return departmentsWithTeams;
+  }
+
+  async createDepartment(departmentData: InsertDepartment): Promise<Department> {
+    const [newDepartment] = await db.insert(departments).values(departmentData).returning();
+    return newDepartment;
+  }
+
+  async updateDepartment(id: string, departmentData: Partial<InsertDepartment>): Promise<Department | undefined> {
+    const [updatedDepartment] = await db.update(departments)
+      .set({ ...departmentData, updatedAt: new Date() })
+      .where(eq(departments.id, id))
+      .returning();
+    return updatedDepartment || undefined;
+  }
+
+  async deleteDepartment(id: string): Promise<void> {
+    await db.delete(departments).where(eq(departments.id, id));
+  }
+
+  // Team operations
+  async getTeam(id: string): Promise<TeamWithDepartment | undefined> {
+    const result = await db.select({
+      id: teams.id,
+      departmentId: teams.departmentId,
+      name: teams.name,
+      description: teams.description,
+      contactPersonName: teams.contactPersonName,
+      contactPersonPhone: teams.contactPersonPhone,
+      contactPersonEmail: teams.contactPersonEmail,
+      picture: teams.picture,
+      assignedStaff: teams.assignedStaff,
+      createdAt: teams.createdAt,
+      updatedAt: teams.updatedAt,
+      department: {
+        id: departments.id,
+        name: departments.name,
+        description: departments.description,
+        contactPersonName: departments.contactPersonName,
+        contactPersonPhone: departments.contactPersonPhone,
+        contactPersonEmail: departments.contactPersonEmail,
+        picture: departments.picture,
+        createdAt: departments.createdAt,
+        updatedAt: departments.updatedAt,
+      }
+    })
+    .from(teams)
+    .innerJoin(departments, eq(teams.departmentId, departments.id))
+    .where(eq(teams.id, id))
+    .limit(1);
+
+    return result[0] as TeamWithDepartment || undefined;
+  }
+
+  async getTeams(): Promise<TeamWithDepartment[]> {
+    const results = await db.select({
+      id: teams.id,
+      departmentId: teams.departmentId,
+      name: teams.name,
+      description: teams.description,
+      contactPersonName: teams.contactPersonName,
+      contactPersonPhone: teams.contactPersonPhone,
+      contactPersonEmail: teams.contactPersonEmail,
+      picture: teams.picture,
+      assignedStaff: teams.assignedStaff,
+      createdAt: teams.createdAt,
+      updatedAt: teams.updatedAt,
+      department: {
+        id: departments.id,
+        name: departments.name,
+        description: departments.description,
+        contactPersonName: departments.contactPersonName,
+        contactPersonPhone: departments.contactPersonPhone,
+        contactPersonEmail: departments.contactPersonEmail,
+        picture: departments.picture,
+        createdAt: departments.createdAt,
+        updatedAt: departments.updatedAt,
+      }
+    })
+    .from(teams)
+    .innerJoin(departments, eq(teams.departmentId, departments.id))
+    .orderBy(departments.name, teams.name);
+
+    return results as TeamWithDepartment[];
+  }
+
+  async getTeamsByDepartment(departmentId: string): Promise<Team[]> {
+    return await db.select().from(teams)
+      .where(eq(teams.departmentId, departmentId))
+      .orderBy(teams.name);
+  }
+
+  async createTeam(teamData: InsertTeam): Promise<Team> {
+    const teamDataWithStaff = {
+      ...teamData,
+      assignedStaff: teamData.assignedStaff || []
+    };
+    const [newTeam] = await db.insert(teams).values(teamDataWithStaff).returning();
+    return newTeam;
+  }
+
+  async updateTeam(id: string, teamData: Partial<InsertTeam>): Promise<Team | undefined> {
+    const teamDataWithStaff = {
+      ...teamData,
+      updatedAt: new Date(),
+      ...(teamData.assignedStaff !== undefined && { assignedStaff: teamData.assignedStaff || [] })
+    };
+    const [updatedTeam] = await db.update(teams)
+      .set(teamDataWithStaff)
+      .where(eq(teams.id, id))
+      .returning();
+    return updatedTeam || undefined;
+  }
+
+  async deleteTeam(id: string): Promise<void> {
+    await db.delete(teams).where(eq(teams.id, id));
+  }
+
+  // Team-Family relationship operations
+  async assignFamilyToTeam(teamId: string, familyId: string): Promise<Family> {
+    const [updatedFamily] = await db
+      .update(families)
+      .set({ teamId })
+      .where(eq(families.id, familyId))
+      .returning();
+    return updatedFamily;
+  }
+
+  async removeFamilyFromTeam(familyId: string): Promise<Family> {
+    const [updatedFamily] = await db
+      .update(families)
+      .set({ teamId: null })
+      .where(eq(families.id, familyId))
+      .returning();
+    return updatedFamily;
+  }
+
+  async getTeamFamilies(teamId: string): Promise<FamilyWithMembers[]> {
+    const result = await db
+      .select({
+        id: families.id,
+        familyCode: families.familyCode,
+        familyName: families.familyName,
+        visitedDate: families.visitedDate,
+        registrationDate: families.registrationDate,
+        memberStatus: families.memberStatus,
+        phoneNumber: families.phoneNumber,
+        email: families.email,
+        address: families.address,
+        city: families.city,
+        state: families.state,
+        zipCode: families.zipCode,
+        fullAddress: families.fullAddress,
+        familyNotes: families.familyNotes,
+        familyPicture: families.familyPicture,
+        lifeGroup: families.lifeGroup,
+        supportTeamMember: families.supportTeamMember,
+        teamId: families.teamId,
+        createdAt: families.createdAt,
+        updatedAt: families.updatedAt,
+        members: {
+          id: familyMembers.id,
+          familyId: familyMembers.familyId,
+          koreanName: familyMembers.koreanName,
+          englishName: familyMembers.englishName,
+          birthDate: familyMembers.birthDate,
+          phoneNumber: familyMembers.phoneNumber,
+          email: familyMembers.email,
+          relationship: familyMembers.relationship,
+          courses: familyMembers.courses,
+          gradeLevel: familyMembers.gradeLevel,
+          gradeGroup: familyMembers.gradeGroup,
+          school: familyMembers.school,
+          createdAt: familyMembers.createdAt,
+          updatedAt: familyMembers.updatedAt,
+        }
+      })
+      .from(families)
+      .leftJoin(familyMembers, eq(families.id, familyMembers.familyId))
+      .where(eq(families.teamId, teamId))
+      .orderBy(families.familyName);
+
+    // Group family members by family
+    const familiesMap = new Map<string, FamilyWithMembers>();
+    
+    for (const row of result) {
+      const familyId = row.id;
+      
+      if (!familiesMap.has(familyId)) {
+        familiesMap.set(familyId, {
+          id: row.id,
+          familyCode: row.familyCode,
+          familyName: row.familyName,
+          visitedDate: row.visitedDate,
+          registrationDate: row.registrationDate,
+          memberStatus: row.memberStatus,
+          phoneNumber: row.phoneNumber,
+          email: row.email,
+          address: row.address,
+          city: row.city,
+          state: row.state,
+          zipCode: row.zipCode,
+          fullAddress: row.fullAddress,
+          familyNotes: row.familyNotes,
+          familyPicture: row.familyPicture,
+          lifeGroup: row.lifeGroup,
+          supportTeamMember: row.supportTeamMember,
+          teamId: row.teamId,
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+          members: []
+        });
+      }
+
+      if (row.members.id) {
+        familiesMap.get(familyId)?.members.push(row.members);
+      }
+    }
+
+    return Array.from(familiesMap.values());
   }
 }
 

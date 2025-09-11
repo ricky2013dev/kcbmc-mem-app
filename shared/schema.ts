@@ -59,6 +59,7 @@ export const families = pgTable("families", {
   familyPicture: varchar("family_picture", { length: 500 }),
   lifeGroup: varchar("life_group", { length: 255 }),
   supportTeamMember: varchar("support_team_member", { length: 255 }),
+  teamId: varchar("team_id").references(() => teams.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -135,10 +136,14 @@ export const eventAttendance = pgTable("event_attendance", {
 });
 
 // Relations
-export const familiesRelations = relations(families, ({ many }) => ({
+export const familiesRelations = relations(families, ({ one, many }) => ({
   members: many(familyMembers),
   careLogs: many(careLogs),
   eventAttendance: many(eventAttendance),
+  team: one(teams, {
+    fields: [families.teamId],
+    references: [teams.id],
+  }),
 }));
 
 export const familyMembersRelations = relations(familyMembers, ({ one, many }) => ({
@@ -362,4 +367,80 @@ export type StaffLoginLogWithStaff = StaffLoginLog & {
     nickName: string;
     group: string;
   };
+};
+
+// Departments table
+export const departments = pgTable("departments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull().unique(),
+  description: text("description"),
+  contactPersonName: varchar("contact_person_name", { length: 255 }),
+  contactPersonPhone: varchar("contact_person_phone", { length: 20 }),
+  contactPersonEmail: varchar("contact_person_email", { length: 255 }),
+  picture: varchar("picture", { length: 500 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Teams table
+export const teams = pgTable("teams", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  departmentId: varchar("department_id").notNull().references(() => departments.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  contactPersonName: varchar("contact_person_name", { length: 255 }),
+  contactPersonPhone: varchar("contact_person_phone", { length: 20 }),
+  contactPersonEmail: varchar("contact_person_email", { length: 255 }),
+  picture: varchar("picture", { length: 500 }),
+  assignedStaff: jsonb("assigned_staff").$type<string[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Department relations
+export const departmentsRelations = relations(departments, ({ many }) => ({
+  teams: many(teams),
+}));
+
+// Team relations
+export const teamsRelations = relations(teams, ({ one, many }) => ({
+  department: one(departments, {
+    fields: [teams.departmentId],
+    references: [departments.id],
+  }),
+  families: many(families),
+}));
+
+// Zod schemas for departments
+export const insertDepartmentSchema = createInsertSchema(departments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Zod schemas for teams
+export const insertTeamSchema = createInsertSchema(teams).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+
+// Types
+export type Department = typeof departments.$inferSelect;
+export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
+
+export type Team = typeof teams.$inferSelect;
+export type InsertTeam = z.infer<typeof insertTeamSchema>;
+
+export type DepartmentWithTeams = Department & {
+  teams: Team[];
+};
+
+export type TeamWithDepartment = Team & {
+  department: Department;
+};
+
+export type TeamWithFamilies = Team & {
+  families: FamilyWithMembers[];
 };
