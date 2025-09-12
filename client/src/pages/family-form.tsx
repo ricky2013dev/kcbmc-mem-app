@@ -78,7 +78,7 @@ interface FamilyFormPageProps {
 
 const familyFormSchema = z
   .object({
-    visitedDate: z.string().optional(),
+    visitedDate: z.string().nullable().optional().or(z.literal("")),
     memberStatus: z.enum(["visit", "member", "pending"]),
     phoneNumber: z.string().optional(),
     email: z.string().email().optional().or(z.literal("")),
@@ -345,7 +345,7 @@ export default function FamilyFormPage({
             ? "Family created successfully."
             : "Family updated successfully.",
       });
-      setLocation("/");
+      window.history.back();
     },
     onError: (error: any) => {
       toast({
@@ -528,7 +528,7 @@ export default function FamilyFormPage({
         title: "Success",
         description: "Family deleted successfully.",
       });
-      setLocation("/");
+      window.history.back();
     },
     onError: (error: any) => {
       toast({
@@ -970,7 +970,7 @@ export default function FamilyFormPage({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setLocation("/")}
+              onClick={() => window.history.back()}
               className={styles.backButton}
               data-testid="button-back"
             >
@@ -1758,7 +1758,7 @@ export default function FamilyFormPage({
                 type="button"
                 variant="secondary"
                 className="bg-green-500 hover:bg-green-600 text-white"
-                onClick={() => setLocation("/")}
+                onClick={() => window.history.back()}
                 data-testid="button-cancel"
               >
                 Cancel

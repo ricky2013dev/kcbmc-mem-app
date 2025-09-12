@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import { PlusIcon, PencilIcon, TrashIcon, FolderIcon, UsersIcon, ChevronDownIcon
 
 // Draggable Family Component
 function DraggableFamilyCard({ family }: { family: any }) {
+  const [, setLocation] = useLocation();
   const {
     attributes,
     listeners,
@@ -31,6 +32,13 @@ function DraggableFamilyCard({ family }: { family: any }) {
     id: family.id,
   });
 
+  const handleEditClick = (e: React.MouseEvent) => {
+    alert('hello')
+    e.stopPropagation();
+    e.preventDefault();
+    setLocation(`/family/${family.id}/edit`);
+  };
+
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
@@ -39,22 +47,22 @@ function DraggableFamilyCard({ family }: { family: any }) {
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
       className={`
-        bg-muted/30 rounded-md p-2 sm:p-3 cursor-grab transition-all hover:shadow-md active:cursor-grabbing
+        bg-muted/30 rounded-md p-2 sm:p-3 transition-all hover:shadow-md
         ${isDragging ? 'opacity-50 shadow-lg' : 'hover:bg-muted/40'}
       `}
     >
       <div className="flex items-start justify-between">
-        <div className="flex-1">
+        <div 
+          className="flex-1 cursor-grab active:cursor-grabbing"
+          {...listeners}
+          {...attributes}
+        >
           <div className="flex items-center gap-1 sm:gap-2">
             <Move className="w-2 h-2 sm:w-3 sm:h-3 text-gray-400 flex-shrink-0" />
             <Users2Icon className="w-2 h-2 sm:w-3 sm:h-3 text-purple-600 flex-shrink-0" />
             <span className="text-xs sm:text-sm font-medium truncate min-w-0 flex-1">{family.familyName}</span>
-            <Badge variant="outline" className="text-xs flex-shrink-0">
-              {family.memberStatus}
-            </Badge>
+
           </div>
           
           {/* Family Members */}
@@ -72,6 +80,16 @@ function DraggableFamilyCard({ family }: { family: any }) {
               </div>
             </div>
           )}
+        </div>
+        <div className="flex-shrink-0 ml-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-6 px-2 text-xs"
+            onClick={handleEditClick}
+          >
+            <PencilIcon className="w-3 h-3" />
+          </Button>
         </div>
       </div>
     </div>
@@ -169,8 +187,17 @@ export default function DepartmentTeamManagement() {
   const [isQuickFamilyDialogOpen, setIsQuickFamilyDialogOpen] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
-  const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
-  const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
+  
+  // Load expanded state from localStorage
+  const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('expandedDepartments');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+  
+  const [expandedTeams, setExpandedTeams] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('expandedTeams');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
   const [departmentFormData, setDepartmentFormData] = useState<DepartmentFormData>({
     name: "",
     description: "",
@@ -222,6 +249,28 @@ export default function DepartmentTeamManagement() {
   const { data: families = [], isLoading: familiesLoading } = useQuery({
     queryKey: ["/api/families"],
   });
+
+  // Save expanded state to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('expandedDepartments', JSON.stringify(Array.from(expandedDepartments)));
+  }, [expandedDepartments]);
+
+  useEffect(() => {
+    localStorage.setItem('expandedTeams', JSON.stringify(Array.from(expandedTeams)));
+  }, [expandedTeams]);
+
+  // Refresh data when page becomes visible (when returning from family edit)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        queryClient.invalidateQueries({ queryKey: ["/api/families"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [queryClient]);
 
   // Create department mutation
   const createDepartmentMutation = useMutation({

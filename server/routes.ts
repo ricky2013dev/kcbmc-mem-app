@@ -582,8 +582,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Auto-generate family name based on member type and names
       const familyName = data.memberType === "husband" 
-        ? `${data.koreanName} Family`
-        : `${data.koreanName} Family`;
+        ? `${data.koreanName}`
+        : `${data.koreanName}`;
       
       // Create family data with teamId
       const familyData = {
