@@ -78,7 +78,7 @@ interface FamilyFormPageProps {
 
 const familyFormSchema = z
   .object({
-    visitedDate: z.string().min(1, "Visited date is required"),
+    visitedDate: z.string().optional(),
     memberStatus: z.enum(["visit", "member", "pending"]),
     phoneNumber: z.string().optional(),
     email: z.string().email().optional().or(z.literal("")),

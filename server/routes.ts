@@ -500,6 +500,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dateFrom: req.query.dateFrom as string,
         dateTo: req.query.dateTo as string,
         courses: req.query.courses as string,
+        teamId: req.query.teamId as string,
+        departmentId: req.query.departmentId as string,
+        unassigned: req.query.unassigned === 'true',
       };
 
       // Remove undefined values

@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SundayDatePicker } from '@/components/sunday-date-picker';
 import { apiRequest } from '@/lib/queryClient';
 import { FamilyWithMembers, Department, Team } from '@shared/schema';
-import { SearchFilters } from '@/types/family';
+import { SearchFilters, COURSE_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
 import { getGradeGroupFirstChar } from '@/utils/grade-utils';
 import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, Calendar, Save, GraduationCap, Info, FolderOpen, UserCheck } from 'lucide-react';
@@ -68,12 +68,33 @@ export default function DashboardPage() {
 
   const defaultDateRange = getDefaultDateRange();
 
-  const [filters, setFilters] = useState<SearchFilters>({
-    departmentId: '',
-    teamId: ''
-  });
+  // Load filters from localStorage or use defaults
+  const loadFiltersFromStorage = (): SearchFilters => {
+    try {
+      const savedFilters = localStorage.getItem('familyDashboardFilters');
+      if (savedFilters) {
+        const parsed = JSON.parse(savedFilters);
+        // Validate the structure
+        if (parsed && typeof parsed.departmentId === 'string' && Array.isArray(parsed.teamIds)) {
+          return parsed;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load filters from localStorage:', error);
+    }
+    return {
+      departmentId: '',
+      teamIds: []
+    };
+  };
 
-  const [hasSearched, setHasSearched] = useState(true);
+  const [filters, setFilters] = useState<SearchFilters>(loadFiltersFromStorage());
+
+  // Initialize hasSearched based on whether we have saved filters
+  const [hasSearched, setHasSearched] = useState(() => {
+    const savedFilters = loadFiltersFromStorage();
+    return !!savedFilters.departmentId; // Search if we have a saved department
+  });
 
   // Fetch departments
   const { data: departments = [] } = useQuery<Department[]>({
@@ -84,7 +105,38 @@ export default function DashboardPage() {
   const { data: teams = [] } = useQuery<Team[]>({
     queryKey: ["/api/teams"],
   });
-  const [showFilters, setShowFilters] = useState(false);
+
+  // Validate saved filters when departments and teams are loaded
+  useEffect(() => {
+    if (departments.length > 0 && teams.length > 0) {
+      const isValidDepartment = !filters.departmentId || departments.some(dept => dept.id === filters.departmentId);
+      const availableTeams = getAvailableTeams();
+      const validTeamIds = filters.teamIds.filter(teamId => availableTeams.some(team => team.id === teamId));
+      
+      // If department is invalid or some teams are invalid, update filters
+      if (!isValidDepartment || validTeamIds.length !== filters.teamIds.length) {
+        const updatedFilters = {
+          departmentId: isValidDepartment ? filters.departmentId : '',
+          teamIds: validTeamIds
+        };
+        setFilters(updatedFilters);
+        saveFiltersToStorage(updatedFilters);
+        if (!updatedFilters.departmentId) {
+          setHasSearched(false);
+        }
+        
+        // Show toast only if filters were cleaned up due to invalid data
+        if (!isValidDepartment || validTeamIds.length !== filters.teamIds.length) {
+          toast({
+            title: "Filters updated",
+            description: "Some saved filters were no longer valid and have been updated.",
+          });
+        }
+      }
+    }
+  }, [departments, teams]); // Only run when departments or teams data changes
+  // Show filters by default when no filters are applied
+  const [showFilters, setShowFilters] = useState(() => !filters.departmentId);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
   const [magnifiedImage, setMagnifiedImage] = useState<{ src: string; alt: string } | null>(null);
   const [showFamilyNotesProtectionModal, setShowFamilyNotesProtectionModal] = useState(false);
@@ -109,20 +161,80 @@ export default function DashboardPage() {
   const [expandedGradeGroups, setExpandedGradeGroups] = useState<Set<string>>(new Set());
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
-    queryKey: ['families', filters],
+    queryKey: ['families', filters, teams],
     queryFn: async () => {
-      const queryParams = new URLSearchParams();
+      console.log('Family query running with:', { filters, teamsCount: teams.length });
       
-      if (filters.departmentId) queryParams.append('departmentId', filters.departmentId);
-      if (filters.teamId) queryParams.append('teamId', filters.teamId);
-      queryParams.append('sortBy', 'visitedDate');
-      queryParams.append('sortOrder', 'desc');
-      
-      const url = `/api/families?${queryParams.toString()}`;
-      const response = await apiRequest('GET', url);
-      return response.json();
+      // If specific teams are selected, fetch families for each team and combine (OR condition)
+      if (filters.teamIds && filters.teamIds.length > 0) {
+        const familyPromises = filters.teamIds.map(async (teamId) => {
+          const queryParams = new URLSearchParams();
+          queryParams.append('teamId', teamId);
+          queryParams.append('sortBy', 'visitedDate');
+          queryParams.append('sortOrder', 'desc');
+          
+          const url = `/api/families?${queryParams.toString()}`;
+          const response = await apiRequest('GET', url);
+          return response.json();
+        });
+        
+        const familyArrays = await Promise.all(familyPromises);
+        const allFamilies = familyArrays.flat();
+        
+        // Remove duplicates by family ID (in case a family appears in multiple teams)
+        const uniqueFamilies = allFamilies.filter((family, index, arr) => 
+          arr.findIndex(f => f.id === family.id) === index
+        );
+        
+        // Sort by visitedDate descending (most recent first)
+        uniqueFamilies.sort((a, b) => {
+          const dateA = new Date(a.visitedDate || '1900-01-01').getTime();
+          const dateB = new Date(b.visitedDate || '1900-01-01').getTime();
+          return dateB - dateA; // descending order
+        });
+        
+        return uniqueFamilies;
+      } else {
+        // If no specific teams selected, get all teams in the department and fetch all their families
+        // Filter teams by department directly in the query
+        const availableTeams = teams.filter(team => team.departmentId === filters.departmentId);
+        console.log('Available teams for department:', { departmentId: filters.departmentId, availableTeams });
+        
+        if (availableTeams.length === 0) {
+          console.log('No teams found in department');
+          return []; // No teams in this department
+        }
+        
+        const familyPromises = availableTeams.map(async (team) => {
+          const queryParams = new URLSearchParams();
+          queryParams.append('teamId', team.id);
+          queryParams.append('sortBy', 'visitedDate');
+          queryParams.append('sortOrder', 'desc');
+          
+          const url = `/api/families?${queryParams.toString()}`;
+          const response = await apiRequest('GET', url);
+          return response.json();
+        });
+        
+        const familyArrays = await Promise.all(familyPromises);
+        const allFamilies = familyArrays.flat();
+        
+        // Remove duplicates by family ID
+        const uniqueFamilies = allFamilies.filter((family, index, arr) => 
+          arr.findIndex(f => f.id === family.id) === index
+        );
+        
+        // Sort by visitedDate descending (most recent first)
+        uniqueFamilies.sort((a, b) => {
+          const dateA = new Date(a.visitedDate || '1900-01-01').getTime();
+          const dateB = new Date(b.visitedDate || '1900-01-01').getTime();
+          return dateB - dateA; // descending order
+        });
+        
+        return uniqueFamilies;
+      }
     },
-    enabled: hasSearched,
+    enabled: hasSearched && !!filters.departmentId && teams.length > 0, // Only run if department is selected and teams data is loaded
   });
 
   const { data: allAnnouncements = [] } = useQuery<AnnouncementWithStaff[]>({
@@ -293,12 +405,38 @@ export default function DashboardPage() {
     setFamilyNotesText('');
   };
 
+  // Save filters to localStorage whenever they change
+  const saveFiltersToStorage = (newFilters: SearchFilters) => {
+    try {
+      localStorage.setItem('familyDashboardFilters', JSON.stringify(newFilters));
+    } catch (error) {
+      console.warn('Failed to save filters to localStorage:', error);
+    }
+  };
+
+  // Enhanced setFilters that also saves to localStorage
+  const updateFilters = (newFilters: SearchFilters | ((prev: SearchFilters) => SearchFilters)) => {
+    if (typeof newFilters === 'function') {
+      setFilters(prev => {
+        const updated = newFilters(prev);
+        saveFiltersToStorage(updated);
+        return updated;
+      });
+    } else {
+      setFilters(newFilters);
+      saveFiltersToStorage(newFilters);
+    }
+  };
+
   const clearFilters = () => {
-    setFilters({
+    const clearedFilters = {
       departmentId: '',
-      teamId: ''
-    });
-    setHasSearched(true);
+      teamIds: []
+    };
+    setFilters(clearedFilters);
+    saveFiltersToStorage(clearedFilters);
+    setHasSearched(false); // Reset search state
+    setShowFilters(true); // Show filters again when cleared
   };
 
 
@@ -336,9 +474,11 @@ export default function DashboardPage() {
       const department = departments.find(dept => dept.id === filters.departmentId);
       activeFilters.push({ label: 'Department', value: department?.name || filters.departmentId });
     }
-    if (filters.teamId) {
-      const team = teams.find(team => team.id === filters.teamId);
-      activeFilters.push({ label: 'Team', value: team?.name || filters.teamId });
+    if (filters.teamIds && filters.teamIds.length > 0) {
+      const selectedTeams = teams.filter(team => filters.teamIds.includes(team.id));
+      selectedTeams.forEach(team => {
+        activeFilters.push({ label: 'Team', value: team.name });
+      });
     }
     
     return activeFilters;
@@ -348,6 +488,60 @@ export default function DashboardPage() {
   const getAvailableTeams = () => {
     if (!filters.departmentId) return [];
     return teams.filter(team => team.departmentId === filters.departmentId);
+  };
+
+  // Toggle team selection
+  const toggleTeamSelection = (teamId: string) => {
+    updateFilters(prev => ({
+      ...prev,
+      teamIds: prev.teamIds.includes(teamId)
+        ? prev.teamIds.filter(id => id !== teamId)
+        : [...prev.teamIds, teamId]
+    }));
+  };
+
+  // Group families by team for display
+  const getGroupedFamilies = () => {
+    if (!families || families.length === 0) return [];
+    
+    // If showing all teams in department or multiple teams, group by team
+    const shouldGroupByTeam = filters.teamIds.length === 0 || filters.teamIds.length > 1;
+    
+    if (!shouldGroupByTeam) {
+      return [{ teamName: null, teamId: null, families }];
+    }
+    
+    // Group families by their teamId
+    const groupedMap = new Map<string, { team: any; families: any[] }>();
+    
+    families.forEach(family => {
+      if (family.teamId) {
+        const team = teams.find(t => t.id === family.teamId);
+        const teamId = family.teamId;
+        
+        if (!groupedMap.has(teamId)) {
+          groupedMap.set(teamId, {
+            team: team || { id: teamId, name: 'Unknown Team' },
+            families: []
+          });
+        }
+        
+        groupedMap.get(teamId)!.families.push(family);
+      }
+    });
+    
+    // Convert to array and sort by team name
+    return Array.from(groupedMap.values())
+      .sort((a, b) => a.team.name.localeCompare(b.team.name))
+      .map(group => ({
+        teamName: group.team.name,
+        teamId: group.team.id,
+        families: group.families.sort((a, b) => {
+          const dateA = new Date(a.visitedDate || '1900-01-01').getTime();
+          const dateB = new Date(b.visitedDate || '1900-01-01').getTime();
+          return dateB - dateA; // descending order
+        })
+      }));
   };
 
   const getChildGrades = (family: FamilyWithMembers) => {
@@ -877,6 +1071,16 @@ export default function DashboardPage() {
                   >
                     <UserCheck className="w-4 h-4" /> Team
                   </Button>
+                  <Button 
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setLocation('/family-dashboard')}
+                    data-testid="button-family-dashboard"
+                    className="text-cyan-700 hover:text-primary-foreground/80"
+                    title="Family Team Dashboard"
+                  >
+                    <Users className="w-4 h-4" /> Family Teams
+                  </Button>
                 </div>
               )}
               <span className={styles.userName} data-testid="text-current-user">
@@ -909,11 +1113,6 @@ export default function DashboardPage() {
                     {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
                   </div>
                   
-                  <DropdownMenuItem onClick={() => setLocation('/family/new')}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add New Family
-                  </DropdownMenuItem>
-                  
                   {user?.group === 'ADM' && (
                     <>
                       <DropdownMenuSeparator />
@@ -936,6 +1135,10 @@ export default function DashboardPage() {
                       <DropdownMenuItem onClick={() => setLocation('/teams')}>
                         <UserCheck className="w-4 h-4 mr-2" />
                         Teams 
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setLocation('/family-dashboard')}>
+                        <Users className="w-4 h-4 mr-2" />
+                        Family Teams 
                       </DropdownMenuItem>
                     </>
                   )}
@@ -1040,26 +1243,27 @@ export default function DashboardPage() {
           </CardHeader>
           {showFilters && (
             <CardContent className={styles.searchContent}>
-              {/* Department and Team Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Department Filter */}
+              <div className="space-y-4">
                 <div>
                   <Label htmlFor="department">Department</Label>
                   <Select
                     value={filters.departmentId}
                     onValueChange={(value) => {
-                      setFilters(prev => ({ 
+                      updateFilters(prev => ({ 
                         ...prev, 
                         departmentId: value,
-                        teamId: '' // Reset team when department changes
+                        teamIds: [] // Reset teams when department changes
                       }));
                       setHasSearched(true);
+                      // Auto-hide filters after selection for cleaner UI
+                      setShowFilters(false);
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select department..." />
+                      <SelectValue placeholder="Select department first..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Departments</SelectItem>
                       {departments.map((department) => (
                         <SelectItem key={department.id} value={department.id}>
                           {department.name}
@@ -1069,36 +1273,69 @@ export default function DashboardPage() {
                   </Select>
                 </div>
 
-                <div>
-                  <Label htmlFor="team">Team</Label>
-                  <Select
-                    value={filters.teamId}
-                    onValueChange={(value) => {
-                      setFilters(prev => ({ ...prev, teamId: value }));
-                      setHasSearched(true);
-                    }}
-                    disabled={!filters.departmentId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={filters.departmentId ? "Select team..." : "Select department first"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Teams</SelectItem>
-                      {getAvailableTeams().map((team) => (
-                        <SelectItem key={team.id} value={team.id}>
-                          {team.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Team Filter - Only show if department is selected */}
+                {filters.departmentId && (
+                  <div>
+                    <Label>Teams (select multiple)</Label>
+                    <div className="flex flex-wrap gap-2 mt-2 min-h-[2.5rem] p-3 border border-input bg-background rounded-md">
+                      {getAvailableTeams().length === 0 ? (
+                        <span className="text-muted-foreground text-sm">No teams available in this department</span>
+                      ) : (
+                        getAvailableTeams().map((team) => {
+                          const isSelected = filters.teamIds.includes(team.id);
+                          return (
+                            <button
+                              key={team.id}
+                              type="button"
+                              onClick={() => {
+                                updateFilters(prev => ({
+                                  ...prev,
+                                  teamIds: isSelected 
+                                    ? prev.teamIds.filter(id => id !== team.id)
+                                    : [...prev.teamIds, team.id]
+                                }));
+                              }}
+                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
+                                isSelected 
+                                  ? 'bg-primary text-primary-foreground border-primary' 
+                                  : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                              }`}
+                            >
+                              {team.name}
+                              {isSelected && (
+                                <X className="w-3 h-3 ml-1" />
+                              )}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                    {filters.departmentId && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {filters.teamIds.length === 0 
+                          ? `Showing all families from all teams in this department` 
+                          : `${filters.teamIds.length} team(s) selected`}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
               
               {/* Filter Actions */}
-              <div className="flex gap-2 mt-4">
-                <Button variant="secondary" onClick={clearFilters} data-testid="button-clear-filters">
-                  Clear Filters
-                </Button>
+              <div className="flex items-center justify-between mt-4">
+                <div className="flex gap-2">
+                  {filters.departmentId && (
+                    <Button variant="secondary" onClick={clearFilters} data-testid="button-clear-filters">
+                      Clear All Filters
+                    </Button>
+                  )}
+                </div>
+                {filters.departmentId && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Filters saved</span>
+                  </div>
+                )}
               </div>
             </CardContent>
           )}
@@ -1158,8 +1395,8 @@ export default function DashboardPage() {
             <CardContent className={styles.emptyState}>
               <div className={styles.emptyContent}>
                 <Search className="w-16 h-16 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No search performed</h3>
-                <p className="text-muted-foreground">Use the search filters above to find families.</p>
+                <h3 className="text-lg font-semibold mb-2">Select a department to get started</h3>
+                <p className="text-muted-foreground">Choose a department first, then optionally select specific teams to filter families.</p>
               </div>
             </CardContent>
           ) : isLoading ? (
@@ -1171,14 +1408,35 @@ export default function DashboardPage() {
             <CardContent className={styles.emptyState}>
               <div className={styles.emptyContent}>
                 <Users className="w-16 h-16 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No families found</h3>
-                <p className="text-muted-foreground">Try adjusting your search criteria.</p>
+                <h3 className="text-lg font-semibold mb-2">No families found in selected filters</h3>
+                <p className="text-muted-foreground">
+                  {filters.teamIds.length > 0 
+                    ? 'No families found in the selected teams. Try selecting different teams or clear team selection to see all families in the department.'
+                    : 'No families found in this department.'
+                  }
+                </p>
               </div>
             </CardContent>
           ) : (
             <div className={styles.familyList}>
-              {families.map((family) => (
-                <div key={family.id} className={styles.familyCard} data-testid={`card-family-${family.id}`}>
+              {getGroupedFamilies().map((group, groupIndex) => (
+                <div key={group.teamId || `group-${groupIndex}`}>
+                  {/* Team Header - only show if grouped by team */}
+                  {group.teamName && (
+                    <div className="mb-4 mt-6 first:mt-0">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-px bg-border flex-1"></div>
+                        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-medium px-3 py-1">
+                          {group.teamName} ({group.families.length})
+                        </Badge>
+                        <div className="h-px bg-border flex-1"></div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Families in this group */}
+                  {group.families.map((family) => (
+                    <div key={family.id} className={styles.familyCard} data-testid={`card-family-${family.id}`}>
                   <div 
                     className={styles.familyContent}
                   >
@@ -1647,6 +1905,8 @@ export default function DashboardPage() {
                       </div>
                     )}
                   </div>
+                </div>
+                  ))}
                 </div>
               ))}
             </div>

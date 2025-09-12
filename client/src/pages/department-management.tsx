@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter } from "@dnd-kit/core";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +15,86 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { FamilyImageUploader } from "@/components/FamilyImageUploader";
 import { formatPhoneNumber } from "@/utils/phone-format";
-import { PlusIcon, PencilIcon, TrashIcon, FolderIcon, UsersIcon, ChevronDownIcon, ChevronRightIcon, UserPlusIcon, HomeIcon, UserIcon, Users2Icon } from "lucide-react";
+import { apiRequest } from '@/lib/queryClient';
+import { PlusIcon, PencilIcon, TrashIcon, FolderIcon, UsersIcon, ChevronDownIcon, ChevronRightIcon, UserPlusIcon, HomeIcon, UserIcon, Users2Icon, Move } from "lucide-react";
+
+// Draggable Family Component
+function DraggableFamilyCard({ family }: { family: any }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable({
+    id: family.id,
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`
+        bg-muted/30 rounded-md p-3 cursor-grab transition-all hover:shadow-md active:cursor-grabbing
+        ${isDragging ? 'opacity-50 shadow-lg' : 'hover:bg-muted/40'}
+      `}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <Move className="w-3 h-3 text-gray-400" />
+            <Users2Icon className="w-3 h-3 text-purple-600" />
+            <span className="text-sm font-medium">{family.familyName}</span>
+            <Badge variant="outline" className="text-xs">
+              {family.memberStatus}
+            </Badge>
+          </div>
+          
+          {/* Family Members */}
+          {family.members && family.members.length > 0 && (
+            <div className="ml-8 mt-2">
+              <div className="flex flex-wrap gap-1">
+                {family.members.map((member: any) => (
+                  <div key={member.id} className="flex items-center gap-1">
+                    <UserIcon className="w-2 h-2 text-blue-600" />
+                    <span className="text-xs text-gray-600">
+                      {member.koreanName || member.englishName} ({member.relationship === 'husband' ? '남편' : member.relationship === 'wife' ? '아내' : '자녀'})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Droppable Team Area Component
+function DroppableTeamArea({ teamId, children }: { teamId: string; children: React.ReactNode }) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: teamId,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`
+        transition-all duration-200 rounded-lg min-h-[100px]
+        ${isOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed' : ''}
+      `}
+    >
+      {children}
+    </div>
+  );
+}
 
 interface Department {
   id: string;
@@ -116,6 +197,10 @@ export default function DepartmentTeamManagement() {
     teamId: "",
     familyPicture: "",
   });
+
+  // Drag and drop state
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [draggedFamily, setDraggedFamily] = useState<any | null>(null);
 
   // Fetch departments
   const { data: departments = [], isLoading: departmentsLoading } = useQuery<Department[]>({
@@ -445,6 +530,80 @@ export default function DepartmentTeamManagement() {
     });
   };
 
+  // Family update mutation for drag and drop
+  const updateFamilyTeamMutation = useMutation({
+    mutationFn: async ({ familyId, teamId }: { familyId: string; teamId?: string }) => {
+      const response = await apiRequest('PUT', `/api/families/${familyId}`, {
+        teamId: teamId || null
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/families"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      toast({
+        title: "Success",
+        description: "Family assignment updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update family assignment",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Drag and drop handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveId(active.id as string);
+    
+    // Find the family being dragged
+    const family = families.find((f: any) => f.id === active.id);
+    if (family) {
+      setDraggedFamily(family);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) {
+      setActiveId(null);
+      setDraggedFamily(null);
+      return;
+    }
+
+    const familyId = active.id as string;
+    const targetId = over.id as string;
+    
+    // Check if dropping on unassigned area
+    if (targetId === 'unassigned') {
+      updateFamilyTeamMutation.mutate({ familyId });
+    } else {
+      // Find target team
+      let targetTeam: Team | undefined;
+      for (const dept of departments) {
+        for (const team of dept.teams) {
+          if (team.id === targetId) {
+            targetTeam = team;
+            break;
+          }
+        }
+        if (targetTeam) break;
+      }
+
+      if (targetTeam) {
+        updateFamilyTeamMutation.mutate({ familyId, teamId: targetTeam.id });
+      }
+    }
+
+    setActiveId(null);
+    setDraggedFamily(null);
+  };
+
   const handleDeleteDepartment = (id: string) => {
     deleteDepartmentMutation.mutate(id);
   };
@@ -517,7 +676,12 @@ export default function DepartmentTeamManagement() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <DndContext
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">지회관리</h1>
@@ -825,6 +989,27 @@ export default function DepartmentTeamManagement() {
         </div>
       </div>
 
+      {/* Unassigned Families Section */}
+      {families.filter((family: any) => !family.teamId).length > 0 && (
+        <Card className="border-dashed border-2 border-gray-300">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-gray-600">
+              <UsersIcon className="w-5 h-5" />
+              Unassigned Families ({families.filter((family: any) => !family.teamId).length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DroppableTeamArea teamId="unassigned">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {families.filter((family: any) => !family.teamId).map((family: any) => (
+                  <DraggableFamilyCard key={family.id} family={family} />
+                ))}
+              </div>
+            </DroppableTeamArea>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-4">
         {departments.length === 0 ? (
           <div className="text-center py-12">
@@ -1029,61 +1214,21 @@ export default function DepartmentTeamManagement() {
                           </div>
                           
                           {/* Family Members Section */}
-                          {isTeamExpanded && teamFamilies.length > 0 && (
+                          {isTeamExpanded && (
                             <div className="ml-6 mt-3 border-l-2 border-muted-foreground/20 pl-4">
-                              <div className="space-y-2">
-                                {teamFamilies.map((family) => (
-                                  <div key={family.id} className="bg-muted/30 rounded-md p-3">
-                                    <div className="flex items-start justify-between">
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                          <Users2Icon className="w-3 h-3 text-purple-600" />
-                                          <span className="text-sm font-medium">{family.familyName}</span>
-                                          <Badge variant="outline" className="text-xs">
-                                            {family.memberStatus}
-                                          </Badge>
-                                        </div>
-                                        
-                                        {/* Family Members */}
-                                        {family.members && family.members.length > 0 && (
-                                          <div className="ml-5 mt-2">
-                                            <div className="flex flex-wrap gap-1">
-                                              {family.members.map((member) => (
-                                                <div key={member.id} className="flex items-center gap-1 text-xs bg-background rounded px-2 py-1">
-                                                  <UserIcon className="w-3 h-3 text-blue-500" />
-                                                  <span>
-                                                    {member.koreanName}
-                                                    {member.englishName && ` (${member.englishName})`}
-                                                  </span>
-                                                  <span className="text-muted-foreground">
-                                                    - {member.relationship}
-                                                  </span>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-                                        
-                                        {/* Contact Info */}
-                                        {(family.phoneNumber || family.email) && (
-                                          <div className="ml-5 mt-2 text-xs text-muted-foreground">
-                                            {family.phoneNumber && <span>{family.phoneNumber}</span>}
-                                            {family.phoneNumber && family.email && <span> • </span>}
-                                            {family.email && <span>{family.email}</span>}
-                                          </div>
-                                        )}
-                                        
-                                        {/* Support Team */}
-                                        {family.supportTeamMember && (
-                                          <div className="ml-5 mt-1 text-xs text-muted-foreground">
-                                            Support: {family.supportTeamMember}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
+                              <DroppableTeamArea teamId={team.id}>
+                                {teamFamilies.length === 0 ? (
+                                  <div className="text-center py-4 text-muted-foreground text-sm border-2 border-dashed border-gray-200 rounded-lg">
+                                    Drop families here
                                   </div>
-                                ))}
-                              </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {teamFamilies.map((family: any) => (
+                                      <DraggableFamilyCard key={family.id} family={family} />
+                                    ))}
+                                  </div>
+                                )}
+                              </DroppableTeamArea>
                             </div>
                           )}
                         </div>
@@ -1098,5 +1243,28 @@ export default function DepartmentTeamManagement() {
         )}
       </div>
     </div>
+
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {activeId && draggedFamily ? (
+          <div className="bg-white border-2 border-blue-500 rounded-lg p-3 shadow-lg opacity-90">
+            <div className="flex items-center gap-2">
+              <Move className="w-4 h-4 text-blue-600" />
+              <span className="font-medium">{draggedFamily.familyName}</span>
+              <Badge 
+                variant="secondary" 
+                className={`text-xs ${
+                  draggedFamily.memberStatus === 'member' ? 'bg-blue-100 text-blue-800' : 
+                  draggedFamily.memberStatus === 'visit' ? 'bg-green-100 text-green-800' : 
+                  'bg-gray-100 text-gray-800'
+                }`}
+              >
+                {draggedFamily.memberStatus}
+              </Badge>
+            </div>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }

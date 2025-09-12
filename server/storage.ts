@@ -41,7 +41,7 @@ import {
   type TeamWithFamilies
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, like, gte, lte, desc, isNotNull } from "drizzle-orm";
+import { eq, and, or, like, gte, lte, desc, isNotNull, isNull } from "drizzle-orm";
 
 // Generate the next sequential family code
 async function generateUniqueFamilyCode(): Promise<string> {
@@ -88,6 +88,9 @@ export interface IStorage {
     dateFrom?: string;
     dateTo?: string;
     courses?: string;
+    teamId?: string;
+    departmentId?: string;
+    unassigned?: boolean;
   }): Promise<FamilyWithMembers[]>;
   createFamily(family: InsertFamily, members: InsertFamilyMember[]): Promise<FamilyWithMembers>;
   updateFamily(id: string, family: Partial<InsertFamily>, members: InsertFamilyMember[]): Promise<FamilyWithMembers>;
@@ -154,9 +157,7 @@ function cleanDateFields(data: any): any {
   // Handle optional date fields - convert empty strings to null
   if (cleaned.birthDate === '') cleaned.birthDate = null;
   if (cleaned.registrationDate === '') cleaned.registrationDate = null;
-  
-  // visitedDate is required, so don't convert to null
-  // The form validation should ensure visitedDate is provided
+  if (cleaned.visitedDate === '') cleaned.visitedDate = null;
   
   return cleaned;
 }
@@ -226,6 +227,9 @@ export class DatabaseStorage implements IStorage {
     dateFrom?: string;
     dateTo?: string;
     courses?: string;
+    teamId?: string;
+    departmentId?: string;
+    unassigned?: boolean;
   }): Promise<FamilyWithMembers[]> {
     const conditions = [];
     
@@ -257,6 +261,20 @@ export class DatabaseStorage implements IStorage {
     
     if (filters?.dateTo) {
       conditions.push(lte(families.visitedDate, filters.dateTo));
+    }
+    
+    // Team and department filters
+    if (filters?.teamId) {
+      conditions.push(eq(families.teamId, filters.teamId));
+    }
+    
+    if (filters?.unassigned) {
+      conditions.push(isNull(families.teamId));
+    }
+    
+    // Department filter - need to join with teams table
+    if (filters?.departmentId) {
+      // We'll handle this with a more complex query after basic filtering
     }
     
     const familyList = conditions.length > 0 

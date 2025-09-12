@@ -35,7 +35,7 @@ export interface ChildFormData extends FamilyMemberFormData {
 
 export interface SearchFilters {
   departmentId: string;
-  teamId: string;
+  teamIds: string[];
 }
 
 export const MEMBER_STATUS_OPTIONS = [
