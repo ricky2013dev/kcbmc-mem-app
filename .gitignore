@@ -8,3 +8,4 @@ vite.config.ts.*
 .env.local
 .replit
 db.ts
+package-lock.json
