@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
-import { CareLogWithStaff } from '@shared/schema';
+import { CareLogWithStaff } from '@server/schema';
 import { formatDateForInput } from '@/utils/date-utils';
 import { Plus, Edit, Trash2, Calendar, User, FileText, List, AlignLeft, Copy, Shield, AlertTriangle } from 'lucide-react';
 

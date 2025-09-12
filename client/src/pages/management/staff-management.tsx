@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { apiRequest } from '@/lib/queryClient';
-import { insertStaffSchema, type Staff, type StaffLoginLogWithStaff } from '@shared/schema';
+import { insertStaffSchema, type Staff, type StaffLoginLogWithStaff } from '@server/schema';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';

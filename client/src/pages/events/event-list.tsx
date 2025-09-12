@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { apiRequest } from '@/lib/queryClient';
-import { EventWithStaff } from '@shared/schema';
+import { EventWithStaff } from '@server/schema';
 import { formatDateForInput } from '@/utils/date-utils';
 import { Calendar, Clock, MapPin, Plus, Edit, Trash2, Users, LogOut, MoreVertical, Menu, Settings, Globe, Bell, ArrowLeft, User } from 'lucide-react';
 import { RefreshButton } from '@/components/RefreshButton';

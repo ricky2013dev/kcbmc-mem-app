@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SundayDatePicker } from '@/components/sunday-date-picker';
 import { apiRequest } from '@/lib/queryClient';
-import { FamilyWithMembers, Department, Team } from '@shared/schema';
+import { FamilyWithMembers, Department, Team } from '@server/schema';
 import { SearchFilters, COURSE_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
 import { getGradeGroupFirstChar } from '@/utils/grade-utils';

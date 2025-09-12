@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { apiRequest } from '@/lib/queryClient';
-import { EventWithAttendance, EventAttendanceWithDetails } from '@shared/schema';
+import { EventWithAttendance, EventAttendanceWithDetails } from '@server/schema';
 import { Calendar, Clock, MapPin, Users, Edit, ArrowLeft, User, UserCheck, UserX, UserMinus, LogOut, Settings, Bell, ChevronDown, ChevronRight } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { RefreshButton } from '@/components/RefreshButton';

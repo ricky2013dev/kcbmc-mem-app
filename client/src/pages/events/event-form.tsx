@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { apiRequest } from '@/lib/queryClient';
-import { Event } from '@shared/schema';
+import { Event } from '@server/schema';
 import { formatDateForInput, getNextSunday } from '@/utils/date-utils';
 import { Calendar, Clock, MapPin, Save, ArrowLeft, User, LogOut, Settings, Bell, AlertCircle, Users } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';

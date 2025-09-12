@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from '@/lib/queryClient';
 import { Users, UserCheck, ChevronDown, ChevronUp, Move, Home, User } from "lucide-react";
 import { useLocation } from "wouter";
-import type { FamilyWithMembers, Department, Team } from '@shared/schema';
+import type { FamilyWithMembers, Department, Team } from '@server/schema';
 
 interface DepartmentWithTeams extends Department {
   teams: TeamWithFamilies[];

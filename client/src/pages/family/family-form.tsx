@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/form";
 import { SundayDatePicker } from "@/components/sunday-date-picker";
 import { apiRequest } from "@/lib/queryClient";
-import { FamilyWithMembers } from "@shared/schema";
+import { FamilyWithMembers } from "@server/schema";
 import { formatPhoneNumber } from "@/utils/phone-format";
 import {
   getGradeGroup,

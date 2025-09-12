@@ -39,7 +39,7 @@ import {
   type DepartmentWithTeams,
   type TeamWithDepartment,
   type TeamWithFamilies
-} from "@shared/schema";
+} from "@server/schema";
 import { db } from "./db";
 import { eq, and, or, like, gte, lte, desc, isNotNull, isNull } from "drizzle-orm";
 

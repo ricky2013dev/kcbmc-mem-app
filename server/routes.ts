@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertFamilySchema, insertFamilyMemberSchema, insertStaffSchema, insertAnnouncementSchema, insertEventSchema, insertEventAttendanceSchema, insertDepartmentSchema, insertTeamSchema } from "@shared/schema";
+import { insertFamilySchema, insertFamilyMemberSchema, insertStaffSchema, insertAnnouncementSchema, insertEventSchema, insertEventAttendanceSchema, insertDepartmentSchema, insertTeamSchema } from "@server/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
