@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FamilyImageUploader } from "@/components/FamilyImageUploader";
 import { formatPhoneNumber } from "@/utils/phone-format";
 import { apiRequest } from '@/lib/queryClient';
-import { PlusIcon, PencilIcon, TrashIcon, FolderIcon, UsersIcon, ChevronDownIcon, ChevronRightIcon, UserPlusIcon, HomeIcon, UserIcon, Users2Icon, Move } from "lucide-react";
+import { PlusIcon, PencilIcon, TrashIcon, FolderIcon, UsersIcon, ChevronDownIcon, ChevronRightIcon, UserPlusIcon, HomeIcon, UserIcon, Users2Icon, Move, ArrowLeft } from "lucide-react";
 
 // Draggable Family Component
 function DraggableFamilyCard({ family }: { family: any }) {
@@ -41,29 +42,29 @@ function DraggableFamilyCard({ family }: { family: any }) {
       {...listeners}
       {...attributes}
       className={`
-        bg-muted/30 rounded-md p-3 cursor-grab transition-all hover:shadow-md active:cursor-grabbing
+        bg-muted/30 rounded-md p-2 sm:p-3 cursor-grab transition-all hover:shadow-md active:cursor-grabbing
         ${isDragging ? 'opacity-50 shadow-lg' : 'hover:bg-muted/40'}
       `}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <Move className="w-3 h-3 text-gray-400" />
-            <Users2Icon className="w-3 h-3 text-purple-600" />
-            <span className="text-sm font-medium">{family.familyName}</span>
-            <Badge variant="outline" className="text-xs">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Move className="w-2 h-2 sm:w-3 sm:h-3 text-gray-400 flex-shrink-0" />
+            <Users2Icon className="w-2 h-2 sm:w-3 sm:h-3 text-purple-600 flex-shrink-0" />
+            <span className="text-xs sm:text-sm font-medium truncate min-w-0 flex-1">{family.familyName}</span>
+            <Badge variant="outline" className="text-xs flex-shrink-0">
               {family.memberStatus}
             </Badge>
           </div>
           
           {/* Family Members */}
           {family.members && family.members.length > 0 && (
-            <div className="ml-8 mt-2">
+            <div className="ml-4 sm:ml-8 mt-1 sm:mt-2">
               <div className="flex flex-wrap gap-1">
                 {family.members.map((member: any) => (
                   <div key={member.id} className="flex items-center gap-1">
-                    <UserIcon className="w-2 h-2 text-blue-600" />
-                    <span className="text-xs text-gray-600">
+                    <UserIcon className="w-2 h-2 text-blue-600 flex-shrink-0" />
+                    <span className="text-xs text-gray-600 truncate">
                       {member.koreanName || member.englishName} ({member.relationship === 'husband' ? '남편' : member.relationship === 'wife' ? '아내' : '자녀'})
                     </span>
                   </div>
@@ -682,6 +683,15 @@ export default function DepartmentTeamManagement() {
       onDragEnd={handleDragEnd}
     >
       <div className="container mx-auto p-6">
+        <div className="mb-4">
+          <Link href="/">
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              홈으로
+            </Button>
+          </Link>
+        </div>
+        
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">지회관리</h1>
@@ -1027,27 +1037,27 @@ export default function DepartmentTeamManagement() {
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => toggleDepartmentExpansion(department.id)}
-                          className="p-0 h-6 w-6"
+                          className="p-0 h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0"
                         >
                           {departmentTeams.length > 0 ? (
                             isExpanded ? (
-                              <ChevronDownIcon className="w-4 h-4" />
+                              <ChevronDownIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                             ) : (
-                              <ChevronRightIcon className="w-4 h-4" />
+                              <ChevronRightIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                             )
                           ) : (
-                            <div className="w-4 h-4" />
+                            <div className="w-3 h-3 sm:w-4 sm:h-4" />
                           )}
                         </Button>
-                        <FolderIcon className="w-5 h-5 text-blue-600" />
-                        <CardTitle className="text-lg">{department.name}</CardTitle>
-                        <Badge variant="secondary" className="text-xs">
-                          {departmentTeams.length} team{departmentTeams.length !== 1 ? 's' : ''}
+                        <FolderIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                        <CardTitle className="text-sm sm:text-lg truncate min-w-0 flex-1">{department.name}</CardTitle>
+                        <Badge variant="secondary" className="text-xs flex-shrink-0 ml-1">
+                          {departmentTeams.length}
                         </Badge>
                       </div>
                       {department.description && (
@@ -1120,30 +1130,30 @@ export default function DepartmentTeamManagement() {
                           <div key={team.id} className="border-l-2 border-muted pl-4 py-2">
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1 sm:gap-2">
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => toggleTeamExpansion(team.id)}
-                                    className="p-0 h-4 w-4"
+                                    className="p-0 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0"
                                   >
                                     {teamFamilies.length > 0 ? (
                                       isTeamExpanded ? (
-                                        <ChevronDownIcon className="w-3 h-3" />
+                                        <ChevronDownIcon className="w-2 h-2 sm:w-3 sm:h-3" />
                                       ) : (
-                                        <ChevronRightIcon className="w-3 h-3" />
+                                        <ChevronRightIcon className="w-2 h-2 sm:w-3 sm:h-3" />
                                       )
                                     ) : (
-                                      <div className="w-3 h-3" />
+                                      <div className="w-2 h-2 sm:w-3 sm:h-3" />
                                     )}
                                   </Button>
-                                  <UsersIcon className="w-4 h-4 text-green-600" />
-                                  <span className="font-medium">{team.name}</span>
-                                  <Badge variant="outline" className="text-xs">
+                                  <UsersIcon className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
+                                  <span className="font-medium text-xs sm:text-sm truncate min-w-0 flex-1">{team.name}</span>
+                                  <Badge variant="outline" className="text-xs flex-shrink-0 hidden sm:inline-flex">
                                     {team.assignedStaff?.length || 0} staff
                                   </Badge>
-                                  <Badge variant="secondary" className="text-xs">
-                                    {teamFamilies.length} families
+                                  <Badge variant="secondary" className="text-xs flex-shrink-0">
+                                    {teamFamilies.length}
                                   </Badge>
                                 </div>
                               {team.description && (
