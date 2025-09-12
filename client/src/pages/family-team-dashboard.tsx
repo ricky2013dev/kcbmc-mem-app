@@ -225,16 +225,17 @@ export default function FamilyTeamDashboard() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Family Team Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Drag and drop families to assign them to teams</p>
+        <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setLocation('/')}
+                className="self-start"
+              >
+                Back to Home
+              </Button>
+          <h1 className="text-3xl font-bold">Card View</h1>
         </div>
-        <div className="flex gap-2">
 
-          <Button onClick={() => setLocation('/')} variant="outline">
-            <Home className="w-4 h-4 mr-2" />
-            Dashboard
-          </Button>
-        </div>
       </div>
 
       <DndContext

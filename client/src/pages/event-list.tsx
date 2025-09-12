@@ -124,7 +124,7 @@ export default function EventListPage({}: EventListPageProps) {
                 className="text-muted-foreground hover:text-foreground p-2 sm:px-3"
               >
                 <ArrowLeft className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Back to Dashboard</span>
+                <span className="hidden sm:inline">Back to Home</span>
               </Button>
               <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Events

@@ -54,7 +54,7 @@ export default function StaffManagementPage() {
           <p className="text-gray-600 mb-4">You don't have permission to access staff management.</p>
           <Button onClick={() => setLocation('/')} variant="outline">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
+            Back to Home
           </Button>
         </div>
       </div>
@@ -273,7 +273,7 @@ export default function StaffManagementPage() {
                 className="self-start"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
+                Back to Home
               </Button>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
