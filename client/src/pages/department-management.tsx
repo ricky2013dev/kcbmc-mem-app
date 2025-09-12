@@ -897,7 +897,7 @@ export default function DepartmentTeamManagement() {
                   />
                 </div>
                 <div>
-                  <Label>Assigned Staff</Label>
+                 
                   <div className="border rounded-md p-4 max-h-40 overflow-y-auto">
                     {staff.length === 0 ? (
                       <p className="text-muted-foreground text-sm">No staff members available</p>

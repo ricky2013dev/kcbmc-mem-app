@@ -1005,22 +1005,33 @@ export default function DashboardPage() {
           </div>
           
           <div className={styles.navRight}>
-            {/* Add New Button - Desktop Only */}
-            <Button 
-              variant="default"
-              size="sm"
-              onClick={() => setLocation('/family/new')}
-              data-testid="button-add-family"
-              className="mr-2 hidden md:flex"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add New
-            </Button>
+     
             {/* Desktop Menu - Hidden on Mobile */}
             <div className="hidden md:flex items-center space-x-4">
               {user?.group === 'ADM' && (
                 <div className="flex space-x-2">
                   <Button 
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setLocation('/departments')}
+                    data-testid="button-departments"
+                    className="text-orange-700 hover:text-primary-foreground/80"
+                    title="Department Management"
+                  >
+                    <FolderOpen className="w-4 h-4" /> 지회(트리뷰)
+                  </Button>
+ 
+                  <Button 
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setLocation('/family-dashboard')}
+                    data-testid="button-family-dashboard"
+                    className="text-cyan-700 hover:text-primary-foreground/80"
+                    title="Family Team Dashboard"
+                  >
+                    <Users className="w-4 h-4" /> 지회(카드뷰)
+                  </Button>
+                                    <Button 
                     variant="secondary"
                     size="sm"
                     onClick={() => setLocation('/staff-management')}
@@ -1051,36 +1062,7 @@ export default function DashboardPage() {
                   >
                     <Calendar className="w-4 h-4" /> Event
                   </Button>
-                  <Button 
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setLocation('/departments')}
-                    data-testid="button-departments"
-                    className="text-orange-700 hover:text-primary-foreground/80"
-                    title="Department Management"
-                  >
-                    <FolderOpen className="w-4 h-4" /> Dept
-                  </Button>
-                  <Button 
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setLocation('/teams')}
-                    data-testid="button-teams"
-                    className="text-teal-700 hover:text-primary-foreground/80"
-                    title="Team Management"
-                  >
-                    <UserCheck className="w-4 h-4" /> Team
-                  </Button>
-                  <Button 
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setLocation('/family-dashboard')}
-                    data-testid="button-family-dashboard"
-                    className="text-cyan-700 hover:text-primary-foreground/80"
-                    title="Family Team Dashboard"
-                  >
-                    <Users className="w-4 h-4" /> Family Teams
-                  </Button>
+
                 </div>
               )}
               <span className={styles.userName} data-testid="text-current-user">

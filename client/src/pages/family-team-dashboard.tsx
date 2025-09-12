@@ -229,10 +229,7 @@ export default function FamilyTeamDashboard() {
           <p className="text-muted-foreground mt-2">Drag and drop families to assign them to teams</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setLocation('/teams')} variant="outline">
-            <UserCheck className="w-4 h-4 mr-2" />
-            Manage Teams
-          </Button>
+
           <Button onClick={() => setLocation('/')} variant="outline">
             <Home className="w-4 h-4 mr-2" />
             Dashboard
