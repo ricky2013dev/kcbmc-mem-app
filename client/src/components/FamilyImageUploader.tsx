@@ -39,51 +39,43 @@ export function FamilyImageUploader({ onUploadComplete, currentImage }: FamilyIm
 
     setIsUploading(true);
     try {
-      // Get upload parameters
-      const response = await fetch('/api/objects/upload', {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Upload file directly
+      const uploadResponse = await fetch('/api/objects/upload', {
         method: 'POST',
         credentials: 'include',
+        body: formData,
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to get upload URL');
-      }
-      
-      const result = await response.json();
-      
-      // Upload file to storage
-      const uploadResponse = await fetch(result.uploadURL, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type,
-        },
-      });
-
       if (!uploadResponse.ok) {
         throw new Error('Failed to upload file');
       }
-
-      // Set ACL policy for the uploaded image
-      const aclResponse = await fetch('/api/family-images', {
+      
+      const uploadResult = await uploadResponse.json();
+      
+      // Process the uploaded image
+      const processResponse = await fetch('/api/family-images', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
         body: JSON.stringify({
-          imageURL: result.uploadURL,
+          imageURL: uploadResult.localPath,
         }),
       });
 
-      if (!aclResponse.ok) {
+      if (!processResponse.ok) {
         throw new Error('Failed to process uploaded image');
       }
 
-      const aclData = await aclResponse.json();
+      const processData = await processResponse.json();
       
       // Call completion handler with the processed image URL
-      onUploadComplete(aclData.objectPath);
+      onUploadComplete(processData.objectPath);
 
       toast({
         title: "Success",

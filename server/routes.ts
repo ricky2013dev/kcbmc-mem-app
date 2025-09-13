@@ -395,45 +395,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Object storage upload URL endpoint
-  app.post("/api/objects/upload", requireAuth, async (req, res) => {
+  // Local file upload endpoint
+  app.post("/api/objects/upload", requireAuth, upload.single('file'), async (req, res) => {
     try {
-      const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      // Return the local file path that can be used for display
+      const filePath = `/uploads/${req.file.filename}`;
+      res.json({ uploadURL: filePath, localPath: filePath });
     } catch (error) {
-      console.error("Error getting upload URL:", error);
-      res.status(500).json({ message: "Failed to get upload URL" });
+      console.error("Error uploading file:", error);
+      res.status(500).json({ message: "Failed to upload file" });
     }
   });
 
-  // Object storage file update endpoint
+  // Local file processing endpoint
   app.put("/api/family-images", requireAuth, async (req, res) => {
     if (!req.body.imageURL) {
       return res.status(400).json({ error: "imageURL is required" });
     }
 
     try {
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        req.body.imageURL,
-        {
-          owner: req.session?.staffId || "system",
-          // Family images are public so they can be viewed by all staff
-          visibility: "public",
-        },
-      );
+      // For local files, just return the path as-is
+      const objectPath = req.body.imageURL;
 
       res.status(200).json({
         objectPath: objectPath,
       });
     } catch (error) {
-      console.error("Error setting family image:", error);
+      console.error("Error processing family image:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  // Serve objects from object storage
+  // Serve uploaded files from local storage
+  app.get("/uploads/:filename", (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(process.cwd(), 'uploads', filename);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+    
+    // Serve the file
+    res.sendFile(filePath);
+  });
+
+  // Legacy route for object storage (if needed)
   app.get("/objects/:objectPath(*)", async (req, res) => {
     const objectStorageService = new ObjectStorageService();
     try {
