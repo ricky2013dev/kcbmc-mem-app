@@ -19,7 +19,7 @@ import { FamilyWithMembers, Department, Team } from '@server/schema';
 import { SearchFilters, COURSE_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
 import { getGradeGroupFirstChar } from '@/utils/grade-utils';
-import { Users, Search, Plus, Edit, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, Calendar, Save, GraduationCap, Info, FolderOpen, UserCheck } from 'lucide-react';
+import { Users, Search, Plus, Edit, Copy, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, Calendar, Save, GraduationCap, Info, FolderOpen, UserCheck } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { CareLogList } from '@/components/CareLogList';
 import { RefreshButton } from '@/components/RefreshButton';
@@ -1498,45 +1498,72 @@ export default function DashboardPage() {
                     {expandedFamilies.has(family.id) && (
                       <div className={styles.expandedContent}>
                         <Tabs defaultValue="current-info" className="w-full">
-                          <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="current-info">가족사항 </TabsTrigger>
-                            
-                            <TabsTrigger value="care-logs">
-                              <CareLogTabTitle familyId={family.id} />
-                            </TabsTrigger>
-                            <TabsTrigger value="family-notes">추가정보</TabsTrigger>
-                          </TabsList>
+                          <div className="grid grid-cols-3 gap-2 w-full items-center">
+                            <TabsList className="grid grid-cols-2 col-span-2">
+                              <TabsTrigger value="current-info">가족사항</TabsTrigger>
+                              <TabsTrigger value="care-logs">
+                                <CareLogTabTitle familyId={family.id} />
+                              </TabsTrigger>
+                            </TabsList>
+
+                            <div className="flex justify-center">
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLocation(`/family/${family.id}/edit`);
+                                }}
+                                data-testid={`button-edit-${family.id}`}
+                                className="px-4 py-1 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-sm"
+                                title="Edit family"
+                              >
+                                <Edit className="w-4 h-4" />Edit
+                              </Button>
+                            </div>
+                          </div>
                           
                           <TabsContent value="current-info" className="mt-4">
                             <div className={styles.familyDetailsExpanded}>
                               {/* Large Family Picture */}
-                              {family.familyPicture && (
-                                <div className="mb-6 flex justify-center">
-                                  <div 
-                                    className="relative cursor-pointer hover:opacity-80 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setMagnifiedImage({
-                                        src: family.familyPicture!,
-                                        alt: `${family.familyName} family`
-                                      });
-                                    }}
-                                  >
-                                    <img 
-                                      src={family.familyPicture} 
-                                      alt={`${family.familyName} family`}
-                                      className={`w-32 h-32 object-cover rounded-lg border-4 ${getStatusBorderClassName(family.memberStatus)} shadow-lg`}
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
+                              <div className="mb-6 flex justify-center">
+                                <div className="relative">
+                                  {family.familyPicture ? (
+                                    <div
+                                      className="relative cursor-pointer hover:opacity-80 transition-opacity"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setMagnifiedImage({
+                                          src: family.familyPicture!,
+                                          alt: `${family.familyName} family`
+                                        });
                                       }}
-                                    />
-                                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-1.5 hover:bg-opacity-70 transition-all">
-                                      <Search className="w-4 h-4 text-white" />
+                                    >
+                                      <img
+                                        src={family.familyPicture}
+                                        alt={`${family.familyName} family`}
+                                        className={`w-32 h-32 object-cover rounded-lg border-4 ${getStatusBorderClassName(family.memberStatus)} shadow-lg`}
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          target.style.display = 'none';
+                                          const fallback = target.parentElement?.parentElement?.querySelector('.expanded-fallback-icon') as HTMLElement;
+                                          if (fallback) fallback.style.display = 'flex';
+                                        }}
+                                      />
+                                      <div className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-1.5 hover:bg-opacity-70 transition-all">
+                                        <Search className="w-4 h-4 text-white" />
+                                      </div>
                                     </div>
+                                  ) : (
+                                    <div className={`w-32 h-32 rounded-lg border-4 ${getStatusBorderClassName(family.memberStatus)} shadow-lg bg-gray-100 flex items-center justify-center`}>
+                                      <Users className="w-16 h-16 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                  <div className="expanded-fallback-icon hidden w-32 h-32 rounded-lg border-4 border-gray-300 shadow-lg bg-gray-100 items-center justify-center">
+                                    <Users className="w-16 h-16 text-muted-foreground" />
                                   </div>
                                 </div>
-                              )}
+                              </div>
                               
                               <div className={styles.contactInfo}>
                                 {(() => {
@@ -1620,7 +1647,8 @@ export default function DashboardPage() {
                                   const fullAddress = [
                                     family.address,
                                     family.city,
-                                    family.state
+                                    family.state,
+                                    family.zipCode
                                   ].filter(Boolean).join(', ');
                                   
                                   return (
@@ -1647,6 +1675,37 @@ export default function DashboardPage() {
                                           </Badge>
                                         )}
                                       </div>
+                          
+                          <div className="flex justify-between items-center mt-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                navigator.clipboard.writeText(fullAddress);
+                                toast({
+                                  description: "Address copied to clipboard",
+                                });
+                              }}
+                              className="text-primary hover:text-primary/80"
+                              title="Copy address"
+                            >
+                              <Copy className="w-4 h-4" />Copy Address
+                            </Button>
+                            
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFamilyExpanded(family.id);
+                              }}
+                              title="Close"
+                            >
+                              <X className="w-3 h-3 mr-1" />
+                              Close
+                            </Button>
+                          </div>
                                     </div>
                                   );
                                 })()}
@@ -1742,136 +1801,9 @@ export default function DashboardPage() {
                                 })()}
                               </div>
                               
-                              <div className={styles.familyActions}>
-                                <Button 
-                                  size="sm"
-                                  variant="default"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setLocation(`/family/${family.id}/edit`);
-                                  }}
-                                  data-testid={`button-edit-${family.id}`}
-                                  className={styles.editButton}
-                                >
-                                  <Edit className="w-3 h-3 mr-1" />
-                                  Edit
-                                </Button>
-                                <Button 
-                                  size="sm"
-                                  variant="secondary"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    printFamilyInfo(family);
-                                  }}
-                                  title="Print Family Information"
-                                >
-                                  <Printer className="w-3 h-3 mr-1" />
-                                  Print
-                                </Button>
-                                <Button 
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleFamilyExpanded(family.id);
-                                  }}
-                                  title="Close"
-                                >
-                                  <X className="w-3 h-3 mr-1" />
-                                  Close
-                                </Button>
-                              </div>
                             </div>
                           </TabsContent>
                           
-                          <TabsContent value="family-notes" className="mt-4">
-                            <div className="space-y-4">
-                              {family.familyNotes || editingFamilyNotes === family.id ? (
-                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                  <div className="flex justify-between items-center mb-2">
-                                    <h5 className="font-medium text-blue-900">Family Notes</h5>
-                                    {hasAgreedToFamilyNotesProtection && editingFamilyNotes !== family.id && (
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleEditFamilyNotes(family)}
-                                        className="text-blue-600 hover:text-blue-800"
-                                        title="Edit family notes"
-                                      >
-                                        <Edit className="w-3 h-3 mr-1" />
-                                        Edit
-                                      </Button>
-                                    )}
-                                  </div>
-                                  
-                                  {editingFamilyNotes === family.id ? (
-                                    <div className="space-y-3">
-                                      <Textarea
-                                        value={familyNotesText}
-                                        onChange={(e) => setFamilyNotesText(e.target.value)}
-                                        placeholder="Enter family notes..."
-                                        rows={4}
-                                        className="w-full text-blue-800 bg-white"
-                                      />
-                                      <div className="flex gap-2">
-                                        <Button
-                                          size="sm"
-                                          onClick={() => handleSaveFamilyNotes(family.id)}
-                                          disabled={updateFamilyNotesMutation.isPending}
-                                          className="bg-blue-600 hover:bg-blue-700"
-                                        >
-                                          <Save className="w-3 h-3 mr-1" />
-                                          {updateFamilyNotesMutation.isPending ? 'Saving...' : 'Save'}
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={handleCancelFamilyNotesEdit}
-                                          disabled={updateFamilyNotesMutation.isPending}
-                                        >
-                                          Cancel
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ) : hasAgreedToFamilyNotesProtection ? (
-                                    <div 
-                                      className="text-blue-800 whitespace-pre-wrap"
-                                      title="Notes are visible"
-                                    >
-                                      {family.familyNotes || 'No notes available'}
-                                    </div>
-                                  ) : (
-                                    <div onClick={handleViewFamilyNotes}>
-                                      <div 
-                                        className="text-blue-800 whitespace-pre-wrap cursor-pointer hover:bg-blue-100 p-2 rounded transition-colors"
-                                        title="Click to agree to protection terms and view notes"
-                                      >
-                                        {maskText(family.familyNotes || '')}
-                                      </div>
-                                      <p className="text-sm text-blue-600 mt-2 italic">
-                                        🔒 Click above to view protected notes
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="p-4 border border-dashed border-gray-300 rounded-lg text-center text-muted-foreground">
-                                  <div className="space-y-3">
-                                    <p>No family notes available</p>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleEditFamilyNotes(family)}
-                                      className="text-gray-600 hover:text-gray-800"
-                                    >
-                                      <Plus className="w-3 h-3 mr-1" />
-                                      Add Notes
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </TabsContent>
                           
                           <TabsContent value="staff-notes" className="mt-4">
                             <div className="p-4 border border-dashed border-gray-300 rounded-lg text-center text-muted-foreground">
