@@ -1025,6 +1025,33 @@ export default function DashboardPage() {
      
             {/* Desktop Menu - Hidden on Mobile */}
             <div className="hidden md:flex items-center space-x-4">
+                              <div className="flex space-x-2">
+                  <Button 
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setLocation('/departments')}
+                    data-testid="button-departments"
+                    className="text-orange-700 hover:text-primary-foreground/80"
+                    title="Department Management"
+                  >
+                    <FolderOpen className="w-4 h-4" /> 지회(트리뷰)
+                  </Button>
+ 
+                  <Button 
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setLocation('/family-dashboard')}
+                    data-testid="button-family-dashboard"
+                    className="text-cyan-700 hover:text-primary-foreground/80"
+                    title="Family Team Dashboard"
+                  >
+                    <Users className="w-4 h-4" /> 지회(카드뷰)
+                  </Button>
+                               
+
+
+                </div>
+
               {user?.group === 'ADM' && (
                 <div className="flex space-x-2">
                   <Button 
