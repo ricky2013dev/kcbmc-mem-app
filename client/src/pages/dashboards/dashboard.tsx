@@ -933,7 +933,11 @@ export default function DashboardPage() {
         <div className={styles.navContent}>
           <div className={styles.navLeft}>
             <div className={styles.navIcon}>
-              <Users className="w-5 h-5 text-primary-foreground" />
+              <img
+                src="/kcmbc-logo.svg"
+                alt="KCMBC Logo"
+                className="w-5 h-5"
+              />
             </div>
             <h1 className={styles.navTitle}>Member</h1>
           </div>
