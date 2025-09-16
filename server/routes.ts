@@ -413,7 +413,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Hybrid file upload endpoint (local for dev, object storage for production)
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
-    const useObjectStorage = process.env.STORAGE_BACKEND === 'object';
+    // Auto-detect environment: use object storage if environment variables are set
+    const hasObjectStorageConfig = process.env.PRIVATE_OBJECT_DIR && process.env.PUBLIC_OBJECT_SEARCH_PATHS;
+    const useObjectStorage = process.env.STORAGE_BACKEND === 'object' || 
+                             (process.env.NODE_ENV === 'production' && hasObjectStorageConfig);
     
     if (useObjectStorage) {
       // Use memory storage for object storage uploads
