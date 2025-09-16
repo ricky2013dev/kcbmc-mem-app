@@ -395,19 +395,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Local file upload endpoint
-  app.post("/api/objects/upload", requireAuth, upload.single('file'), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
+  // Configure multer based on storage backend
+  const memoryUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (allowedMimes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
       }
-      
-      // Return the local file path that can be used for display
-      const filePath = `/uploads/${req.file.filename}`;
-      res.json({ uploadURL: filePath, localPath: filePath });
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
+  // Hybrid file upload endpoint (local for dev, object storage for production)
+  app.post("/api/objects/upload", requireAuth, async (req, res) => {
+    const useObjectStorage = process.env.STORAGE_BACKEND === 'object';
+    
+    if (useObjectStorage) {
+      // Use memory storage for object storage uploads
+      memoryUpload.single('file')(req, res, async (err) => {
+        if (err) {
+          console.error("Multer error:", err);
+          return res.status(400).json({ message: err.message });
+        }
+        
+        try {
+          if (!req.file) {
+            return res.status(400).json({ message: "No file uploaded" });
+          }
+          
+          // Upload to object storage
+          const objectStorageService = new ObjectStorageService();
+          const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+          
+          // Upload file buffer to the signed URL
+          const uploadResponse = await fetch(uploadURL, {
+            method: 'PUT',
+            body: req.file.buffer,
+            headers: {
+              'Content-Type': req.file.mimetype,
+            },
+          });
+          
+          if (!uploadResponse.ok) {
+            throw new Error('Failed to upload to object storage');
+          }
+          
+          // Extract object path from upload URL for serving
+          const objectPath = new URL(uploadURL).pathname;
+          res.json({ uploadURL: `/objects${objectPath}`, objectPath: `/objects${objectPath}` });
+        } catch (error) {
+          console.error("Error uploading to object storage:", error);
+          res.status(500).json({ message: "Failed to upload file" });
+        }
+      });
+    } else {
+      // Use local disk storage for development
+      upload.single('file')(req, res, (err) => {
+        if (err) {
+          console.error("Multer error:", err);
+          return res.status(400).json({ message: err.message });
+        }
+        
+        try {
+          if (!req.file) {
+            return res.status(400).json({ message: "No file uploaded" });
+          }
+          
+          // Return the local file path that can be used for display
+          const filePath = `/uploads/${req.file.filename}`;
+          res.json({ uploadURL: filePath, localPath: filePath });
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          res.status(500).json({ message: "Failed to upload file" });
+        }
+      });
     }
   });
 
