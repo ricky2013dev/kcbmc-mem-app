@@ -160,7 +160,7 @@ export default function LoginPage() {
                 <img
                   src="/kcmbc-logo.svg"
                   alt="KCMBC Logo"
-                  className="w-8 h-8"
+               
                 />
               </div>
               <h1 className={styles.title}>KCBMC Member</h1>
