@@ -523,20 +523,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendFile(filePath);
   });
 
-  // Legacy route for object storage (if needed)
+  // Object storage route for serving uploaded files
   app.get("/objects/:objectPath(*)", async (req, res) => {
     const objectStorageService = new ObjectStorageService();
+    
+    // Check if we're using object storage
+    const hasObjectStorageConfig = process.env.PRIVATE_OBJECT_DIR && process.env.PUBLIC_OBJECT_SEARCH_PATHS;
+    const useObjectStorageForServing = process.env.STORAGE_BACKEND === 'object' || hasObjectStorageConfig;
+    
+    if (!useObjectStorageForServing) {
+      // For local development, redirect to local uploads
+      const localPath = req.params.objectPath;
+      return res.redirect(`/uploads/${localPath}`);
+    }
+    
     try {
+      console.log("Attempting to serve object:", req.path);
+      
       const objectFile = await objectStorageService.getObjectEntityFile(
         req.path,
       );
       objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
-      console.error("Error checking object access:", error);
+      console.error("Error serving object:", error);
+      
+      // If object not found, try alternative path construction
       if (error instanceof ObjectNotFoundError) {
-        return res.sendStatus(404);
+        try {
+          // Try with just the filename part for uploaded files
+          const filename = req.params.objectPath;
+          if (filename && !filename.includes('/')) {
+            const alternativePath = `/objects/uploads/${filename}`;
+            console.log("Trying alternative path:", alternativePath);
+            
+            const altObjectFile = await objectStorageService.getObjectEntityFile(alternativePath);
+            return objectStorageService.downloadObject(altObjectFile, res);
+          }
+        } catch (altError) {
+          console.error("Alternative path also failed:", altError);
+        }
+        
+        return res.status(404).json({ error: "File not found" });
       }
-      return res.sendStatus(500);
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
