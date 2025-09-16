@@ -32,12 +32,12 @@ declare global {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Health check endpoint for deployment
-  app.get("/", (req, res) => {
+  // Health check endpoints for deployment (moved to /api to avoid interfering with frontend)
+  app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
   });
 
-  app.get("/health", (req, res) => {
+  app.get("/api/status", (req, res) => {
     res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
   });
 

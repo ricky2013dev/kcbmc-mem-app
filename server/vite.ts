@@ -44,8 +44,8 @@ export async function setupVite(app: Express, server: Server) {
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
-    // Skip catch-all for health check endpoints - they should be handled by the routes
-    if (url === "/" || url === "/health") {
+    // Skip catch-all for API routes - they should be handled by the routes
+    if (url.startsWith("/api")) {
       return next();
     }
 
