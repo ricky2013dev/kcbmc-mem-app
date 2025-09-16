@@ -47,10 +47,20 @@ Preferred communication style: Simple, everyday language.
 - **PIN-Based Authentication**: Secure 4-digit PIN system for staff access
 
 ### File Storage & Management
-- **Cloud Storage**: Google Cloud Storage integration via Replit sidecar
+- **Hybrid Storage**: Automatic switching between local storage (development) and object storage (production)
+- **Cloud Storage**: Google Cloud Storage integration via Replit sidecar for persistent file storage
 - **Object ACL**: Custom access control layer for file permissions
 - **Image Processing**: Support for family photos and document uploads
 - **Secure Access**: Token-based authentication for file access
+- **Production Persistence**: Images persist across deployments when object storage is configured
+
+#### Setting Up Persistent Storage for Production:
+To ensure images persist across production deployments, configure these environment variables:
+- `STORAGE_BACKEND=object` - Explicitly enable object storage
+- `PRIVATE_OBJECT_DIR=/your-bucket-name` - Your App Storage bucket for private files
+- `PUBLIC_OBJECT_SEARCH_PATHS=/your-bucket-name/public` - Search paths for public files
+
+Create a bucket in the App Storage tool in your Replit workspace and use that bucket name in the environment variables above.
 
 ### Development & Deployment
 - **Build System**: Vite for frontend bundling, esbuild for backend compilation

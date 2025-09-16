@@ -478,11 +478,11 @@ export default function DashboardPage() {
   const getActiveFilters = () => {
     const activeFilters = [];
     
-    if (filters.departmentId) {
+    if (filters.departmentId && departments && Array.isArray(departments)) {
       const department = departments.find(dept => dept.id === filters.departmentId);
       activeFilters.push({ label: 'Department', value: department?.name || filters.departmentId });
     }
-    if (filters.teamIds && filters.teamIds.length > 0) {
+    if (filters.teamIds && filters.teamIds.length > 0 && teams && Array.isArray(teams)) {
       const selectedTeams = teams.filter(team => filters.teamIds.includes(team.id));
       selectedTeams.forEach(team => {
         activeFilters.push({ label: 'Team', value: team.name });
