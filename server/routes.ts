@@ -448,8 +448,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Extract object path from upload URL for serving
-          const objectPath = new URL(uploadURL).pathname;
-          res.json({ uploadURL: `/objects${objectPath}`, objectPath: `/objects${objectPath}` });
+          const fullObjectPath = new URL(uploadURL).pathname;
+          const privateObjectDir = objectStorageService.getPrivateObjectDir();
+          
+          // Remove the private object directory prefix to get just the relative path
+          let relativePath = fullObjectPath;
+          if (fullObjectPath.startsWith(privateObjectDir)) {
+            relativePath = fullObjectPath.slice(privateObjectDir.length);
+            if (relativePath.startsWith('/')) {
+              relativePath = relativePath.slice(1);
+            }
+          }
+          
+          res.json({ uploadURL: `/objects/${relativePath}`, objectPath: `/objects/${relativePath}` });
         } catch (error) {
           console.error("Error uploading to object storage:", error);
           res.status(500).json({ message: "Failed to upload file" });
