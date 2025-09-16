@@ -52,7 +52,7 @@
 .navIcon {
   width: 2rem;
   height: 2rem;
-  background: linear-gradient(135deg, #16a34a, #15803d);
+
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
@@ -766,22 +766,20 @@
   font-weight: 700;
   display: block;
   position: relative;
-  background: linear-gradient(
-    90deg,
-    #16a34a,
-    #10b981,
-    #059669,
-    #ef4444,
-    #f59e0b,
-    #16a34a
-  );
+  background: linear-gradient(90deg,
+      #16a34a,
+      #10b981,
+      #059669,
+      #ef4444,
+      #f59e0b,
+      #16a34a);
   background-size: 300% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: waveFlow 60s linear infinite, slideInLeft 0.8s ease-out;
   transition: all 0.3s ease;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .footerDate:hover {
@@ -797,14 +795,12 @@
   left: -4px;
   right: -4px;
   bottom: -2px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(34, 197, 94, 0.1),
-    rgba(16, 185, 129, 0.1),
-    rgba(34, 197, 94, 0.1),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(34, 197, 94, 0.1),
+      rgba(16, 185, 129, 0.1),
+      rgba(34, 197, 94, 0.1),
+      transparent);
   background-size: 200% 100%;
   border-radius: 6px;
   z-index: -1;
@@ -932,11 +928,11 @@
   .footerUser {
     font-size: 0.875rem;
   }
-  
+
   .footerUserText {
     max-width: none;
   }
-  
+
   .footerUserIcon {
     width: 1.75rem;
     height: 1.75rem;
@@ -949,6 +945,7 @@
     opacity: 0;
     transform: translateX(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -960,6 +957,7 @@
     opacity: 0;
     transform: translateX(20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -967,18 +965,24 @@
 }
 
 @keyframes gradientShift {
-  0%, 100% {
+
+  0%,
+  100% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
 }
 
 @keyframes pulseTime {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.02);
   }
@@ -988,7 +992,9 @@
   0% {
     left: -100%;
   }
-  50%, 100% {
+
+  50%,
+  100% {
     left: 100%;
   }
 }
@@ -998,6 +1004,7 @@
     opacity: 0;
     transform: translateY(100%);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1009,9 +1016,11 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   60% {
     opacity: 0.8;
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -1106,10 +1115,13 @@
 }
 
 @keyframes pulseNotification {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.1);
     opacity: 0.8;
@@ -1121,6 +1133,7 @@
   0% {
     background-position: 0% center;
   }
+
   100% {
     background-position: 300% center;
   }
@@ -1130,16 +1143,20 @@
   0% {
     background-position: 0% center;
   }
+
   100% {
     background-position: 300% center;
   }
 }
 
 @keyframes waveBackground {
-  0%, 100% {
+
+  0%,
+  100% {
     background-position: -200% 0;
     transform: scaleX(0.8);
   }
+
   50% {
     background-position: 200% 0;
     transform: scaleX(1.2);
@@ -1148,10 +1165,13 @@
 
 /* Fancy User Icon Animations */
 @keyframes iconGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: rotate(0deg) translate(-50%, -50%);
     opacity: 0;
   }
+
   50% {
     transform: rotate(180deg) translate(-50%, -50%);
     opacity: 1;
@@ -1162,6 +1182,7 @@
   0% {
     background-position: -200% center;
   }
+
   100% {
     background-position: 200% center;
   }
@@ -1169,9 +1190,12 @@
 
 /* Care Log Badge Alarm Animation */
 @keyframes careLogAlarm {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.02);
   }
