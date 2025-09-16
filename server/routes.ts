@@ -420,22 +420,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Hybrid file upload endpoint (supports both local dev and Google Cloud Storage)
+  // Hybrid file upload endpoint (supports both local dev and Replit Object Storage)
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
-    // Check if Google Cloud Storage credentials are configured
-    const hasGoogleCloudConfig = process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-                                (process.env.GOOGLE_CLOUD_PROJECT_ID && process.env.GOOGLE_CLOUD_PRIVATE_KEY);
-    const useCloudStorage = hasGoogleCloudConfig && process.env.NODE_ENV === 'production';
+    // Check if Replit Object Storage is configured
+    const hasReplitObjectStorage = process.env.PRIVATE_OBJECT_DIR && process.env.PUBLIC_OBJECT_SEARCH_PATHS;
+    const useCloudStorage = hasReplitObjectStorage && process.env.NODE_ENV === 'production';
 
     console.log('Upload request received:', {
       useCloudStorage,
-      hasGoogleCloudConfig,
+      hasReplitObjectStorage,
       nodeEnv: process.env.NODE_ENV,
-      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID ? 'SET' : 'NOT_SET'
+      privateObjectDir: process.env.PRIVATE_OBJECT_DIR ? 'SET' : 'NOT_SET',
+      publicObjectSearchPaths: process.env.PUBLIC_OBJECT_SEARCH_PATHS ? 'SET' : 'NOT_SET'
     });
 
     if (useCloudStorage) {
-      console.log('Using Google Cloud Storage for file upload');
+      console.log('Using Replit Object Storage for file upload');
       // Use memory storage for cloud uploads
       memoryUpload.single('file')(req, res, async (err) => {
         if (err) {
@@ -481,7 +481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error(`Cloud storage upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
           }
 
-          console.log('Successfully uploaded to cloud storage');
+          console.log('Successfully uploaded to Replit Object Storage');
 
           // Extract object path from upload URL for serving
           const fullObjectPath = new URL(uploadURL).pathname;
@@ -502,12 +502,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.json({
             uploadURL: objectPath,
             objectPath: objectPath,
-            message: 'File uploaded to cloud storage successfully'
+            message: 'File uploaded to Replit Object Storage successfully'
           });
         } catch (error: any) {
-          console.error("Error uploading to cloud storage:", error);
+          console.error("Error uploading to Replit Object Storage:", error);
           res.status(500).json({
-            message: `Failed to upload file to cloud storage: ${error.message}`,
+            message: `Failed to upload file to Replit Object Storage: ${error.message}`,
             details: error.stack
           });
         }
@@ -573,9 +573,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Processing family image:', { imageURL });
 
       // Check if we're using cloud storage
-      const hasGoogleCloudConfig = process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-                                  (process.env.GOOGLE_CLOUD_PROJECT_ID && process.env.GOOGLE_CLOUD_PRIVATE_KEY);
-      const useCloudStorage = hasGoogleCloudConfig && process.env.NODE_ENV === 'production';
+      const hasReplitObjectStorage = process.env.PRIVATE_OBJECT_DIR && process.env.PUBLIC_OBJECT_SEARCH_PATHS;
+      const useCloudStorage = hasReplitObjectStorage && process.env.NODE_ENV === 'production';
 
       if (useCloudStorage && imageURL.startsWith('/objects/')) {
         console.log('Processing cloud storage image path');
@@ -590,7 +589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           res.status(200).json({
             objectPath: normalizedPath,
-            message: 'Cloud storage image processed successfully'
+            message: 'Replit Object Storage image processed successfully'
           });
         } catch (aclError) {
           console.warn('ACL processing failed, but continuing with original path:', aclError);
@@ -631,11 +630,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendFile(filePath);
   });
 
-  // Cloud storage route for serving uploaded files
+  // Replit Object Storage route for serving uploaded files
   app.get("/objects/:objectPath(*)", async (req, res) => {
-    const hasGoogleCloudConfig = process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-                                (process.env.GOOGLE_CLOUD_PROJECT_ID && process.env.GOOGLE_CLOUD_PRIVATE_KEY);
-    const useCloudStorage = hasGoogleCloudConfig && process.env.NODE_ENV === 'production';
+    const hasReplitObjectStorage = process.env.PRIVATE_OBJECT_DIR && process.env.PUBLIC_OBJECT_SEARCH_PATHS;
+    const useCloudStorage = hasReplitObjectStorage && process.env.NODE_ENV === 'production';
 
     if (!useCloudStorage) {
       // For local development, redirect to local uploads
