@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Bell, ExternalLink, X } from "lucide-react";
+import { Bell, ExternalLink, X } from "lucide-react";
 import styles from "./login.module.css";
 import { apiRequest } from '@/lib/queryClient';
 
@@ -157,7 +157,11 @@ export default function LoginPage() {
           <CardContent className={styles.cardContent}>
             <div className={styles.header}>
               <div className={styles.icon}>
-                <Users className="w-8 h-8 text-primary-foreground" />
+                <img
+                  src="/kcmbc-logo.svg"
+                  alt="KCMBC Logo"
+                  className="w-8 h-8"
+                />
               </div>
               <h1 className={styles.title}>KCBMC Member</h1>
               {publicAnnouncements.length > 0 && (
