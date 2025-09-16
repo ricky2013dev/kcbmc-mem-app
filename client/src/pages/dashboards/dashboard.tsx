@@ -99,11 +99,19 @@ export default function DashboardPage() {
   // Fetch departments
   const { data: departments = [] } = useQuery<Department[]>({
     queryKey: ["/api/departments"],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/departments');
+      return response.json();
+    },
   });
 
   // Fetch teams
   const { data: teams = [] } = useQuery<Team[]>({
     queryKey: ["/api/teams"],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/teams');
+      return response.json();
+    },
   });
 
   // Validate saved filters when departments and teams are loaded
