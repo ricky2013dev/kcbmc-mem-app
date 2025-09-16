@@ -416,41 +416,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Only use object storage when BOTH environment variables are properly configured
     const hasObjectStorageConfig = process.env.PRIVATE_OBJECT_DIR && process.env.PUBLIC_OBJECT_SEARCH_PATHS;
     const useObjectStorage = hasObjectStorageConfig;
-    
+
+    console.log('Upload request received:', {
+      useObjectStorage,
+      hasObjectStorageConfig,
+      privateObjectDir: process.env.PRIVATE_OBJECT_DIR,
+      publicSearchPaths: process.env.PUBLIC_OBJECT_SEARCH_PATHS
+    });
+
     if (useObjectStorage) {
+      console.log('Using object storage for file upload');
       // Use memory storage for object storage uploads
       memoryUpload.single('file')(req, res, async (err) => {
         if (err) {
-          console.error("Multer error:", err);
-          return res.status(400).json({ message: err.message });
+          console.error("Multer error for object storage:", err);
+          return res.status(400).json({ message: `File upload error: ${err.message}` });
         }
-        
+
         try {
           if (!req.file) {
+            console.error("No file found in request");
             return res.status(400).json({ message: "No file uploaded" });
           }
-          
+
+          console.log('File received for object storage upload:', {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size
+          });
+
           // Upload to object storage
           const objectStorageService = new ObjectStorageService();
           const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-          
+
+          console.log('Generated upload URL:', uploadURL);
+
           // Upload file buffer to the signed URL
           const uploadResponse = await fetch(uploadURL, {
             method: 'PUT',
             body: req.file.buffer,
             headers: {
               'Content-Type': req.file.mimetype,
+              'Content-Length': req.file.size.toString(),
             },
           });
-          
+
           if (!uploadResponse.ok) {
-            throw new Error('Failed to upload to object storage');
+            const errorText = await uploadResponse.text();
+            console.error('Object storage upload failed:', {
+              status: uploadResponse.status,
+              statusText: uploadResponse.statusText,
+              error: errorText
+            });
+            throw new Error(`Object storage upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
           }
-          
+
+          console.log('Successfully uploaded to object storage');
+
           // Extract object path from upload URL for serving
           const fullObjectPath = new URL(uploadURL).pathname;
           const privateObjectDir = objectStorageService.getPrivateObjectDir();
-          
+
           // Remove the private object directory prefix to get just the relative path
           let relativePath = fullObjectPath;
           if (fullObjectPath.startsWith(privateObjectDir)) {
@@ -459,53 +485,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
               relativePath = relativePath.slice(1);
             }
           }
-          
-          res.json({ uploadURL: `/objects/${relativePath}`, objectPath: `/objects/${relativePath}` });
-        } catch (error) {
+
+          const objectPath = `/objects/${relativePath}`;
+          console.log('Generated object path:', objectPath);
+
+          res.json({
+            uploadURL: objectPath,
+            objectPath: objectPath,
+            message: 'File uploaded to object storage successfully'
+          });
+        } catch (error: any) {
           console.error("Error uploading to object storage:", error);
-          res.status(500).json({ message: "Failed to upload file" });
+          res.status(500).json({
+            message: `Failed to upload file to object storage: ${error.message}`,
+            details: error.stack
+          });
         }
       });
     } else {
+      console.log('Using local storage for file upload');
       // Use local disk storage for development
       upload.single('file')(req, res, (err) => {
         if (err) {
-          console.error("Multer error:", err);
-          return res.status(400).json({ message: err.message });
+          console.error("Multer error for local storage:", err);
+          if (err instanceof multer.MulterError) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+              return res.status(400).json({ message: "File too large. Maximum size is 5MB." });
+            }
+          }
+          return res.status(400).json({ message: `File upload error: ${err.message}` });
         }
-        
+
         try {
           if (!req.file) {
+            console.error("No file found in request");
             return res.status(400).json({ message: "No file uploaded" });
           }
-          
+
+          console.log('File received for local upload:', {
+            originalname: req.file.originalname,
+            filename: req.file.filename,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            path: req.file.path
+          });
+
           // Return the local file path that can be used for display
           const filePath = `/uploads/${req.file.filename}`;
-          res.json({ uploadURL: filePath, localPath: filePath });
-        } catch (error) {
-          console.error("Error uploading file:", error);
-          res.status(500).json({ message: "Failed to upload file" });
+          console.log('Generated local file path:', filePath);
+
+          res.json({
+            uploadURL: filePath,
+            localPath: filePath,
+            objectPath: filePath,
+            message: 'File uploaded to local storage successfully'
+          });
+        } catch (error: any) {
+          console.error("Error uploading file locally:", error);
+          res.status(500).json({
+            message: `Failed to upload file locally: ${error.message}`,
+            details: error.stack
+          });
         }
       });
     }
   });
 
-  // Local file processing endpoint
+  // Family image processing endpoint (handles both local and object storage)
   app.put("/api/family-images", requireAuth, async (req, res) => {
     if (!req.body.imageURL) {
+      console.error("No imageURL provided in request body");
       return res.status(400).json({ error: "imageURL is required" });
     }
 
     try {
-      // For local files, just return the path as-is
-      const objectPath = req.body.imageURL;
+      const imageURL = req.body.imageURL;
+      console.log('Processing family image:', { imageURL });
 
-      res.status(200).json({
-        objectPath: objectPath,
-      });
-    } catch (error) {
+      // Check if we're using object storage
+      const hasObjectStorageConfig = process.env.PRIVATE_OBJECT_DIR && process.env.PUBLIC_OBJECT_SEARCH_PATHS;
+
+      if (hasObjectStorageConfig && imageURL.startsWith('/objects/')) {
+        console.log('Processing object storage image path');
+
+        // For object storage, we might want to set ACL permissions here
+        try {
+          const objectStorageService = new ObjectStorageService();
+          // Normalize the object path and potentially set ACL
+          const normalizedPath = objectStorageService.normalizeObjectEntityPath(imageURL);
+
+          console.log('Normalized object path:', normalizedPath);
+
+          res.status(200).json({
+            objectPath: normalizedPath,
+            message: 'Object storage image processed successfully'
+          });
+        } catch (aclError) {
+          console.warn('ACL processing failed, but continuing with original path:', aclError);
+          // If ACL processing fails, still return the original path
+          res.status(200).json({
+            objectPath: imageURL,
+            message: 'Image processed (ACL warning: ' + aclError.message + ')'
+          });
+        }
+      } else {
+        console.log('Processing local image path');
+        // For local files, just return the path as-is
+        res.status(200).json({
+          objectPath: imageURL,
+          message: 'Local image processed successfully'
+        });
+      }
+    } catch (error: any) {
       console.error("Error processing family image:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({
+        error: "Internal server error",
+        details: error.message
+      });
     }
   });
 

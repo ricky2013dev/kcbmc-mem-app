@@ -21,7 +21,7 @@ export function FamilyImageUploader({ onUploadComplete, currentImage }: FamilyIm
     if (!file.type.startsWith('image/')) {
       toast({
         title: "Invalid file type",
-        description: "Please select an image file (JPG, PNG, etc.)",
+        description: "Please select an image file (JPG, PNG, GIF, WebP)",
         variant: "destructive",
       });
       return;
@@ -39,24 +39,39 @@ export function FamilyImageUploader({ onUploadComplete, currentImage }: FamilyIm
 
     setIsUploading(true);
     try {
+      console.log('Starting file upload:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      });
+
       // Create FormData for file upload
       const formData = new FormData();
       formData.append('file', file);
-      
-      // Upload file directly
+
+      // Upload file using the unified endpoint
       const uploadResponse = await fetch('/api/objects/upload', {
         method: 'POST',
         credentials: 'include',
         body: formData,
       });
-      
+
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload file');
+        const errorData = await uploadResponse.json().catch(() => ({ message: 'Unknown upload error' }));
+        throw new Error(errorData.message || `Upload failed with status: ${uploadResponse.status}`);
       }
-      
+
       const uploadResult = await uploadResponse.json();
-      
-      // Process the uploaded image
+      console.log('Upload result:', uploadResult);
+
+      // Determine the correct image URL to use
+      const imageURL = uploadResult.objectPath || uploadResult.uploadURL || uploadResult.localPath;
+
+      if (!imageURL) {
+        throw new Error('No valid image URL returned from upload');
+      }
+
+      // Process the uploaded image for family use
       const processResponse = await fetch('/api/family-images', {
         method: 'PUT',
         headers: {
@@ -64,18 +79,23 @@ export function FamilyImageUploader({ onUploadComplete, currentImage }: FamilyIm
         },
         credentials: 'include',
         body: JSON.stringify({
-          imageURL: uploadResult.uploadURL || uploadResult.objectPath,
+          imageURL: imageURL,
         }),
       });
 
       if (!processResponse.ok) {
-        throw new Error('Failed to process uploaded image');
+        const errorData = await processResponse.json().catch(() => ({ error: 'Unknown processing error' }));
+        throw new Error(errorData.error || `Image processing failed with status: ${processResponse.status}`);
       }
 
       const processData = await processResponse.json();
-      
-      // Call completion handler with the processed image URL
-      onUploadComplete(processData.objectPath);
+      console.log('Process result:', processData);
+
+      // Use the processed image path
+      const finalImagePath = processData.objectPath || imageURL;
+
+      // Call completion handler with the final image URL
+      onUploadComplete(finalImagePath);
 
       toast({
         title: "Success",
@@ -83,10 +103,15 @@ export function FamilyImageUploader({ onUploadComplete, currentImage }: FamilyIm
       });
 
     } catch (error: any) {
-      console.error('Upload error:', error);
+      console.error('Upload error details:', {
+        error: error.message,
+        stack: error.stack,
+        fileName: file.name
+      });
+
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload image",
+        description: error.message || "Failed to upload image. Please try again.",
         variant: "destructive",
       });
     } finally {
