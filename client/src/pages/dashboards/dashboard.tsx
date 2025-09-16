@@ -1522,16 +1522,16 @@ export default function DashboardPage() {
                     {expandedFamilies.has(family.id) && (
                       <div className={styles.expandedContent}>
                         <Tabs defaultValue="current-info" className="w-full">
-                          <div className="grid grid-cols-3 gap-2 w-full items-center">
-                            <TabsList className="grid grid-cols-2 col-span-2">
-                              <TabsTrigger value="current-info">기본정보</TabsTrigger>
-                              <TabsTrigger value="care-logs">
-                                <CareLogTabTitle familyId={family.id} />
-                              </TabsTrigger>
-                            </TabsList>
-
-                            <div className="flex justify-center">
-                              <Button
+                          <div className="w-full">
+                            <div className="flex justify-between items-center gap-2 w-full">
+                              <TabsList className="grid grid-cols-2 flex-1 max-w-md">
+                                <TabsTrigger value="current-info">기본정보</TabsTrigger>
+                                <TabsTrigger value="care-logs">
+                                  <CareLogTabTitle familyId={family.id} />
+                                </TabsTrigger>
+                              </TabsList>
+                              <div className="flex-shrink-0">
+                                <Button
                                 size="sm"
                                 variant="default"
                                 onClick={(e) => {
@@ -1542,8 +1542,9 @@ export default function DashboardPage() {
                                 className="px-4 py-1 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-sm"
                                 title="Edit family"
                               >
-                                <Edit className="w-4 h-4" />Edit
-                              </Button>
+                                  <Edit className="w-4 h-4" />Edit
+                                </Button>
+                              </div>
                             </div>
                           </div>
                           
