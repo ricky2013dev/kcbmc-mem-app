@@ -64,7 +64,7 @@ export function FamilyImageUploader({ onUploadComplete, currentImage }: FamilyIm
         },
         credentials: 'include',
         body: JSON.stringify({
-          imageURL: uploadResult.localPath,
+          imageURL: uploadResult.uploadURL || uploadResult.objectPath,
         }),
       });
 
