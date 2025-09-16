@@ -4,15 +4,14 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertFamilySchema, insertFamilyMemberSchema, insertStaffSchema, insertAnnouncementSchema, insertEventSchema, insertEventAttendanceSchema, insertDepartmentSchema, insertTeamSchema } from "@server/schema";
 import { z } from "zod";
-// Upload functionality temporarily disabled
-// import multer from "multer";
-// import path from "path";
-// import fs from "fs";
-// import { nanoid } from "nanoid";
-// import {
-//   ObjectStorageService,
-//   ObjectNotFoundError,
-// } from "./objectStorage";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { nanoid } from "nanoid";
+import {
+  ObjectStorageService,
+  ObjectNotFoundError,
+} from "./objectStorage";
 
 // Session type for staff authentication
 declare module "express-session" {
@@ -44,34 +43,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize sample staff data
   await initializeSampleData();
 
-  // Upload functionality temporarily disabled
-  // const upload = multer({
-  //   storage: multer.diskStorage({
-  //     destination: (req, file, cb) => {
-  //       const uploadDir = path.join(process.cwd(), 'uploads');
-  //       if (!fs.existsSync(uploadDir)) {
-  //         fs.mkdirSync(uploadDir, { recursive: true });
-  //       }
-  //       cb(null, uploadDir);
-  //     },
-  //     filename: (req, file, cb) => {
-  //       const extension = path.extname(file.originalname);
-  //       const filename = `${nanoid()}-${Date.now()}${extension}`;
-  //       cb(null, filename);
-  //     }
-  //   }),
-  //   limits: {
-  //     fileSize: 5 * 1024 * 1024, // 5MB limit
-  //   },
-  //   fileFilter: (req, file, cb) => {
-  //     const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  //     if (allowedMimes.includes(file.mimetype)) {
-  //       cb(null, true);
-  //     } else {
-  //       cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
-  //     }
-  //   }
-  // });
+  // Configure multer for file uploads (local storage for development)
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadDir = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        const extension = path.extname(file.originalname);
+        const filename = `${nanoid()}-${Date.now()}${extension}`;
+        cb(null, filename);
+      }
+    }),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (allowedMimes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
+      }
+    }
+  });
 
   // Auth middleware
   const requireAuth = (req: any, res: any, next: any) => {
@@ -405,61 +404,317 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload functionality temporarily disabled
-  // const memoryUpload = multer({
-  //   storage: multer.memoryStorage(),
-  //   limits: {
-  //     fileSize: 5 * 1024 * 1024, // 5MB limit
-  //   },
-  //   fileFilter: (req, file, cb) => {
-  //     const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  //     if (allowedMimes.includes(file.mimetype)) {
-  //       cb(null, true);
-  //     } else {
-  //       cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
-  //     }
-  //   }
-  // });
+  // Configure multer for cloud storage uploads (memory storage)
+  const memoryUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (allowedMimes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
+      }
+    }
+  });
 
-  // Upload functionality temporarily disabled
+  // Hybrid file upload endpoint (supports both local dev and Google Cloud Storage)
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
-    res.status(503).json({
-      message: "Upload functionality is temporarily disabled for system maintenance",
-      uploadURL: "",
-      objectPath: ""
+    // Check if Google Cloud Storage credentials are configured
+    const hasGoogleCloudConfig = process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+                                (process.env.GOOGLE_CLOUD_PROJECT_ID && process.env.GOOGLE_CLOUD_PRIVATE_KEY);
+    const useCloudStorage = hasGoogleCloudConfig && process.env.NODE_ENV === 'production';
+
+    console.log('Upload request received:', {
+      useCloudStorage,
+      hasGoogleCloudConfig,
+      nodeEnv: process.env.NODE_ENV,
+      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID ? 'SET' : 'NOT_SET'
     });
+
+    if (useCloudStorage) {
+      console.log('Using Google Cloud Storage for file upload');
+      // Use memory storage for cloud uploads
+      memoryUpload.single('file')(req, res, async (err) => {
+        if (err) {
+          console.error("Multer error for cloud storage:", err);
+          return res.status(400).json({ message: `File upload error: ${err.message}` });
+        }
+
+        try {
+          if (!req.file) {
+            console.error("No file found in request");
+            return res.status(400).json({ message: "No file uploaded" });
+          }
+
+          console.log('File received for cloud upload:', {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size
+          });
+
+          // Upload to Google Cloud Storage
+          const objectStorageService = new ObjectStorageService();
+          const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+
+          console.log('Generated cloud upload URL');
+
+          // Upload file buffer to the cloud
+          const uploadResponse = await fetch(uploadURL, {
+            method: 'PUT',
+            body: req.file.buffer,
+            headers: {
+              'Content-Type': req.file.mimetype,
+              'Content-Length': req.file.size.toString(),
+            },
+          });
+
+          if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            console.error('Cloud storage upload failed:', {
+              status: uploadResponse.status,
+              statusText: uploadResponse.statusText,
+              error: errorText
+            });
+            throw new Error(`Cloud storage upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+          }
+
+          console.log('Successfully uploaded to cloud storage');
+
+          // Extract object path from upload URL for serving
+          const fullObjectPath = new URL(uploadURL).pathname;
+          const privateObjectDir = objectStorageService.getPrivateObjectDir();
+
+          // Remove the private object directory prefix to get just the relative path
+          let relativePath = fullObjectPath;
+          if (fullObjectPath.startsWith(privateObjectDir)) {
+            relativePath = fullObjectPath.slice(privateObjectDir.length);
+            if (relativePath.startsWith('/')) {
+              relativePath = relativePath.slice(1);
+            }
+          }
+
+          const objectPath = `/objects/${relativePath}`;
+          console.log('Generated object path:', objectPath);
+
+          res.json({
+            uploadURL: objectPath,
+            objectPath: objectPath,
+            message: 'File uploaded to cloud storage successfully'
+          });
+        } catch (error: any) {
+          console.error("Error uploading to cloud storage:", error);
+          res.status(500).json({
+            message: `Failed to upload file to cloud storage: ${error.message}`,
+            details: error.stack
+          });
+        }
+      });
+    } else {
+      console.log('Using local storage for file upload (development mode)');
+      // Use local disk storage for development
+      upload.single('file')(req, res, (err) => {
+        if (err) {
+          console.error("Multer error for local storage:", err);
+          if (err instanceof multer.MulterError) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+              return res.status(400).json({ message: "File too large. Maximum size is 5MB." });
+            }
+          }
+          return res.status(400).json({ message: `File upload error: ${err.message}` });
+        }
+
+        try {
+          if (!req.file) {
+            console.error("No file found in request");
+            return res.status(400).json({ message: "No file uploaded" });
+          }
+
+          console.log('File received for local upload:', {
+            originalname: req.file.originalname,
+            filename: req.file.filename,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            path: req.file.path
+          });
+
+          // Return the local file path that can be used for display
+          const filePath = `/uploads/${req.file.filename}`;
+          console.log('Generated local file path:', filePath);
+
+          res.json({
+            uploadURL: filePath,
+            localPath: filePath,
+            objectPath: filePath,
+            message: 'File uploaded to local storage successfully'
+          });
+        } catch (error: any) {
+          console.error("Error uploading file locally:", error);
+          res.status(500).json({
+            message: `Failed to upload file locally: ${error.message}`,
+            details: error.stack
+          });
+        }
+      });
+    }
   });
 
-  // Family image processing endpoint temporarily disabled
+  // Family image processing endpoint (handles both local and cloud storage)
   app.put("/api/family-images", requireAuth, async (req, res) => {
-    res.status(503).json({
-      objectPath: req.body.imageURL || "",
-      message: "Image processing temporarily disabled for system maintenance"
-    });
+    if (!req.body.imageURL) {
+      console.error("No imageURL provided in request body");
+      return res.status(400).json({ error: "imageURL is required" });
+    }
+
+    try {
+      const imageURL = req.body.imageURL;
+      console.log('Processing family image:', { imageURL });
+
+      // Check if we're using cloud storage
+      const hasGoogleCloudConfig = process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+                                  (process.env.GOOGLE_CLOUD_PROJECT_ID && process.env.GOOGLE_CLOUD_PRIVATE_KEY);
+      const useCloudStorage = hasGoogleCloudConfig && process.env.NODE_ENV === 'production';
+
+      if (useCloudStorage && imageURL.startsWith('/objects/')) {
+        console.log('Processing cloud storage image path');
+
+        // For cloud storage, we might want to set ACL permissions here
+        try {
+          const objectStorageService = new ObjectStorageService();
+          // Normalize the object path and potentially set ACL
+          const normalizedPath = objectStorageService.normalizeObjectEntityPath(imageURL);
+
+          console.log('Normalized object path:', normalizedPath);
+
+          res.status(200).json({
+            objectPath: normalizedPath,
+            message: 'Cloud storage image processed successfully'
+          });
+        } catch (aclError) {
+          console.warn('ACL processing failed, but continuing with original path:', aclError);
+          // If ACL processing fails, still return the original path
+          res.status(200).json({
+            objectPath: imageURL,
+            message: 'Image processed (ACL warning: ' + (aclError as Error).message + ')'
+          });
+        }
+      } else {
+        console.log('Processing local image path');
+        // For local files, just return the path as-is
+        res.status(200).json({
+          objectPath: imageURL,
+          message: 'Local image processed successfully'
+        });
+      }
+    } catch (error: any) {
+      console.error("Error processing family image:", error);
+      res.status(500).json({
+        error: "Internal server error",
+        details: error.message
+      });
+    }
   });
 
-  // File serving temporarily disabled
+  // Serve uploaded files from local storage
   app.get("/uploads/:filename", (req, res) => {
-    res.status(503).json({ error: "File serving temporarily disabled for system maintenance" });
+    const filename = req.params.filename;
+    const filePath = path.join(process.cwd(), 'uploads', filename);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    // Serve the file
+    res.sendFile(filePath);
   });
 
-  // Object storage route temporarily disabled
+  // Cloud storage route for serving uploaded files
   app.get("/objects/:objectPath(*)", async (req, res) => {
-    res.status(503).json({ error: "Object storage temporarily disabled for system maintenance" });
+    const hasGoogleCloudConfig = process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+                                (process.env.GOOGLE_CLOUD_PROJECT_ID && process.env.GOOGLE_CLOUD_PRIVATE_KEY);
+    const useCloudStorage = hasGoogleCloudConfig && process.env.NODE_ENV === 'production';
+
+    if (!useCloudStorage) {
+      // For local development, redirect to local uploads
+      const localPath = req.params.objectPath;
+      return res.redirect(`/uploads/${localPath}`);
+    }
+
+    try {
+      console.log("Attempting to serve object:", req.path);
+
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(
+        req.path,
+      );
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving object:", error);
+
+      // If object not found, try alternative path construction
+      if (error instanceof ObjectNotFoundError) {
+        try {
+          // Try with just the filename part for uploaded files
+          const filename = req.params.objectPath;
+          if (filename && !filename.includes('/')) {
+            const alternativePath = `/objects/uploads/${filename}`;
+            console.log("Trying alternative path:", alternativePath);
+
+            const objectStorageService = new ObjectStorageService();
+            const altObjectFile = await objectStorageService.getObjectEntityFile(alternativePath);
+            return objectStorageService.downloadObject(altObjectFile, res);
+          }
+        } catch (altError) {
+          console.error("Alternative path also failed:", altError);
+        }
+
+        return res.status(404).json({ error: "File not found" });
+      }
+      return res.status(500).json({ error: "Internal server error" });
+    }
   });
 
-  // Legacy file upload route temporarily disabled
+  // Legacy file upload route (keeping for backward compatibility)
   app.post("/api/upload", requireAuth, (req, res) => {
-    res.status(503).json({
-      message: "Upload functionality temporarily disabled for system maintenance",
-      url: ""
+    upload.single('image')(req, res, (err) => {
+      if (err) {
+        console.error("Multer error:", err);
+        if (err instanceof multer.MulterError) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ message: "File too large. Maximum size is 5MB." });
+          }
+        }
+        return res.status(400).json({ message: err.message || "Upload failed" });
+      }
+
+      try {
+        if (!req.file) {
+          console.log("No file in request");
+          return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        console.log("File uploaded successfully:", req.file.filename);
+        const imageUrl = `/uploads/${req.file.filename}`;
+        res.json({ url: imageUrl });
+      } catch (error) {
+        console.error("Upload error:", error);
+        res.status(500).json({ message: "Failed to upload file" });
+      }
     });
   });
 
-  // Static file serving temporarily disabled
+  // Serve uploaded files statically
   app.use('/uploads', (req, res, next) => {
-    res.status(503).json({ error: "File serving temporarily disabled for system maintenance" });
+    // Add CORS headers for image requests
+    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
   });
+
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  app.use('/uploads', express.static(uploadsDir));
 
   // Family routes
   app.get("/api/families", requireAuth, async (req, res) => {
