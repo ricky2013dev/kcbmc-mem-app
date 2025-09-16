@@ -111,7 +111,7 @@ const familyFormSchema = z
         birthDate: z.string().optional(),
         gradeLevel: z.string().optional(),
         school: z.string().optional(),
-      }),
+      })
     ),
   })
   .refine(
@@ -128,7 +128,7 @@ const familyFormSchema = z
       message:
         "Family name cannot be generated without at least one spouse's Korean name",
       path: ["husband", "koreanName"],
-    },
+    }
   );
 
 type FormData = z.infer<typeof familyFormSchema>;
@@ -138,63 +138,75 @@ const isValidDatePart = (year: string, month: string, day: string): boolean => {
     const yearNum = parseInt(year);
     if (yearNum < 1950 || yearNum > 2050) return false;
   }
-  
+
   if (month.length === 2) {
     const monthNum = parseInt(month);
     if (monthNum < 1 || monthNum > 12) return false;
   }
-  
+
   if (day.length === 2) {
     const dayNum = parseInt(day);
     if (dayNum < 1 || dayNum > 31) return false;
-    
+
     if (month.length === 2) {
       const monthNum = parseInt(month);
       const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
       if (dayNum > daysInMonth[monthNum - 1]) return false;
-      
+
       if (monthNum === 2 && dayNum > 28 && year.length === 4) {
         const yearNum = parseInt(year);
-        const isLeapYear = (yearNum % 4 === 0 && yearNum % 100 !== 0) || (yearNum % 400 === 0);
+        const isLeapYear =
+          (yearNum % 4 === 0 && yearNum % 100 !== 0) || yearNum % 400 === 0;
         if (!isLeapYear && dayNum > 28) return false;
         if (isLeapYear && dayNum > 29) return false;
       }
     }
   }
-  
+
   return true;
 };
 
 const formatBirthDate = (input: string): string => {
-  const digitsOnly = input.replace(/\D/g, '').slice(0, 8);
-  
+  const digitsOnly = input.replace(/\D/g, "").slice(0, 8);
+
   if (digitsOnly.length <= 4) {
     const year = digitsOnly;
-    if (!isValidDatePart(year, '', '')) return input.replace(/\D/g, '').slice(0, -1);
+    if (!isValidDatePart(year, "", ""))
+      return input.replace(/\D/g, "").slice(0, -1);
     return digitsOnly;
   } else if (digitsOnly.length <= 6) {
     const year = digitsOnly.slice(0, 4);
     const month = digitsOnly.slice(4);
-    if (!isValidDatePart(year, month, '')) return input.replace(/\D/g, '').slice(0, -1);
+    if (!isValidDatePart(year, month, ""))
+      return input.replace(/\D/g, "").slice(0, -1);
     return `${year}-${month}`;
   } else {
     const year = digitsOnly.slice(0, 4);
     const month = digitsOnly.slice(4, 6);
     const day = digitsOnly.slice(6);
-    if (!isValidDatePart(year, month, day)) return input.replace(/\D/g, '').slice(0, -1);
+    if (!isValidDatePart(year, month, day))
+      return input.replace(/\D/g, "").slice(0, -1);
     return `${year}-${month}-${day}`;
   }
 };
 
-const handleBirthDateChange = (value: string, onChange: (value: string) => void) => {
+const handleBirthDateChange = (
+  value: string,
+  onChange: (value: string) => void
+) => {
   const formatted = formatBirthDate(value);
   onChange(formatted);
 };
 
-const handleChildBirthDateChange = (value: string, onChange: (value: string) => void, childIndex: number, form: any) => {
+const handleChildBirthDateChange = (
+  value: string,
+  onChange: (value: string) => void,
+  childIndex: number,
+  form: any
+) => {
   const formatted = formatBirthDate(value);
   onChange(formatted);
-  
+
   // Auto-calculate grade level if birthdate is complete (YYYY-MM-DD format)
   if (formatted.length === 10) {
     const calculatedGrade = calculateGradeLevelFromBirthdate(formatted);
@@ -227,7 +239,10 @@ export default function FamilyFormPage({
   const form = useForm<FormData>({
     resolver: zodResolver(familyFormSchema),
     defaultValues: {
-      visitedDate: mode === "create" ? formatDateForInput(getPreviousSunday(new Date())) : "",
+      visitedDate:
+        mode === "create"
+          ? formatDateForInput(getPreviousSunday(new Date()))
+          : "",
       memberStatus: "visit",
       phoneNumber: "",
       email: "",
@@ -365,7 +380,9 @@ export default function FamilyFormPage({
       const children = family.members.filter((m) => m.relationship === "child");
 
       form.reset({
-        visitedDate: family.visitedDate || formatDateForInput(getPreviousSunday(new Date())),
+        visitedDate:
+          family.visitedDate ||
+          formatDateForInput(getPreviousSunday(new Date())),
         memberStatus: family.memberStatus as any,
         phoneNumber: family.phoneNumber,
         email: family.email || "",
@@ -420,14 +437,14 @@ export default function FamilyFormPage({
     const subscription = form.watch((value) => {
       const familyName = generateFamilyName(
         value.husband?.koreanName || "",
-        value.wife?.koreanName || "",
+        value.wife?.koreanName || ""
       );
 
       const fullAddress = generateFullAddress(
         value.address || "",
         value.city || "",
         value.state || "",
-        value.zipCode || "",
+        value.zipCode || ""
       );
 
       const gradeGroups: Record<number, string> = {};
@@ -465,11 +482,11 @@ export default function FamilyFormPage({
     if (currentChildren.length > 1) {
       form.setValue(
         "children",
-        currentChildren.filter((_, i) => i !== index),
+        currentChildren.filter((_, i) => i !== index)
       );
 
       // Handle tab switching after removal
-      const currentTabIndex = parseInt(activeChildTab.split('-')[1]);
+      const currentTabIndex = parseInt(activeChildTab.split("-")[1]);
       if (currentTabIndex === index) {
         // If removing the current tab, switch to the previous tab (or first if removing the first)
         const newTabIndex = index > 0 ? index - 1 : 0;
@@ -490,12 +507,12 @@ export default function FamilyFormPage({
   const getCoursesPrimaryPerson = () => {
     const husbandKoreanName = form.watch("husband.koreanName");
     const husbandEnglishName = form.watch("husband.englishName");
-    
+
     // If husband has any name (Korean or English), use husband
     if (husbandKoreanName || husbandEnglishName) {
       return "husband";
     }
-    
+
     // Otherwise, use wife
     return "wife";
   };
@@ -504,13 +521,19 @@ export default function FamilyFormPage({
   const handleCourseChange = (courseValue: string, checked: boolean) => {
     const primaryPerson = getCoursesPrimaryPerson();
     const currentCourses = form.getValues(`${primaryPerson}.courses`) || [];
-    
+
     if (checked) {
-      form.setValue(`${primaryPerson}.courses`, [...currentCourses, courseValue]);
+      form.setValue(`${primaryPerson}.courses`, [
+        ...currentCourses,
+        courseValue,
+      ]);
     } else {
-      form.setValue(`${primaryPerson}.courses`, currentCourses.filter(c => c !== courseValue));
+      form.setValue(
+        `${primaryPerson}.courses`,
+        currentCourses.filter((c) => c !== courseValue)
+      );
     }
-    
+
     // Clear courses from the other person
     const otherPerson = primaryPerson === "husband" ? "wife" : "husband";
     form.setValue(`${otherPerson}.courses`, []);
@@ -531,7 +554,8 @@ export default function FamilyFormPage({
     if (mode === "create" && !canAddDelete) {
       toast({
         title: "Permission Error",
-        description: "You don't have permission to create families. Admin access required.",
+        description:
+          "You don't have permission to create families. Admin access required.",
         variant: "destructive",
       });
       return;
@@ -571,16 +595,16 @@ export default function FamilyFormPage({
 
   const printFormalDocument = () => {
     const formData = form.getValues();
-    const today = new Date().toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    const today = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
-    
+
     const husband = formData.husband;
     const wife = formData.wife;
     const children = formData.children || [];
-    
+
     const printContent = `
       <html>
         <head>
@@ -779,31 +803,31 @@ export default function FamilyFormPage({
             <div class="form-grid">
               <div class="field-group">
                 <label class="field-label">Family Name</label>
-                <span class="field-value">${autoGeneratedValues.familyName || ''}</span>
+                <span class="field-value">${autoGeneratedValues.familyName || ""}</span>
               </div>
               <div class="field-group">
                 <label class="field-label">Visit Date</label>
-                <span class="field-value">${formData.visitedDate || ''}</span>
+                <span class="field-value">${formData.visitedDate || ""}</span>
               </div>
             </div>
             <div class="form-grid">
               <div class="field-group">
                 <label class="field-label">Support Team Member</label>
-                <span class="field-value">${formData.supportTeamMember || ''}</span>
+                <span class="field-value">${formData.supportTeamMember || ""}</span>
               </div>
               <div class="field-group">
                 <label class="field-label">Member Status</label>
                 <div style="margin-top: 8px;">
                   <div class="checkbox-field">
-                    <div class="checkbox ${formData.memberStatus === 'visit' ? 'checked' : ''}"></div>
+                    <div class="checkbox ${formData.memberStatus === "visit" ? "checked" : ""}"></div>
                     <span>방문 (Visit)</span>
                   </div>
                   <div class="checkbox-field">
-                    <div class="checkbox ${formData.memberStatus === 'member' ? 'checked' : ''}"></div>
+                    <div class="checkbox ${formData.memberStatus === "member" ? "checked" : ""}"></div>
                     <span>등록 (Member)</span>
                   </div>
                   <div class="checkbox-field">
-                    <div class="checkbox ${formData.memberStatus === 'pending' ? 'checked' : ''}"></div>
+                    <div class="checkbox ${formData.memberStatus === "pending" ? "checked" : ""}"></div>
                     <span>미정 (Pending)</span>
                   </div>
                 </div>
@@ -811,111 +835,127 @@ export default function FamilyFormPage({
             </div>
           </div>
 
-          ${husband ? `
+          ${
+            husband
+              ? `
           <div class="section">
             <div class="member-card">
               <div class="member-header">Husband Information</div>
               <div class="member-details">
                 <div class="field-group">
                   <label class="field-label">Name</label>
-                  <span class="field-value">${husband.koreanName || husband.englishName || ''}</span>
+                  <span class="field-value">${husband.koreanName || husband.englishName || ""}</span>
                 </div>
                 <div class="field-group">
                   <label class="field-label">Birth Date</label>
-                  <span class="field-value">${husband.birthDate || ''}</span>
+                  <span class="field-value">${husband.birthDate || ""}</span>
                 </div>
                 <div class="field-group">
                   <label class="field-label">Phone Number</label>
-                  <span class="field-value">${husband.phoneNumber || ''}</span>
+                  <span class="field-value">${husband.phoneNumber || ""}</span>
                 </div>
                 <div class="field-group">
                   <label class="field-label">Email</label>
-                  <span class="field-value">${husband.email || ''}</span>
+                  <span class="field-value">${husband.email || ""}</span>
                 </div>
               </div>
             </div>
           </div>
-          ` : ''}
+          `
+              : ""
+          }
 
-          ${wife ? `
+          ${
+            wife
+              ? `
           <div class="section">
             <div class="member-card">
               <div class="member-header">Wife Information</div>
               <div class="member-details">
                 <div class="field-group">
                   <label class="field-label">Name</label>
-                  <span class="field-value">${wife.koreanName || wife.englishName || ''}</span>
+                  <span class="field-value">${wife.koreanName || wife.englishName || ""}</span>
                 </div>
                 <div class="field-group">
                   <label class="field-label">Birth Date</label>
-                  <span class="field-value">${wife.birthDate || ''}</span>
+                  <span class="field-value">${wife.birthDate || ""}</span>
                 </div>
                 <div class="field-group">
                   <label class="field-label">Phone Number</label>
-                  <span class="field-value">${wife.phoneNumber || ''}</span>
+                  <span class="field-value">${wife.phoneNumber || ""}</span>
                 </div>
                 <div class="field-group">
                   <label class="field-label">Email</label>
-                  <span class="field-value">${wife.email || ''}</span>
+                  <span class="field-value">${wife.email || ""}</span>
                 </div>
               </div>
             </div>
           </div>
-          ` : ''}
+          `
+              : ""
+          }
 
-          ${children.length > 0 ? `
+          ${
+            children.length > 0
+              ? `
           <div class="section">
             <div class="section-title">Children Information</div>
-            ${children.map((child: any, index: number) => `
+            ${children
+              .map(
+                (child: any, index: number) => `
               <div class="member-card">
                 <div class="member-header">Child #${index + 1}</div>
                 <div class="member-details children">
                   <div class="field-group">
                     <label class="field-label">Name</label>
-                    <span class="field-value">${child.koreanName || child.englishName || ''}</span>
+                    <span class="field-value">${child.koreanName || child.englishName || ""}</span>
                   </div>
                   <div class="field-group">
                     <label class="field-label">Birth Date</label>
-                    <span class="field-value">${child.birthDate || ''}</span>
+                    <span class="field-value">${child.birthDate || ""}</span>
                   </div>
                   <div class="field-group">
                     <label class="field-label">Grade Level</label>
-                    <span class="field-value">${child.gradeLevel || ''}</span>
+                    <span class="field-value">${child.gradeLevel || ""}</span>
                   </div>
                   <div class="field-group">
                     <label class="field-label">Grade Group</label>
-                    <span class="field-value">${child.gradeGroup || ''}</span>
+                    <span class="field-value">${child.gradeGroup || ""}</span>
                   </div>
                   <div class="field-group">
                     <label class="field-label">Email</label>
-                    <span class="field-value">${child.email || ''}</span>
+                    <span class="field-value">${child.email || ""}</span>
                   </div>
                 </div>
               </div>
-            `).join('')}
+            `
+              )
+              .join("")}
           </div>
-          ` : ''}
+          `
+              : ""
+          }
 
           <div class="section">
             <div class="section-title">Address Information</div>
             <div class="form-grid">
               <div class="field-group">
                 <label class="field-label">Street Address</label>
-                <span class="field-value">${formData.address || ''}</span>
+                <span class="field-value">${formData.address || ""}</span>
               </div>
               <div class="field-group">
                 <label class="field-label">City</label>
-                <span class="field-value">${formData.city || ''}</span>
+                <span class="field-value">${formData.city || ""}</span>
               </div>
             </div>
             <div class="form-grid">
               <div class="field-group">
                 <label class="field-label">State</label>
-                <span class="field-value">${formData.state || ''}</span>
+                <span class="field-value">${formData.state || ""}</span>
               </div>
               <div class="field-group">
                 <label class="field-label">ZIP Code</label>
-                <span class="field-value">${formData.zipCode || ''}</span>
+                <span class="field-value">${formData.zipCode || ""}</span>
               </div>
             </div>
           </div>
@@ -923,7 +963,7 @@ export default function FamilyFormPage({
           <div class="section">
             <div class="notes-section">
               <div class="notes-title">Family Notes</div>
-              <div style="white-space: pre-wrap; min-height: 80px;">${formData.familyNotes || ''}</div>
+              <div style="white-space: pre-wrap; min-height: 80px;">${formData.familyNotes || ""}</div>
             </div>
           </div>
 
@@ -966,7 +1006,7 @@ export default function FamilyFormPage({
       </html>
     `;
 
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (printWindow) {
       printWindow.document.write(printContent);
       printWindow.document.close();
@@ -999,7 +1039,8 @@ export default function FamilyFormPage({
               className={styles.backButton}
               data-testid="button-back"
             >
-              <ArrowLeft className="w-4 h-4" />Back
+              <ArrowLeft className="w-4 h-4" />
+              Back
             </Button>
             <h1 className={styles.navTitle}>
               {autoGeneratedValues.familyName}
@@ -1007,7 +1048,7 @@ export default function FamilyFormPage({
           </div>
 
           <div className={styles.navRight}>
-  {mode === "create" ? "New" : "Edit"} 
+            {mode === "create" ? "New" : "Edit"}
           </div>
         </div>
       </nav>
@@ -1016,17 +1057,51 @@ export default function FamilyFormPage({
       <div className={styles.main}>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className={styles.form}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
               {/* Fixed Tabs Header */}
               <div className="sticky top-0 z-40 bg-white border-b shadow-sm mb-4">
                 <div className="max-w-4xl mx-auto px-4 py-2">
                   <TabsList className="grid w-full grid-cols-6 gap-1 h-12 sm:h-auto py-2 bg-gray-100 rounded-lg border shadow-sm">
-                    <TabsTrigger className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all" value="husband">남편</TabsTrigger>
-                    <TabsTrigger className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all" value="wife">아내</TabsTrigger>
-                    <TabsTrigger className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all" value="children">자녀</TabsTrigger>
-                    <TabsTrigger className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all" value="address">주소</TabsTrigger>
-                    <TabsTrigger className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all" value="picture">사진</TabsTrigger>
-                    <TabsTrigger className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all" value="basic">추가</TabsTrigger>
+                    <TabsTrigger
+                      className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+                      value="husband"
+                    >
+                      남편
+                    </TabsTrigger>
+                    <TabsTrigger
+                      className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+                      value="wife"
+                    >
+                      아내
+                    </TabsTrigger>
+                    <TabsTrigger
+                      className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+                      value="children"
+                    >
+                      자녀
+                    </TabsTrigger>
+                    <TabsTrigger
+                      className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+                      value="address"
+                    >
+                      주소
+                    </TabsTrigger>
+                    <TabsTrigger
+                      className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+                      value="picture"
+                    >
+                      사진
+                    </TabsTrigger>
+                    <TabsTrigger
+                      className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+                      value="basic"
+                    >
+                      추가
+                    </TabsTrigger>
                   </TabsList>
                 </div>
               </div>
@@ -1035,36 +1110,14 @@ export default function FamilyFormPage({
                 <Card>
                   <CardContent className={styles.sectionContent}>
                     <div className={styles.grid}>
-                      <div>
-                        
-
-                      </div>
-                      
-                      <div>
-                        <FormField
-                          control={form.control}
-                          name="visitedDate"
-                          render={({ field }) => (
-                            <FormItem>
-                             
-                              <FormControl>
-                                <SundayDatePicker
-                                  {...field}
-                                  data-testid="input-visited-date"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                      <div></div>
 
                       <FormField
                         control={form.control}
                         name="memberStatus"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>방문/등록</FormLabel>
+                            <FormLabel>방문/회원/미활동</FormLabel>
                             <Select
                               onValueChange={field.onChange}
                               value={field.value}
@@ -1089,29 +1142,51 @@ export default function FamilyFormPage({
                           </FormItem>
                         )}
                       />
+                    </div>
+                  </CardContent>
 
-                      <FormField
-                        control={form.control}
-                        name="supportTeamMember"
-                        render={({ field }) => (
-                          <FormItem>
-                         
-                            <FormControl>
-                              <Input
-                                {...field}
-                                placeholder="섬김이"
-                                data-testid="input-support-team"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                  <CardContent>
+                    {" "}
+                    <div className={styles.fullWidth}>
+                      <div>
+                        <FormLabel></FormLabel>
+                        <div className={styles.checkboxGrid}>
+                          {COURSE_OPTIONS.map((course) => {
+                            const primaryPerson = getCoursesPrimaryPerson();
+                            const currentCourses =
+                              form.watch(`${primaryPerson}.courses`) || [];
+
+                            return (
+                              <div
+                                key={course.value}
+                                className="flex items-center space-x-2"
+                              >
+                                <Checkbox
+                                  id={`course-${course.value}`}
+                                  checked={currentCourses.includes(
+                                    course.value
+                                  )}
+                                  onCheckedChange={(checked) => {
+                                    handleCourseChange(course.value, !!checked);
+                                  }}
+                                  data-testid={`checkbox-course-${course.value}`}
+                                />
+                                <Label
+                                  htmlFor={`course-${course.value}`}
+                                  className="text-sm"
+                                >
+                                  {course.label}
+                                </Label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="picture">
                 {/* Family Picture Section */}
                 <Card>
@@ -1135,7 +1210,7 @@ export default function FamilyFormPage({
                                   currentImage={picturePreview || undefined}
                                   onUploadComplete={handleImageUpload}
                                 />
-                                
+
                                 {picturePreview && (
                                   <Button
                                     type="button"
@@ -1158,210 +1233,210 @@ export default function FamilyFormPage({
                 </Card>
               </TabsContent>
 
-              <TabsContent value="basic">
-
-              </TabsContent>
+              <TabsContent value="basic"></TabsContent>
 
               <TabsContent value="husband">
                 {/* Husband Section */}
                 <Card>
+                  <CardContent className={styles.sectionContent}>
+                    <div className={styles.grid}>
+                      <FormField
+                        control={form.control}
+                        name="husband.koreanName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>남편이름</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder=""
+                                data-testid="input-husband-korean-name"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-              <CardContent className={styles.sectionContent}>
-                <div className={styles.grid}>
-                  <FormField
-                    control={form.control}
-                    name="husband.koreanName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>남편이름</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder=""
-                            data-testid="input-husband-korean-name"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      <FormField
+                        control={form.control}
+                        name="husband.phoneNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              전화번호(10자리 숫자만 입력, 자동포맷)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="(555) 123-4567"
+                                type="text"
+                                onChange={(e) =>
+                                  handlePhoneFormat(
+                                    e.target.value,
+                                    "husband.phoneNumber"
+                                  )
+                                }
+                                data-testid="input-husband-phone"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name="husband.phoneNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>전화번호(10자리 숫자만 입력, 자동포맷)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="(555) 123-4567"
-                                                          type="text"
-                                      
-                            onChange={(e) =>
-                              handlePhoneFormat(
-                                e.target.value,
-                                "husband.phoneNumber",
-                              )
-                            }
-                            data-testid="input-husband-phone"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      <FormField
+                        control={form.control}
+                        name="husband.birthDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              생일(8자리 숫자만 입력) 등록시만 필요
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="text"
+                                maxLength={10}
+                                placeholder="예: 2012년 3월 8일, 20120308"
+                                onChange={(e) =>
+                                  handleBirthDateChange(
+                                    e.target.value,
+                                    field.onChange
+                                  )
+                                }
+                                data-testid="input-husband-birth-date"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-
-
-                  <FormField
-                    control={form.control}
-                    name="husband.birthDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>생일(8자리 숫자만 입력) 등록시만 필요</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                              type="text"
-                                       maxLength={10}
-                            placeholder="예: 2012년 3월 8일, 20120308"
-                       
-                            onChange={(e) => handleBirthDateChange(e.target.value, field.onChange)}
-                            data-testid="input-husband-birth-date"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-
-
-                  <div className={styles.fullWidth}>
-                    <FormField
-                      control={form.control}
-                      name="husband.email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email(필수사항아님)</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="email"
-                              placeholder="john.kim@example.com"
-                              data-testid="input-husband-email"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-              </CardContent>
+                      <div className={styles.fullWidth}>
+                        <FormField
+                          control={form.control}
+                          name="husband.email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  type="email"
+                                  placeholder="john.kim@example.com"
+                                  data-testid="input-husband-email"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
                 </Card>
               </TabsContent>
 
               <TabsContent value="wife">
                 {/* Wife Section */}
                 <Card>
+                  <CardContent className={styles.sectionContent}>
+                    <div className={styles.grid}>
+                      <FormField
+                        control={form.control}
+                        name="wife.koreanName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>아내이름</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                data-testid="input-wife-korean-name"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-              <CardContent className={styles.sectionContent}>
-                <div className={styles.grid}>
-                  <FormField
-                    control={form.control}
-                    name="wife.koreanName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>아내이름</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-  
-                            data-testid="input-wife-korean-name"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      <FormField
+                        control={form.control}
+                        name="wife.phoneNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              전화번호(10자리 숫자만 입력, 자동포맷)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="(555) 123-4568"
+                                type="text"
+                                onChange={(e) =>
+                                  handlePhoneFormat(
+                                    e.target.value,
+                                    "wife.phoneNumber"
+                                  )
+                                }
+                                data-testid="input-wife-phone"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name="wife.phoneNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>전화번호(10자리 숫자만 입력, 자동포맷)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="(555) 123-4568"
-                              type="text"
-                                     
-                                      
-                            onChange={(e) =>
-                              handlePhoneFormat(
-                                e.target.value,
-                                "wife.phoneNumber",
-                              )
-                            }
-                            data-testid="input-wife-phone"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      <FormField
+                        control={form.control}
+                        name="wife.birthDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              생일(8자리 숫자만 입력) 등록시만 필요
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="text"
+                                placeholder="예: 2012년 3월 8일, 20120308"
+                                maxLength={10}
+                                onChange={(e) =>
+                                  handleBirthDateChange(
+                                    e.target.value,
+                                    field.onChange
+                                  )
+                                }
+                                data-testid="input-wife-birth-date"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name="wife.birthDate"
-                    render={({ field }) => (
-                      <FormItem>
-                         <FormLabel>생일(8자리 숫자만 입력) 등록시만 필요</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            
-                            type="text"
-                                       
-                            placeholder="예: 2012년 3월 8일, 20120308"
-                            maxLength={10}
-                            onChange={(e) => handleBirthDateChange(e.target.value, field.onChange)}
-                            data-testid="input-wife-birth-date"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-
-
-                  <div className={styles.fullWidth}>
-                    <FormField
-                      control={form.control}
-                      name="wife.email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email(필수사항아님)</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="email"
-                              placeholder="jane.kim@example.com"
-                              data-testid="input-wife-email"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                </div>
-              </CardContent>
+                      <div className={styles.fullWidth}>
+                        <FormField
+                          control={form.control}
+                          name="wife.email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  type="email"
+                                  placeholder="jane.kim@example.com"
+                                  data-testid="input-wife-email"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
                 </Card>
               </TabsContent>
 
@@ -1369,11 +1444,19 @@ export default function FamilyFormPage({
                 {/* Children Section */}
                 <Card>
                   <CardContent className={styles.sectionContent}>
-                    <Tabs value={activeChildTab} onValueChange={setActiveChildTab} className="w-full">
+                    <Tabs
+                      value={activeChildTab}
+                      onValueChange={setActiveChildTab}
+                      className="w-full"
+                    >
                       <div className="flex items-center justify-between mb-4">
                         <TabsList className="flex-1 mr-4">
                           {form.watch("children").map((_, index) => (
-                            <TabsTrigger key={index} value={`child-${index}`} className="text-sm">
+                            <TabsTrigger
+                              key={index}
+                              value={`child-${index}`}
+                              className="text-sm"
+                            >
                               Child {index + 1}
                             </TabsTrigger>
                           ))}
@@ -1392,10 +1475,16 @@ export default function FamilyFormPage({
                       </div>
 
                       {form.watch("children").map((_, index) => (
-                        <TabsContent key={index} value={`child-${index}`} className="mt-4">
+                        <TabsContent
+                          key={index}
+                          value={`child-${index}`}
+                          className="mt-4"
+                        >
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                              <h3 className="text-lg font-semibold">Child {index + 1}</h3>
+                              <h3 className="text-lg font-semibold">
+                                Child {index + 1}
+                              </h3>
                               {form.watch("children").length > 1 && (
                                 <Button
                                   type="button"
@@ -1417,7 +1506,6 @@ export default function FamilyFormPage({
                                 name={`children.${index}.koreanName`}
                                 render={({ field }) => (
                                   <FormItem>
-                                   
                                     <FormControl>
                                       <Input
                                         {...field}
@@ -1435,7 +1523,6 @@ export default function FamilyFormPage({
                                 name={`children.${index}.englishName`}
                                 render={({ field }) => (
                                   <FormItem>
-                               
                                     <FormControl>
                                       <Input
                                         {...field}
@@ -1453,16 +1540,20 @@ export default function FamilyFormPage({
                                 name={`children.${index}.birthDate`}
                                 render={({ field }) => (
                                   <FormItem>
-                              
                                     <FormControl>
                                       <Input
                                         {...field}
                                         type="text"
-                                   
-                           
                                         placeholder="생일 (e.g., 20100708)"
                                         maxLength={10}
-                                        onChange={(e) => handleChildBirthDateChange(e.target.value, field.onChange, index, form)}
+                                        onChange={(e) =>
+                                          handleChildBirthDateChange(
+                                            e.target.value,
+                                            field.onChange,
+                                            index,
+                                            form
+                                          )
+                                        }
                                         data-testid={`input-child-${index}-birth-date`}
                                       />
                                     </FormControl>
@@ -1476,7 +1567,6 @@ export default function FamilyFormPage({
                                 name={`children.${index}.gradeLevel`}
                                 render={({ field }) => (
                                   <FormItem>
-                                   
                                     <Select
                                       onValueChange={field.onChange}
                                       value={field.value}
@@ -1505,7 +1595,6 @@ export default function FamilyFormPage({
                               />
 
                               <div className="space-y-2">
-                             
                                 <div className="p-2 bg-muted rounded-md text-sm">
                                   {autoGeneratedValues.gradeGroups[index] || ""}
                                 </div>
@@ -1522,12 +1611,10 @@ export default function FamilyFormPage({
               <TabsContent value="address">
                 {/* Address Section */}
                 <Card>
-
                   <CardContent className={styles.sectionContent}>
                     {/* Full Address Display */}
                     {autoGeneratedValues.fullAddress && (
                       <div className="mb-6 p-3 bg-muted rounded-md">
-   
                         <div className="flex items-center gap-2">
                           <div className="text-lg font-medium text-foreground flex-1">
                             {autoGeneratedValues.fullAddress}
@@ -1537,7 +1624,9 @@ export default function FamilyFormPage({
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              navigator.clipboard.writeText(autoGeneratedValues.fullAddress);
+                              navigator.clipboard.writeText(
+                                autoGeneratedValues.fullAddress
+                              );
                               toast({
                                 description: "Address copied to clipboard",
                               });
@@ -1552,7 +1641,7 @@ export default function FamilyFormPage({
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              const printWindow = window.open('', '_blank');
+                              const printWindow = window.open("", "_blank");
                               if (printWindow) {
                                 printWindow.document.write(`
                                   <html>
@@ -1605,8 +1694,13 @@ export default function FamilyFormPage({
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              const encodedAddress = encodeURIComponent(autoGeneratedValues.fullAddress);
-                              window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
+                              const encodedAddress = encodeURIComponent(
+                                autoGeneratedValues.fullAddress
+                              );
+                              window.open(
+                                `https://maps.google.com/maps?q=${encodedAddress}`,
+                                "_blank"
+                              );
                             }}
                             className="text-primary hover:text-primary/80"
                             title="Open in Google Maps"
@@ -1627,7 +1721,7 @@ export default function FamilyFormPage({
                               <FormControl>
                                 <Input
                                   {...field}
-                                  placeholder="주소입력"
+                                  placeholder="사업장주소"
                                   data-testid="input-address"
                                 />
                               </FormControl>
@@ -1642,7 +1736,6 @@ export default function FamilyFormPage({
                         name="city"
                         render={({ field }) => (
                           <FormItem>
-                          
                             <FormControl>
                               <Input
                                 {...field}
@@ -1660,7 +1753,6 @@ export default function FamilyFormPage({
                         name="state"
                         render={({ field }) => (
                           <FormItem>
-                          
                             <Select
                               onValueChange={field.onChange}
                               value={field.value}
@@ -1691,15 +1783,13 @@ export default function FamilyFormPage({
                         name="zipCode"
                         render={({ field }) => (
                           <FormItem>
-                        
                             <FormControl>
                               <Input
                                 {...field}
-                                 placeholder="zip코드"
-                                  type="number"
-                                 pattern="[0-9]*"
-                    maxLength={5}
-                               
+                                placeholder="zip코드"
+                                type="number"
+                                pattern="[0-9]*"
+                                maxLength={5}
                                 data-testid="input-zip-code"
                               />
                             </FormControl>
@@ -1711,13 +1801,11 @@ export default function FamilyFormPage({
                   </CardContent>
                 </Card>
               </TabsContent>
-
             </Tabs>
 
             {/* Form Actions */}
             <div className={styles.actions}>
-
-                            {mode === "edit" && user?.group === 'ADM' && (
+              {mode === "edit" && user?.group === "ADM" && (
                 <Button
                   type="button"
                   variant="destructive"
@@ -1730,7 +1818,6 @@ export default function FamilyFormPage({
                 </Button>
               )}
 
-
               <Button
                 type="button"
                 variant="secondary"
@@ -1741,14 +1828,17 @@ export default function FamilyFormPage({
                 Cancel
               </Button>
 
-
-
-              
               <Button
                 type="submit"
-                disabled={saveMutation.isPending || (mode === "create" && !canAddDelete)}
+                disabled={
+                  saveMutation.isPending || (mode === "create" && !canAddDelete)
+                }
                 data-testid="button-save"
-                title={mode === "create" && !canAddDelete ? "Admin access required to create families" : ""}
+                title={
+                  mode === "create" && !canAddDelete
+                    ? "Admin access required to create families"
+                    : ""
+                }
               >
                 <Save className="w-4 h-4 mr-2" />
                 {saveMutation.isPending ? "Saving..." : "Save"}
@@ -1764,7 +1854,9 @@ export default function FamilyFormPage({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Family</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this family? This action cannot be undone and will permanently remove all family information and member records.
+              Are you sure you want to delete this family? This action cannot be
+              undone and will permanently remove all family information and
+              member records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -15,8 +15,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SundayDatePicker } from '@/components/sunday-date-picker';
 import { apiRequest } from '@/lib/queryClient';
+
 import { FamilyWithMembers, Department, Team } from '@server/schema';
-import { SearchFilters, COURSE_OPTIONS } from '@/types/family';
+import { SearchFilters, MEMBER_STATUS_OPTIONS, COURSE_OPTIONS } from '@/types/family';
 import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
 import { getGradeGroupFirstChar } from '@/utils/grade-utils';
 import { Users, Search, Plus, Edit, Copy, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, Calendar, Save, GraduationCap, Info, FolderOpen, UserCheck } from 'lucide-react';
@@ -466,6 +467,10 @@ export default function DashboardPage() {
       default: return '';
     }
   };
+  const getStatusDisplayLabel = (status: string) => {
+    const option = MEMBER_STATUS_OPTIONS.find(opt => opt.value === status);
+    return option ? option.label : status;
+  };
   const getStatusBorderClassName = (status: string) => {
     switch (status) {
       case 'member': return 'border-blue-200';
@@ -632,9 +637,9 @@ export default function DashboardPage() {
     const careLogCount = careLogs.length;
 
     // Don't show anything if no support team member and no care logs
-    if (!supportTeamMember && careLogCount === 0) {
-      return null;
-    }
+    // if (!supportTeamMember && careLogCount === 0) {
+    //   return null;
+    // }
 
     return (
       <div className="relative">
@@ -642,7 +647,7 @@ export default function DashboardPage() {
           variant="outline" 
           className={styles.supportTeamBadge}
         >
-          {supportTeamMember || 'Supporter'}
+          {supportTeamMember || '미지정'}
         </Badge>
         {careLogCount > 0 && (
           <div className={`absolute -top-1 -right-1 h-4 w-4 border border-orange-200 text-orange-700 text-xs rounded-full flex items-center justify-center font-medium bg-white ${hasRecentLogs ? styles.careLogBadgeAlarm : ''}`}>
@@ -660,7 +665,7 @@ export default function DashboardPage() {
 
     return (
       <div className="flex items-center gap-2">
-        <span>로그</span>
+        <span>Care Log</span>
         {careLogCount > 0 && (
           <span className="inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-full">
             {careLogCount > 9 ? '9+' : careLogCount}
@@ -1458,16 +1463,23 @@ export default function DashboardPage() {
                             <h4 className={styles.familyName} data-testid={`text-family-name-${family.id}`}>
                               {family.familyName}
                             </h4>
-                            
+                                  
 
                           </div>
                           <div className="flex items-center gap-2">
                             <div className={styles.familyBadges}>
-
+                            <Badge 
+                              variant={getStatusBadgeVariant(family.memberStatus)}
+                              className={getStatusBadgeClassName(family.memberStatus)}
+                            >
+                              {getStatusDisplayLabel(family.memberStatus)}&nbsp;
+       
+                            </Badge>
                               <SupportTeamBadgeWithCareLog 
                                 familyId={family.id} 
-                                supportTeamMember={family.supportTeamMember || undefined} 
+                                supportTeamMember={group.teamName} 
                               />
+                              
                               {!expandedFamilies.has(family.id) && getChildGrades(family) && (
                                 <Badge variant="secondary" className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200">
                                   {getChildGrades(family)}
@@ -1512,7 +1524,7 @@ export default function DashboardPage() {
                         <Tabs defaultValue="current-info" className="w-full">
                           <div className="grid grid-cols-3 gap-2 w-full items-center">
                             <TabsList className="grid grid-cols-2 col-span-2">
-                              <TabsTrigger value="current-info">가족사항</TabsTrigger>
+                              <TabsTrigger value="current-info">기본정보</TabsTrigger>
                               <TabsTrigger value="care-logs">
                                 <CareLogTabTitle familyId={family.id} />
                               </TabsTrigger>

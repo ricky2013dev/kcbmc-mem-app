@@ -40,8 +40,8 @@ export interface SearchFilters {
 
 export const MEMBER_STATUS_OPTIONS = [
   { value: 'visit', label: '방문' },
-  { value: 'member', label: '등록' },
-  { value: 'pending', label: '미정' }
+  { value: 'member', label: '회원' },
+  { value: 'inactive', label: '미활동' }
 ];
 
 export const STATE_OPTIONS = [
@@ -49,10 +49,12 @@ export const STATE_OPTIONS = [
 ];
 
 export const COURSE_OPTIONS = [
-  { value: '101', label: 'SDS 101' },
-  { value: '201', label: 'SDS 201' },
-  { value: '301', label: 'SDS 301' },
-  { value: '401', label: 'SDS 401' }
+  { value: '101', label: '지회장' },
+  { value: '102', label: '지회총무' },
+  { value: '102', label: '지회회계' },
+  
+  { value: '201', label: '연합회장' },
+  { value: '201', label: '연합회 총무' },
 ];
 
 export const GRADE_LEVEL_OPTIONS = [
