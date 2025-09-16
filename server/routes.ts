@@ -413,9 +413,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Hybrid file upload endpoint (local for dev, object storage for production)
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
-    // Use object storage only when explicitly configured or environment variables are properly set
+    // Only use object storage when BOTH environment variables are properly configured
     const hasObjectStorageConfig = process.env.PRIVATE_OBJECT_DIR && process.env.PUBLIC_OBJECT_SEARCH_PATHS;
-    const useObjectStorage = process.env.STORAGE_BACKEND === 'object' || hasObjectStorageConfig;
+    const useObjectStorage = hasObjectStorageConfig;
     
     if (useObjectStorage) {
       // Use memory storage for object storage uploads
@@ -527,9 +527,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/objects/:objectPath(*)", async (req, res) => {
     const objectStorageService = new ObjectStorageService();
     
-    // Check if we're using object storage
+    // Only use object storage when BOTH environment variables are properly configured
     const hasObjectStorageConfig = process.env.PRIVATE_OBJECT_DIR && process.env.PUBLIC_OBJECT_SEARCH_PATHS;
-    const useObjectStorageForServing = process.env.STORAGE_BACKEND === 'object' || hasObjectStorageConfig;
+    const useObjectStorageForServing = hasObjectStorageConfig;
     
     if (!useObjectStorageForServing) {
       // For local development, redirect to local uploads
