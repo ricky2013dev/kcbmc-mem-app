@@ -802,12 +802,7 @@ export default function DepartmentTeamManagement() {
           </Dialog>
 
           <Dialog open={isTeamDialogOpen} onOpenChange={setIsTeamDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" onClick={() => handleCloseTeamDialog()}>
-                <PlusIcon className="w-4 h-4 mr-2" />
-                지회
-              </Button>
-            </DialogTrigger>
+       
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>

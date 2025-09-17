@@ -246,9 +246,9 @@ export function CareLogList({ familyId }: CareLogListProps) {
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold text-gray-800">
-            Care Logs {careLogs.length > 0 && `(${careLogs.length})`}
+           
           </h3>
-          {careLogs.length > 0 && (
+          {careLogs.length > 1 && (
             <Button
               size="sm"
               variant="outline"
@@ -257,7 +257,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
               className="h-8"
             >
               <AlignLeft className="w-4 h-4 mr-2" />
-              Merged View
+              Merged View {careLogs.length > 0 && `(${careLogs.length})`}
             </Button>
           )}
         </div>
@@ -272,12 +272,12 @@ export function CareLogList({ familyId }: CareLogListProps) {
           <DialogTrigger asChild>
             <Button size="sm" data-testid="button-add-care-log" className="h-8">
               <Plus className="w-4 h-4 mr-2" />
-              Add Care Log
+              Note
             </Button>
           </DialogTrigger>
           <DialogContent data-testid="dialog-create-care-log">
             <DialogHeader>
-              <DialogTitle>Add New Care Log</DialogTitle>
+              <DialogTitle>Add New Note</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Hidden date field - automatically set to today */}
@@ -318,39 +318,9 @@ export function CareLogList({ familyId }: CareLogListProps) {
             <div className="bg-gray-50 rounded-full p-6 mb-6">
               <FileText className="w-16 h-16 text-gray-400" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-3">No Care Logs Yet</h3>
-            <p className="text-gray-500 mb-6 max-w-md">
-              Start documenting pastoral care activities for this family. Care logs help track visits,
-              prayer requests, phone calls, and other important interactions.
-            </p>
-            <div className="space-y-4 text-sm text-gray-600">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span>Track home visits and meetings</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Record prayer requests and spiritual conversations</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <span>Document phone calls and text communications</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <span>Note important family updates and needs</span>
-              </div>
-            </div>
-            <div className="mt-8">
-              <Button
-                onClick={() => setShowCreateDialog(true)}
-                className="px-6 py-2"
-                data-testid="button-add-first-care-log"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Your First Care Log
-              </Button>
-            </div>
+          
+        
+      
           </div>
       ) : (
         <div className="space-y-4 max-h-96 overflow-y-auto pr-2">

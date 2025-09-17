@@ -24,7 +24,8 @@ import { Users, Search, Plus, Edit, Copy, LogOut, ChevronDown, ChevronUp, Phone,
 import styles from './dashboard.module.css';
 import { RefreshButton } from '@/components/RefreshButton';
 import { Header } from '@/components/Header';
-import { FamilyDashboardFilters, FamilyExpandedDetails } from '@/components/dashboard';
+import { FamilyDashboardFilters, FamilyExpandedDetails, FamilyPrintUtils, AnnouncementManager, useFooterAnnouncements, getAnnouncementBadgeVariant } from '@/components/dashboard';
+import type { AnnouncementWithStaff } from '@/components/dashboard';
 
 // Helper function to get default date range (recent 12 months, Sunday-only)
 function getDefaultDateRange() {
@@ -43,24 +44,6 @@ function getDefaultDateRange() {
   };
 }
 
-interface AnnouncementWithStaff {
-  id: string;
-  title: string;
-  content: string;
-  type: 'Major' | 'Medium' | 'Minor';
-  isLoginRequired: boolean;
-  startDate: string;
-  endDate: string;
-  createdBy: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  createdByStaff: {
-    id: string;
-    fullName: string;
-    nickName: string;
-  };
-}
 
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
@@ -113,10 +96,6 @@ export default function DashboardPage() {
   const [magnifiedImage, setMagnifiedImage] = useState<{ src: string; alt: string } | null>(null);
   const [showFamilyNotesProtectionModal, setShowFamilyNotesProtectionModal] = useState(false);
   const [hasAgreedToFamilyNotesProtection, setHasAgreedToFamilyNotesProtection] = useState(false);
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementWithStaff | null>(null);
-  const [dismissedAnnouncements, setDismissedAnnouncements] = useState<Set<string>>(new Set());
-  const [majorAnnouncementModal, setMajorAnnouncementModal] = useState<AnnouncementWithStaff | null>(null);
-  const [shownMajorAnnouncements, setShownMajorAnnouncements] = useState<Set<string>>(new Set());
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showAnnouncementDropdown, setShowAnnouncementDropdown] = useState(false);
@@ -209,44 +188,8 @@ export default function DashboardPage() {
     enabled: hasSearched && !!filters.departmentId && teams.length > 0, // Only run if department is selected and teams data is loaded
   });
 
-  const { data: allAnnouncements = [] } = useQuery<AnnouncementWithStaff[]>({
-    queryKey: ['announcements/active'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/announcements/active');
-      return response.json();
-    },
-  });
-
-  // Query for ALL announcements (including inactive) for footer display
-  const { data: footerAnnouncements = [] } = useQuery<AnnouncementWithStaff[]>({
-    queryKey: ['announcements/all'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/announcements');
-      const announcements = await response.json();
-      // Filter only active announcements
-      return announcements.filter((ann: any) => ann.isActive);
-    },
-  });
-
-  // Filter announcements for dashboard banners (login required = true)
-  const dashboardAnnouncements = allAnnouncements.filter(a => a.isLoginRequired);
-  
-  // Filter major announcements that should be shown as modals
-  const majorAnnouncements = allAnnouncements.filter(a => a.type === 'Major' && a.isLoginRequired);
-
-  // Show major announcements as modal when they load
-  useEffect(() => {
-    if (majorAnnouncements.length > 0) {
-      const unshownMajorAnnouncement = majorAnnouncements.find(
-        announcement => !shownMajorAnnouncements.has(announcement.id)
-      );
-      
-      if (unshownMajorAnnouncement && !majorAnnouncementModal) {
-        setMajorAnnouncementModal(unshownMajorAnnouncement);
-        setShownMajorAnnouncements(prev => new Set(prev).add(unshownMajorAnnouncement.id));
-      }
-    }
-  }, [majorAnnouncements, shownMajorAnnouncements, majorAnnouncementModal]);
+  // Query for footer announcements
+  const { data: footerAnnouncements = [] } = useFooterAnnouncements();
 
   // Update time every second for real-time display
   useEffect(() => {
@@ -838,13 +781,6 @@ export default function DashboardPage() {
     return new Date(dateString).toLocaleString('ko-KR');
   };
 
-  const handleDismissAnnouncement = (announcementId: string) => {
-    setDismissedAnnouncements(prev => new Set(prev).add(announcementId));
-  };
-
-  const visibleAnnouncements = dashboardAnnouncements.filter(
-    announcement => !dismissedAnnouncements.has(announcement.id) && announcement.type !== 'Major'
-  );
 
   return (
     <div className={styles.container}>
@@ -855,62 +791,8 @@ export default function DashboardPage() {
         onAnnouncementDropdownChange={setShowAnnouncementDropdown}
       />
 
-      {/* Announcement Banners */}
-      {visibleAnnouncements.length > 0 && (
-        <div className="px-4 py-2 space-y-2">
-          {visibleAnnouncements.map((announcement) => (
-            <div
-              key={announcement.id}
-              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
-                announcement.type === 'Major' 
-                  ? 'bg-red-50 border-red-200 hover:bg-red-100' 
-                  : announcement.type === 'Medium' 
-                  ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' 
-                  : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-              }`}
-              onClick={() => setSelectedAnnouncement(announcement)}
-            >
-              <div className="flex items-center space-x-3 flex-1">
-                <AlertCircle 
-                  className={`w-5 h-5 ${
-                    announcement.type === 'Major' 
-                      ? 'text-red-600' 
-                      : announcement.type === 'Medium' 
-                      ? 'text-blue-600' 
-                      : 'text-gray-600'
-                  }`} 
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-medium text-gray-900 text-sm">
-                      {announcement.title}
-                    </h4>
-                    <Badge variant={getTypeBadgeVariant(announcement.type)} className="text-xs">
-                      {announcement.type}
-                    </Badge>
-                  </div>
-                  <p className="text-gray-600 text-xs truncate max-w-md">
-                    {announcement.content.replace(/<[^>]*>/g, '')}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDismissAnnouncement(announcement.id);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Announcement Manager */}
+      <AnnouncementManager />
 
       {/* Main Content */}
       <div className={styles.main}>
@@ -1135,93 +1017,6 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Announcement Detail Modal */}
-      <Dialog open={!!selectedAnnouncement} onOpenChange={() => setSelectedAnnouncement(null)}>
-        <DialogContent className="max-w-2xl">
-          {selectedAnnouncement && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {selectedAnnouncement.title}
-                  <Badge variant={getTypeBadgeVariant(selectedAnnouncement.type)} className="text-xs">
-                    {selectedAnnouncement.type}
-                  </Badge>
-                </DialogTitle>
-                <DialogDescription>
-                  View full announcement details and information
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div 
-                  className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: selectedAnnouncement.content }}
-                />
-                <div className="text-xs text-gray-500 pt-4 border-t">
-                  <p>Posted by: {selectedAnnouncement.createdByStaff.fullName}</p>
-                  <p>Active until: {formatDate(selectedAnnouncement.endDate)}</p>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={() => setSelectedAnnouncement(null)}>
-                  Close
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Major Announcement Modal */}
-      <Dialog open={!!majorAnnouncementModal} onOpenChange={() => setMajorAnnouncementModal(null)}>
-        <DialogContent className="max-w-2xl">
-          {majorAnnouncementModal && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
-                  {majorAnnouncementModal.title}
-                  <Badge variant="destructive" className="text-xs">
-                    {majorAnnouncementModal.type}
-                  </Badge>
-                </DialogTitle>
-                <DialogDescription>
-                  Important announcement that requires your attention
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div 
-                  className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: majorAnnouncementModal.content }}
-                />
-                <div className="text-xs text-gray-500 pt-4 border-t">
-                  <p>Posted by: {majorAnnouncementModal.createdByStaff.fullName}</p>
-                  <p>Active until: {formatDate(majorAnnouncementModal.endDate)}</p>
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setMajorAnnouncementModal(null);
-                    // Check if there are more major announcements to show
-                    const nextMajorAnnouncement = majorAnnouncements.find(
-                      announcement => !shownMajorAnnouncements.has(announcement.id)
-                    );
-                    if (nextMajorAnnouncement) {
-                      setTimeout(() => {
-                        setMajorAnnouncementModal(nextMajorAnnouncement);
-                        setShownMajorAnnouncements(prev => new Set(prev).add(nextMajorAnnouncement.id));
-                      }, 100);
-                    }
-                  }}
-                >
-                  {majorAnnouncements.filter(a => !shownMajorAnnouncements.has(a.id)).length > 1 ? 'Next' : 'OK'}
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Family Notes Protection Modal */}
       <Dialog open={showFamilyNotesProtectionModal} onOpenChange={handleCancelProtection}>

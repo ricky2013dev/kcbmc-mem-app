@@ -41,7 +41,7 @@ export function FamilyExpandedDetails({
 
     return (
       <div className="flex items-center gap-2">
-        <span>Care Log</span>
+        <span>지회 노트</span>
         {careLogCount > 0 && (
           <span className="inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-full">
             {careLogCount > 9 ? '9+' : careLogCount}
@@ -322,34 +322,6 @@ export function FamilyExpandedDetails({
               <CareLogTabTitle familyId={family.id} />
             </TabsTrigger>
           </TabsList>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              className="h-8"
-              title="Close"
-            >
-              <X className="w-4 h-4 mr-1" />
-              Close
-            </Button>
-            <Button
-              size="sm"
-              variant="default"
-              onClick={(e) => {
-                e.stopPropagation();
-                setLocation(`/family/${family.id}/edit`);
-              }}
-              data-testid={`button-edit-${family.id}`}
-              className="px-4 py-1 h-8 bg-blue-500 hover:bg-blue-600 text-white"
-              title="Edit family"
-            >
-              <Edit className="w-4 h-4 mr-1" />Edit
-            </Button>
-          </div>
         </div>
 
         <TabsContent value="current-info" className="mt-0 flex-1">
@@ -394,8 +366,23 @@ export function FamilyExpandedDetails({
 
                 {/* Family name and status below picture */}
                 <div className="text-center lg:text-left">
-                  <h2 className="text-xl font-bold text-gray-900">{family.familyName}</h2>
-                  <p className="text-sm text-gray-600 mt-1">Family ID: {family.id.slice(-8)}</p>
+               
+                            <div className="flex items-center gap-2">
+    
+            <Button
+              size="sm"
+              variant="default"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLocation(`/family/${family.id}/edit`);
+              }}
+              data-testid={`button-edit-${family.id}`}
+              className="px-4 py-1 h-8 bg-blue-500 hover:bg-blue-600 text-white"
+              title="Edit family"
+            >
+              <Edit className="w-4 h-4 mr-1" />Edit
+            </Button>
+          </div>
                 </div>
               </div>
             </div>
@@ -407,7 +394,7 @@ export function FamilyExpandedDetails({
                 <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     <Phone className="w-5 h-5 mr-2 text-blue-600" />
-                    Contact Information
+                    Business Information
                   </h3>
                   <div className="space-y-4">
                     {renderContactInfo()}
@@ -417,23 +404,14 @@ export function FamilyExpandedDetails({
 
                 {/* Children and Courses Combined Section */}
                 <div className="space-y-6">
-                  {/* Children Information Section */}
-                  {family.members.filter(m => m.relationship === 'child').length > 0 && (
-                    <div className="bg-green-50 rounded-xl p-6 shadow-sm border border-green-200">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <Users className="w-5 h-5 mr-2 text-green-600" />
-                        Children ({family.members.filter(m => m.relationship === 'child').length})
-                      </h3>
-                      {renderChildrenInfo()}
-                    </div>
-                  )}
+   
 
                   {/* Courses Information Section */}
                   {getPrimaryCourses(family)?.courses.length && (
                     <div className="bg-blue-50 rounded-xl p-6 shadow-sm border border-blue-200">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <GraduationCap className="w-5 h-5 mr-2 text-blue-600" />
-                        Courses ({getPrimaryCourses(family)?.courses.length})
+                        KCBMC Information ({getPrimaryCourses(family)?.courses.length})
                       </h3>
                       {renderCoursesInfo()}
                     </div>
