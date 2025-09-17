@@ -18,6 +18,7 @@ import { FamilyImageUploader } from "@/components/FamilyImageUploader";
 import { formatPhoneNumber } from "@/utils/phone-format";
 import { apiRequest } from '@/lib/queryClient';
 import { PlusIcon, PencilIcon, TrashIcon, FolderIcon, UsersIcon, ChevronDownIcon, ChevronRightIcon, UserPlusIcon, HomeIcon, UserIcon, Users2Icon, Move, ArrowLeft } from "lucide-react";
+import { Header } from '@/components/Header';
 
 // Draggable Family Component
 function DraggableFamilyCard({ family }: { family: any }) {
@@ -65,21 +66,7 @@ function DraggableFamilyCard({ family }: { family: any }) {
 
           </div>
           
-          {/* Family Members */}
-          {family.members && family.members.length > 0 && (
-            <div className="ml-4 sm:ml-8 mt-1 sm:mt-2">
-              <div className="flex flex-wrap gap-1">
-                {family.members.map((member: any) => (
-                  <div key={member.id} className="flex items-center gap-1">
-                    <UserIcon className="w-2 h-2 text-blue-600 flex-shrink-0" />
-                    <span className="text-xs text-gray-600 truncate">
-                      {member.koreanName || member.englishName} ({member.relationship === 'husband' ? '남편' : member.relationship === 'wife' ? '아내' : '자녀'})
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
         </div>
         <div className="flex-shrink-0 ml-2">
           <Button 
@@ -726,26 +713,20 @@ export default function DepartmentTeamManagement() {
   }
 
   return (
-    <DndContext
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="container mx-auto p-6">
-        <div className="mb-4">
-          <Link href="/">
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              홈으로
-            </Button>
-          </Link>
-        </div>
-        
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">지회관리</h1>
-          <p className="text-muted-foreground mt-2">연합회-지회-팀원</p>
-        </div>
+    <div className="min-h-screen">
+      <Header />
+
+      <DndContext
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="container mx-auto p-6 pt-20">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold">지회관리</h1>
+              <p className="text-muted-foreground mt-2">연합회-지회-팀원</p>
+            </div>
 
         <div className="flex gap-2">
           <Dialog open={isDepartmentDialogOpen} onOpenChange={setIsDepartmentDialogOpen}>
@@ -1198,9 +1179,7 @@ export default function DepartmentTeamManagement() {
                                   </Button>
                                   <UsersIcon className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
                                   <span className="font-medium text-xs sm:text-sm truncate min-w-0 flex-1">{team.name}</span>
-                                  <Badge variant="outline" className="text-xs flex-shrink-0 hidden sm:inline-flex">
-                                    {team.assignedStaff?.length || 0} staff
-                                  </Badge>
+                         
                                   <Badge variant="secondary" className="text-xs flex-shrink-0">
                                     {teamFamilies.length}
                                   </Badge>
@@ -1324,6 +1303,7 @@ export default function DepartmentTeamManagement() {
           </div>
         ) : null}
       </DragOverlay>
-    </DndContext>
+      </DndContext>
+    </div>
   );
 }

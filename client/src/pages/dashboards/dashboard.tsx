@@ -22,8 +22,9 @@ import { formatDateForInput, getPreviousSunday } from '@/utils/date-utils';
 import { getGradeGroupFirstChar } from '@/utils/grade-utils';
 import { Users, Search, Plus, Edit, Copy, LogOut, ChevronDown, ChevronUp, Phone, MessageSquare, MapPin, Printer, X, Home, Check, Settings, Globe, AlertCircle, Menu, Bell, ExternalLink, User, Calendar, Save, GraduationCap, Info, FolderOpen, UserCheck } from 'lucide-react';
 import styles from './dashboard.module.css';
-import { CareLogList } from '@/components/CareLogList';
 import { RefreshButton } from '@/components/RefreshButton';
+import { Header } from '@/components/Header';
+import { FamilyDashboardFilters, FamilyExpandedDetails } from '@/components/dashboard';
 
 // Helper function to get default date range (recent 12 months, Sunday-only)
 function getDefaultDateRange() {
@@ -97,16 +98,7 @@ export default function DashboardPage() {
     return !!savedFilters.departmentId; // Search if we have a saved department
   });
 
-  // Fetch departments
-  const { data: departments = [] } = useQuery<Department[]>({
-    queryKey: ["/api/departments"],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/departments');
-      return response.json();
-    },
-  });
-
-  // Fetch teams
+  // Fetch teams for family queries
   const { data: teams = [] } = useQuery<Team[]>({
     queryKey: ["/api/teams"],
     queryFn: async () => {
@@ -115,35 +107,6 @@ export default function DashboardPage() {
     },
   });
 
-  // Validate saved filters when departments and teams are loaded
-  useEffect(() => {
-    if (departments.length > 0 && teams.length > 0) {
-      const isValidDepartment = !filters.departmentId || departments.some(dept => dept.id === filters.departmentId);
-      const availableTeams = getAvailableTeams();
-      const validTeamIds = filters.teamIds.filter(teamId => availableTeams.some(team => team.id === teamId));
-      
-      // If department is invalid or some teams are invalid, update filters
-      if (!isValidDepartment || validTeamIds.length !== filters.teamIds.length) {
-        const updatedFilters = {
-          departmentId: isValidDepartment ? filters.departmentId : '',
-          teamIds: validTeamIds
-        };
-        setFilters(updatedFilters);
-        saveFiltersToStorage(updatedFilters);
-        if (!updatedFilters.departmentId) {
-          setHasSearched(false);
-        }
-        
-        // Show toast only if filters were cleaned up due to invalid data
-        if (!isValidDepartment || validTeamIds.length !== filters.teamIds.length) {
-          toast({
-            title: "Filters updated",
-            description: "Some saved filters were no longer valid and have been updated.",
-          });
-        }
-      }
-    }
-  }, [departments, teams]); // Only run when departments or teams data changes
   // Show filters by default when no filters are applied
   const [showFilters, setShowFilters] = useState(() => !filters.departmentId);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
@@ -480,38 +443,6 @@ export default function DashboardPage() {
     }
   };
 
-  const getActiveFilters = () => {
-    const activeFilters = [];
-    
-    if (filters.departmentId && departments && Array.isArray(departments)) {
-      const department = departments.find(dept => dept.id === filters.departmentId);
-      activeFilters.push({ label: 'Department', value: department?.name || filters.departmentId });
-    }
-    if (filters.teamIds && filters.teamIds.length > 0 && teams && Array.isArray(teams)) {
-      const selectedTeams = teams.filter(team => filters.teamIds.includes(team.id));
-      selectedTeams.forEach(team => {
-        activeFilters.push({ label: 'Team', value: team.name });
-      });
-    }
-    
-    return activeFilters;
-  };
-
-  // Get teams filtered by selected department
-  const getAvailableTeams = () => {
-    if (!filters.departmentId) return [];
-    return teams.filter(team => team.departmentId === filters.departmentId);
-  };
-
-  // Toggle team selection
-  const toggleTeamSelection = (teamId: string) => {
-    updateFilters(prev => ({
-      ...prev,
-      teamIds: prev.teamIds.includes(teamId)
-        ? prev.teamIds.filter(id => id !== teamId)
-        : [...prev.teamIds, teamId]
-    }));
-  };
 
   // Group families by team for display
   const getGroupedFamilies = () => {
@@ -658,22 +589,6 @@ export default function DashboardPage() {
     );
   };
 
-  // Component to display care log tab title with count
-  const CareLogTabTitle = ({ familyId }: { familyId: string }) => {
-    const { data: careLogs = [] } = useCareLogsData(familyId);
-    const careLogCount = careLogs.length;
-
-    return (
-      <div className="flex items-center gap-2">
-        <span>Care Log</span>
-        {careLogCount > 0 && (
-          <span className="inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-full">
-            {careLogCount > 9 ? '9+' : careLogCount}
-          </span>
-        )}
-      </div>
-    );
-  };
 
   const toggleFamilyExpanded = (familyId: string) => {
     setExpandedFamilies(prev => {
@@ -719,7 +634,7 @@ export default function DashboardPage() {
         <body>
           <div class="header">
             <div class="title">Family Search Results</div>
-            <div class="search-info">Date Range: ${filters.dateFrom || 'N/A'} to ${filters.dateTo || 'N/A'}</div>
+            <div class="search-info">Applied Filters: Department and Team filters applied</div>
             <div class="search-info">Total Results: ${families.length}</div>
             <div class="search-info">Generated: ${new Date().toLocaleDateString()}</div>
           </div>
@@ -933,254 +848,12 @@ export default function DashboardPage() {
 
   return (
     <div className={styles.container}>
-      {/* Navigation Header */}
-      <nav className={styles.nav}>
-        <div className={styles.navContent}>
-          <div className={styles.navLeft}>
-            <div className={styles.navIcon}>
-              <img
-                src="/kcmbc-logo.svg"
-                alt="KCMBC Logo"
-                className="w-5 h-5"
-              />
-            </div>
-            <h1 className={styles.navTitle}>Member</h1>
-          </div>
-          
-          {/* Announcements & Refresh Button - Center */}
-          <div className="flex-1 flex justify-center items-center gap-12">
-            {/* News Announcement Bell */}
-            {footerAnnouncements.length > 0 && (
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                  onClick={() => {
-                    if (footerAnnouncements.length === 1) {
-                      setLocation(`/announcement/${footerAnnouncements[0].id}`);
-                    } else {
-                      setShowAnnouncementDropdown(!showAnnouncementDropdown);
-                    }
-                  }}
-                  title={footerAnnouncements.length === 1 
-                    ? `View announcement: ${footerAnnouncements[0].title}` 
-                    : `${footerAnnouncements.length} announcements available`}
-                >
-                  <Bell className="h-4 w-4" />
-                </Button>
-                
-                {/* Notification badge */}
-                <div className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
-                  {footerAnnouncements.length > 9 ? '9+' : footerAnnouncements.length}
-                </div>
-                
-                {/* Dropdown for multiple announcements */}
-                {footerAnnouncements.length > 1 && showAnnouncementDropdown && (
-                  <>
-                    {/* Backdrop */}
-                    <div 
-                      className="fixed inset-0 z-40" 
-                      onClick={() => setShowAnnouncementDropdown(false)}
-                    />
-                    
-                    {/* Dropdown content */}
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                      <div className="p-3 border-b border-gray-100">
-                        <h3 className="text-sm font-semibold text-gray-900">Announcements</h3>
-                      </div>
-                      <div className="max-h-48 overflow-y-auto">
-                        {footerAnnouncements.map((announcement) => (
-                          <div
-                            key={announcement.id}
-                            className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0"
-                            onClick={() => {
-                              setLocation(`/announcement/${announcement.id}`);
-                              setShowAnnouncementDropdown(false);
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-medium text-gray-900 truncate">
-                                  {announcement.title}
-                                </h4>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {new Date(announcement.createdAt).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-            
-            <RefreshButton onRefresh={() => setExpandedFamilies(new Set())} />
-          </div>
-          
-          <div className={styles.navRight}>
-     
-            {/* Desktop Menu - Hidden on Mobile */}
-            <div className="hidden md:flex items-center space-x-4">
-                              <div className="flex space-x-2">
-                  <Button 
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setLocation('/departments')}
-                    data-testid="button-departments"
-                    className="text-orange-700 hover:text-primary-foreground/80"
-                    title="Department Management"
-                  >
-                    <FolderOpen className="w-4 h-4" /> 지회(트리뷰)
-                  </Button>
- 
-                  <Button 
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setLocation('/family-dashboard')}
-                    data-testid="button-family-dashboard"
-                    className="text-cyan-700 hover:text-primary-foreground/80"
-                    title="Family Team Dashboard"
-                  >
-                    <Users className="w-4 h-4" /> 지회(카드뷰)
-                  </Button>
-                               
-
-
-                </div>
-
-              {user?.group === 'ADM' && (
-                <div className="flex space-x-2">
-                  <Button 
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setLocation('/departments')}
-                    data-testid="button-departments"
-                    className="text-orange-700 hover:text-primary-foreground/80"
-                    title="Department Management"
-                  >
-                    <FolderOpen className="w-4 h-4" /> 지회(트리뷰)
-                  </Button>
- 
-                  <Button 
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setLocation('/family-dashboard')}
-                    data-testid="button-family-dashboard"
-                    className="text-cyan-700 hover:text-primary-foreground/80"
-                    title="Family Team Dashboard"
-                  >
-                    <Users className="w-4 h-4" /> 지회(카드뷰)
-                  </Button>
-                                    <Button 
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setLocation('/staff-management')}
-                    data-testid="button-staff-management"
-                    className="text-blue-700 hover:text-primary-foreground/80"
-                    title="Staff Management"
-                  >
-                    <Settings className="w-4 h-4" />Staff
-                  </Button>
-                  <Button 
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setLocation('/news-management')}
-                    data-testid="button-news-management"
-                    className="text-green-700 hover:text-primary-foreground/80"
-                    title="News Management"
-                  >
-                    <Globe className="w-4 h-4" />News
-                  </Button>
-
-                  <Button 
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setLocation('/events')}
-                    data-testid="button-events"
-                    className="text-purple-700 hover:text-primary-foreground/80"
-                    title="Event Management"
-                  >
-                    <Calendar className="w-4 h-4" /> Event
-                  </Button>
-
-                </div>
-              )}
-              <span className={styles.userName} data-testid="text-current-user">
-                {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
-              </span>
-              
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => logout()}
-                className={styles.logoutButton}
-                data-testid="button-logout"
-              >
-                <LogOut className="w-4 h-4 mr-1" />
-                <span>Logout</span>
-              </Button>
-            </div>
-
-            {/* Mobile Hamburger Menu */}
-            <div className="md:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="lg" className="p-3">
-                    <Menu className="w-7 h-7 stroke-[4px] text-blue-600 font-black" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-3 py-2 text-sm font-medium text-gray-900 border-b">
-                    {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
-                  </div>
-                  
-                  {user?.group === 'ADM' && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setLocation('/staff-management')}>
-                        <Settings className="w-4 h-4 mr-2" />
-                        Staff 
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setLocation('/news-management')}>
-                        <Globe className="w-4 h-4 mr-2" />
-                        News 
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setLocation('/events')}>
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Events 
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setLocation('/departments')}>
-                        <FolderOpen className="w-4 h-4 mr-2" />
-                        Departments 
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setLocation('/teams')}>
-                        <UserCheck className="w-4 h-4 mr-2" />
-                        Teams 
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setLocation('/family-dashboard')}>
-                        <Users className="w-4 h-4 mr-2" />
-                        Family Teams 
-                      </DropdownMenuItem>
-                    </>
-                  )}
-
-                  <DropdownMenuSeparator />
-                  
-                  <DropdownMenuItem onClick={() => logout()}>
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Header
+        footerAnnouncements={footerAnnouncements}
+        onRefresh={() => setExpandedFamilies(new Set())}
+        showAnnouncementDropdown={showAnnouncementDropdown}
+        onAnnouncementDropdownChange={setShowAnnouncementDropdown}
+      />
 
       {/* Announcement Banners */}
       {visibleAnnouncements.length > 0 && (
@@ -1242,131 +915,15 @@ export default function DashboardPage() {
       {/* Main Content */}
       <div className={styles.main}>
         {/* Search Section */}
-        {showFilters && (
-        <Card className={styles.searchCard}>
-          <CardHeader className={!showFilters ? styles.searchHeaderCompact : ''}>
-            <div className={styles.searchHeader}>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowFilters(!showFilters)}
-                className={styles.toggleButton}
-                data-testid="button-toggle-filters"
-              >
-                {showFilters ? (
-                  <>
-                    <ChevronUp className="w-4 h-4 mr-2 text-blue-600" />
-                    <span className="text-blue-600">Hide Filters</span>
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="w-4 h-4 mr-2 text-blue-600" />
-                    <span className="text-blue-600">Search Filters</span>
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardHeader>
-          {showFilters && (
-            <CardContent className={styles.searchContent}>
-              {/* Department Filter */}
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="department">Department</Label>
-                  <Select
-                    value={filters.departmentId}
-                    onValueChange={(value) => {
-                      updateFilters(prev => ({ 
-                        ...prev, 
-                        departmentId: value,
-                        teamIds: [] // Reset teams when department changes
-                      }));
-                      setHasSearched(true);
-                      // Auto-hide filters after selection for cleaner UI
-                      setShowFilters(false);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department first..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((department) => (
-                        <SelectItem key={department.id} value={department.id}>
-                          {department.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Team Filter - Only show if department is selected */}
-                {filters.departmentId && (
-                  <div>
-                    <Label>Teams (select multiple)</Label>
-                    <div className="flex flex-wrap gap-2 mt-2 min-h-[2.5rem] p-3 border border-input bg-background rounded-md">
-                      {getAvailableTeams().length === 0 ? (
-                        <span className="text-muted-foreground text-sm">No teams available in this department</span>
-                      ) : (
-                        getAvailableTeams().map((team) => {
-                          const isSelected = filters.teamIds.includes(team.id);
-                          return (
-                            <button
-                              key={team.id}
-                              type="button"
-                              onClick={() => {
-                                updateFilters(prev => ({
-                                  ...prev,
-                                  teamIds: isSelected 
-                                    ? prev.teamIds.filter(id => id !== team.id)
-                                    : [...prev.teamIds, team.id]
-                                }));
-                              }}
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
-                                isSelected 
-                                  ? 'bg-primary text-primary-foreground border-primary' 
-                                  : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
-                              }`}
-                            >
-                              {team.name}
-                              {isSelected && (
-                                <X className="w-3 h-3 ml-1" />
-                              )}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                    {filters.departmentId && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {filters.teamIds.length === 0 
-                          ? `Showing all families from all teams in this department` 
-                          : `${filters.teamIds.length} team(s) selected`}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              {/* Filter Actions */}
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex gap-2">
-                  {filters.departmentId && (
-                    <Button variant="secondary" onClick={clearFilters} data-testid="button-clear-filters">
-                      Clear All Filters
-                    </Button>
-                  )}
-                </div>
-                {filters.departmentId && (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>Filters saved</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          )}
-        </Card>
-        )}
+        <FamilyDashboardFilters
+          filters={filters}
+          onFiltersChange={updateFilters}
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
+          onSearch={() => setHasSearched(true)}
+          onClearFilters={clearFilters}
+          hasSearched={hasSearched}
+        />
 
         {/* Results Section */}
         <Card className={styles.resultsCard}>
@@ -1402,19 +959,6 @@ export default function DashboardPage() {
                 </Button>
               )}
             </div>
-            
-            {/* Active Filters Display */}
-            {hasSearched && getActiveFilters().length > 0 && (
-              <div className="flex flex-nowrap gap-1 pt-1 mt-1 border-t border-border overflow-x-auto">
-                <span className="text-xs font-medium text-muted-foreground mr-1 flex-shrink-0"></span>
-                {getActiveFilters().map((filter, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs px-1.5 py-0.5 whitespace-nowrap flex-shrink-0">
-                    <span className="font-medium">{filter.label}:</span>
-                    <span className="ml-0.5">{filter.value}</span>
-                  </Badge>
-                ))}
-              </div>
-            )}
           </CardHeader>
           
           {!hasSearched ? (
@@ -1547,328 +1091,16 @@ export default function DashboardPage() {
                     </div>
                     
                     {expandedFamilies.has(family.id) && (
-                      <div className={styles.expandedContent}>
-                        <Tabs defaultValue="current-info" className="w-full">
-                          <div className="w-full">
-                            <div className="flex justify-between items-center gap-2 w-full">
-                              <TabsList className="grid grid-cols-2 flex-1 max-w-md">
-                                <TabsTrigger value="current-info">기본정보</TabsTrigger>
-                                <TabsTrigger value="care-logs">
-                                  <CareLogTabTitle familyId={family.id} />
-                                </TabsTrigger>
-                              </TabsList>
-                              <div className="flex-shrink-0">
-                                <Button
-                                size="sm"
-                                variant="default"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setLocation(`/family/${family.id}/edit`);
-                                }}
-                                data-testid={`button-edit-${family.id}`}
-                                className="px-4 py-1 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-sm"
-                                title="Edit family"
-                              >
-                                  <Edit className="w-4 h-4" />Edit
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <TabsContent value="current-info" className="mt-4">
-                            <div className={styles.familyDetailsExpanded}>
-                              {/* Large Family Picture */}
-                              <div className="mb-6 flex justify-center">
-                                <div className="relative">
-                                  {family.familyPicture ? (
-                                    <div
-                                      className="relative cursor-pointer hover:opacity-80 transition-opacity"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setMagnifiedImage({
-                                          src: family.familyPicture!,
-                                          alt: `${family.familyName} family`
-                                        });
-                                      }}
-                                    >
-                                      <img
-                                        src={family.familyPicture}
-                                        alt={`${family.familyName} family`}
-                                        className={`w-32 h-32 object-cover rounded-lg border-4 ${getStatusBorderClassName(family.memberStatus)} shadow-lg`}
-                                        onError={(e) => {
-                                          const target = e.target as HTMLImageElement;
-                                          target.style.display = 'none';
-                                          const fallback = target.parentElement?.parentElement?.querySelector('.expanded-fallback-icon') as HTMLElement;
-                                          if (fallback) fallback.style.display = 'flex';
-                                        }}
-                                      />
-                                      <div className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-1.5 hover:bg-opacity-70 transition-all">
-                                        <Search className="w-4 h-4 text-white" />
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className={`w-32 h-32 rounded-lg border-4 ${getStatusBorderClassName(family.memberStatus)} shadow-lg bg-gray-100 flex items-center justify-center`}>
-                                      <Users className="w-16 h-16 text-muted-foreground" />
-                                    </div>
-                                  )}
-                                  <div className="expanded-fallback-icon hidden w-32 h-32 rounded-lg border-4 border-gray-300 shadow-lg bg-gray-100 items-center justify-center">
-                                    <Users className="w-16 h-16 text-muted-foreground" />
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className={styles.contactInfo}>
-                                {(() => {
-                                  const husband = family.members.find(m => m.relationship === 'husband');
-                                  const wife = family.members.find(m => m.relationship === 'wife');
-                                  const hasPhoneNumber = husband?.phoneNumber || wife?.phoneNumber;
-                                  
-                                  return (
-                                    <div className={styles.infoItem}>
-                                      <div className="flex flex-wrap gap-2">
-                                        {hasPhoneNumber ? (
-                                          <>
-                                            {husband?.phoneNumber && (
-                                              <>
-                                                <Badge 
-                                                  variant="outline" 
-                                                  className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 cursor-pointer text-sm font-medium px-3 py-1"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    window.open(`tel:${husband.phoneNumber}`, '_self');
-                                                  }}
-                                                  title="Click to call husband"
-                                                >
-                                                  <Phone className="h-3 w-3 mr-1" />
-                                                  H: {husband.phoneNumber}
-                                                </Badge>
-                                                <Badge 
-                                                  variant="outline" 
-                                                  className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 cursor-pointer"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    window.open(`sms:${husband.phoneNumber}`, '_self');
-                                                  }}
-                                                  title="Click to text husband"
-                                                >
-                                                  <MessageSquare className="h-3 w-3 mr-1" />
-                                                  Text
-                                                </Badge>
-                                              </>
-                                            )}
-                                            {wife?.phoneNumber && (
-                                              <>
-                                                <Badge 
-                                                  variant="outline" 
-                                                  className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 cursor-pointer text-sm font-medium px-3 py-1"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    window.open(`tel:${wife.phoneNumber}`, '_self');
-                                                  }}
-                                                  title="Click to call wife"
-                                                >
-                                                  <Phone className="h-3 w-3 mr-1" />
-                                                  W: {wife.phoneNumber}
-                                                </Badge>
-                                                <Badge 
-                                                  variant="outline" 
-                                                  className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 cursor-pointer"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    window.open(`sms:${wife.phoneNumber}`, '_self');
-                                                  }}
-                                                  title="Click to text wife"
-                                                >
-                                                  <MessageSquare className="h-3 w-3 mr-1" />
-                                                  Text
-                                                </Badge>
-                                              </>
-                                            )}
-                                          </>
-                                        ) : (
-                                          <Badge variant="secondary" className="text-muted-foreground">
-                                            <Phone className="h-3 w-3 mr-1" />
-                                            No phone
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                                {(() => {
-                                  const fullAddress = [
-                                    family.address,
-                                    family.city,
-                                    family.state,
-                                    family.zipCode
-                                  ].filter(Boolean).join(', ');
-                                  
-                                  return (
-                                    <div className={styles.infoItem}>
-                                      <div className="flex flex-wrap gap-2">
-                                        {fullAddress ? (
-                                          <Badge 
-                                            variant="outline" 
-                                            className="bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100 cursor-pointer py-2 px-2 h-auto whitespace-nowrap overflow-hidden text-ellipsis max-w-full"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
-                                              window.open(mapsUrl, '_blank');
-                                            }}
-                                            title="Click to open in Google Maps"
-                                          >
-                                            <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-                                            <span className="truncate">{fullAddress}</span>
-                                          </Badge>
-                                        ) : (
-                                          <Badge variant="secondary" className="text-muted-foreground">
-                                            <MapPin className="h-3 w-3 mr-1" />
-                                            No address
-                                          </Badge>
-                                        )}
-                                      </div>
-                          
-                          <div className="flex justify-between items-center mt-2">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                navigator.clipboard.writeText(fullAddress);
-                                toast({
-                                  description: "Address copied to clipboard",
-                                });
-                              }}
-                              className="text-primary hover:text-primary/80"
-                              title="Copy address"
-                            >
-                              <Copy className="w-4 h-4" />Copy Address
-                            </Button>
-                            
-                            <Button 
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFamilyExpanded(family.id);
-                              }}
-                              title="Close"
-                            >
-                              <X className="w-3 h-3 mr-1" />
-                              Close
-                            </Button>
-                          </div>
-                                    </div>
-                                  );
-                                })()}
-                                {(() => {
-                                  const children = family.members.filter(m => m.relationship === 'child');
-                                  return children.length > 0 && (
-                                    <div className={styles.infoItem}>
-                                      
-                                      <div className="flex flex-wrap gap-2">
-                                        {children.map((child, index) => (
-                                          <div key={child.id || index} className="bg-green-50 border border-green-200 rounded px-2 py-1 text-sm">
-                                            <div className="font-medium flex items-center gap-2"
-                                            onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  toggleGradeGroup(child.id || `${family.id}-${index}`);
-                                                }}
-                                                >
-                                              <span 
-                                                className="cursor-pointer hover:text-blue-600 transition-colors text-xs"
-                                                
-                                              >
-                                                {child.koreanName && child.englishName 
-                                                  ? `${child.koreanName} (${child.englishName})`
-                                                  : child.koreanName || child.englishName
-                                                }
-                                              </span>
-                                              {child.gradeLevel && (
-                                                <div className="relative">
-                                                  <Badge  className="bg-green-50 text-green-700 border-green-200">
-                                                    <GraduationCap className="w-3 h-3" />
-                                                  </Badge>
-                                                  <div className="absolute -top-1 -right-1 h-4 w-4 border border-green-200 text-green-700 text-xs rounded-full flex items-center justify-center font-medium bg-white">
-                                                   {`${getGradeGroupFirstChar(child.gradeLevel) || (index + 1)}${child.gradeLevel}`}
-                                                  </div>
-                                                </div>
-                                              )}
-                                              {child.gradeGroup && expandedGradeGroups.has(child.id || `${family.id}-${index}`) && (
-                                                <span className={`flex items-center gap-1 text-xs ${
-                                                  child.gradeGroup.toLowerCase().includes('team') 
-                                                    ? 'text-purple-600' 
-                                                    : child.gradeGroup.toLowerCase().includes('kid') 
-                                                    ? 'text-orange-600' 
-                                                    : child.gradeGroup.toLowerCase().includes('high') 
-                                                    ? 'text-indigo-600' 
-                                                    : child.gradeGroup.toLowerCase().includes('youth') 
-                                                    ? 'text-red-600' 
-                                                    : 'text-blue-600'
-                                                }`}>
-                                                  <Info className={`h-2.5 w-2.5 ${
-                                                    child.gradeGroup.toLowerCase().includes('team') 
-                                                      ? 'text-purple-600' 
-                                                      : child.gradeGroup.toLowerCase().includes('kid') 
-                                                      ? 'text-orange-600' 
-                                                      : child.gradeGroup.toLowerCase().includes('high') 
-                                                      ? 'text-indigo-600' 
-                                                      : child.gradeGroup.toLowerCase().includes('youth') 
-                                                      ? 'text-red-600' 
-                                                      : 'text-blue-600'
-                                                  }`} />
-                                                  ({child.gradeGroup})
-                                                </span>
-                                              )}
-                                            </div>
-
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                                {(() => {
-                                  const coursesInfo = getPrimaryCourses(family);
-                                  return coursesInfo && coursesInfo.courses.length > 0 && (
-                                    <div className={styles.infoItem}>
-                                      <div className="flex flex-wrap gap-2">
-                                        {coursesInfo.courses.map((courseValue, index) => {
-                                          const courseOption = COURSE_OPTIONS.find(opt => opt.value === courseValue);
-                                          const courseLabel = courseOption ? courseOption.label : courseValue;
-                                          
-                                          return (
-                                            <Badge 
-                                              key={`${courseValue}-${index}`} 
-                                              variant="default" 
-                                              className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200"
-                                            >
-                                              {courseLabel}
-                                            </Badge>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                              
-                            </div>
-                          </TabsContent>
-                          
-                          
-                          <TabsContent value="staff-notes" className="mt-4">
-                            <div className="p-4 border border-dashed border-gray-300 rounded-lg text-center text-muted-foreground">
-                              <p>Staff notes functionality will be implemented later.</p>
-                              <p className="text-sm mt-2">This will include internal staff communications and follow-up actions.</p>
-                            </div>
-                          </TabsContent>
-                          
-                          <TabsContent value="care-logs" className="mt-4">
-                            <CareLogList familyId={family.id} />
-                          </TabsContent>
-                        </Tabs>
-                      </div>
+                      <FamilyExpandedDetails
+                        family={family}
+                        onClose={() => toggleFamilyExpanded(family.id)}
+                        onImageClick={(src, alt) => setMagnifiedImage({ src, alt })}
+                        expandedGradeGroups={expandedGradeGroups}
+                        onToggleGradeGroup={toggleGradeGroup}
+                        getStatusBorderClassName={getStatusBorderClassName}
+                        getPrimaryCourses={getPrimaryCourses}
+                        useCareLogsData={useCareLogsData}
+                      />
                     )}
                   </div>
                 </div>

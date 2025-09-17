@@ -10,6 +10,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { Users, UserCheck, ChevronDown, ChevronUp, Move, Home, User } from "lucide-react";
 import { useLocation } from "wouter";
 import type { FamilyWithMembers, Department, Team } from '@server/schema';
+import { Header } from '@/components/Header';
 
 interface DepartmentWithTeams extends Department {
   teams: TeamWithFamilies[];
@@ -221,22 +222,13 @@ export default function FamilyTeamDashboard() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-        <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setLocation('/')}
-                className="self-start"
-              >
-                Back to Home
-              </Button>
+    <div className="min-h-screen">
+      <Header />
+
+      <div className="container mx-auto p-6 pt-20">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold">Card View</h1>
         </div>
-
-      </div>
 
       <DndContext
         collisionDetection={closestCenter}
@@ -370,6 +362,7 @@ export default function FamilyTeamDashboard() {
           ) : null}
         </DragOverlay>
       </DndContext>
+      </div>
     </div>
   );
 }

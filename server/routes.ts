@@ -94,6 +94,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
+  const requireManagementAccess = (req: any, res: any, next: any) => {
+    if (!req.session?.staffGroup || !['ADM', 'MGM'].includes(req.session.staffGroup)) {
+      return res.status(403).json({ message: "Management access required" });
+    }
+    next();
+  };
+
   // Auth routes
   app.post("/api/auth/login", async (req, res) => {
     const loginTime = new Date();
@@ -1234,8 +1241,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Department routes (ADM only)
-  app.get("/api/departments", requireAuth, requireSuperAdminAccess, async (req, res) => {
+  // Department routes (ADM and MGM access)
+  app.get("/api/departments", requireAuth, requireManagementAccess, async (req, res) => {
     try {
       const departments = await storage.getDepartments();
       res.json(departments);
@@ -1245,7 +1252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/departments/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+  app.get("/api/departments/:id", requireAuth, requireManagementAccess, async (req, res) => {
     try {
       const department = await storage.getDepartment(req.params.id);
       if (!department) {
@@ -1258,7 +1265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/departments", requireAuth, requireSuperAdminAccess, async (req, res) => {
+  app.post("/api/departments", requireAuth, requireManagementAccess, async (req, res) => {
     try {
       const departmentData = insertDepartmentSchema.parse(req.body);
       const department = await storage.createDepartment(departmentData);
@@ -1275,7 +1282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/departments/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+  app.put("/api/departments/:id", requireAuth, requireManagementAccess, async (req, res) => {
     try {
       const departmentData = insertDepartmentSchema.partial().parse(req.body);
       const updatedDepartment = await storage.updateDepartment(req.params.id, departmentData);
@@ -1295,7 +1302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/departments/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+  app.delete("/api/departments/:id", requireAuth, requireManagementAccess, async (req, res) => {
     try {
       await storage.deleteDepartment(req.params.id);
       res.json({ message: "Department deleted successfully" });
@@ -1308,8 +1315,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Team routes (ADM only)
-  app.get("/api/teams", requireAuth, requireSuperAdminAccess, async (req, res) => {
+  // Team routes (ADM and MGM access)
+  app.get("/api/teams", requireAuth, requireManagementAccess, async (req, res) => {
     try {
       const departmentId = req.query.departmentId as string;
       if (departmentId) {
@@ -1325,7 +1332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/teams/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+  app.get("/api/teams/:id", requireAuth, requireManagementAccess, async (req, res) => {
     try {
       const team = await storage.getTeam(req.params.id);
       if (!team) {
@@ -1338,7 +1345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/teams", requireAuth, requireSuperAdminAccess, async (req, res) => {
+  app.post("/api/teams", requireAuth, requireManagementAccess, async (req, res) => {
     try {
       const teamData = insertTeamSchema.parse(req.body);
       const team = await storage.createTeam(teamData);
@@ -1355,7 +1362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/teams/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+  app.put("/api/teams/:id", requireAuth, requireManagementAccess, async (req, res) => {
     try {
       const teamData = insertTeamSchema.partial().parse(req.body);
       const updatedTeam = await storage.updateTeam(req.params.id, teamData);
@@ -1375,7 +1382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/teams/:id", requireAuth, requireSuperAdminAccess, async (req, res) => {
+  app.delete("/api/teams/:id", requireAuth, requireManagementAccess, async (req, res) => {
     try {
       await storage.deleteTeam(req.params.id);
       res.json({ message: "Team deleted successfully" });

@@ -5,14 +5,11 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { apiRequest } from '@/lib/queryClient';
 import { EventWithStaff } from '@server/schema';
-import { formatDateForInput } from '@/utils/date-utils';
-import { Calendar, Clock, MapPin, Plus, Edit, Trash2, Users, LogOut, MoreVertical, Menu, Settings, Globe, Bell, ArrowLeft, User } from 'lucide-react';
-import { RefreshButton } from '@/components/RefreshButton';
+import { Calendar, Clock, MapPin, Plus, Edit, Trash2, Users } from 'lucide-react';
+import { Header } from '@/components/Header';
 
 interface EventListPageProps {}
 
@@ -113,68 +110,24 @@ export default function EventListPage({}: EventListPageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <header className="bg-white/80 backdrop-blur-md border-b border-white/20 sticky top-0 z-40 shadow-lg">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-3 sm:py-4">
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/')}
-                className="text-muted-foreground hover:text-foreground p-2 sm:px-3"
-              >
-                <ArrowLeft className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Back to Home</span>
+      <Header onRefresh={() => refetch()} />
+
+      <div className="pt-20">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Events
+            </h1>
+
+            {canAddEvent && (
+              <Button onClick={handleCreateEvent} size="sm" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">New Event</span>
               </Button>
-              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Events
-              </h1>
-            </div>
-
-            <div className="flex items-center space-x-1 sm:space-x-2">
-              <RefreshButton onRefresh={() => refetch()} />
-
-              {canAddEvent && (
-                <Button onClick={handleCreateEvent} size="sm" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
-                  <Plus className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">New Event</span>
-                </Button>
-              )}
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-2 sm:px-3">
-                    <User className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">{user?.nickName}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-white/90 backdrop-blur-md">
-                  <DropdownMenuItem onClick={() => navigate('/')}>
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Dashboard
-                  </DropdownMenuItem>
-                  {isAdmin && (
-                    <>
-                      <DropdownMenuItem onClick={() => navigate('/staff-management')}>
-                        <Settings className="h-4 w-4 mr-2" />
-                        Staff Management
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/news-management')}>
-                        <Bell className="h-4 w-4 mr-2" />
-                        News Management
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  <DropdownMenuItem onClick={logout}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            )}
           </div>
         </div>
-      </header>
+      </div>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         <div className="mb-4 sm:mb-6">
@@ -264,26 +217,26 @@ export default function EventListPage({}: EventListPageProps) {
                       </Button>
                       
                       {isAdmin && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="hover:bg-white/50 p-2">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-white/90 backdrop-blur-md">
-                            <DropdownMenuItem onClick={() => handleEditEvent(event.id)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit Event
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteEvent(event.id, event.title)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete Event
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditEvent(event.id)}
+                            className="bg-white/50 border-green-200 hover:bg-green-50 hover:border-green-300 text-green-700"
+                          >
+                            <Edit className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteEvent(event.id, event.title)}
+                            className="bg-white/50 border-red-200 hover:bg-red-50 hover:border-red-300 text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>

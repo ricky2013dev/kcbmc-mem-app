@@ -241,35 +241,40 @@ export function CareLogList({ familyId }: CareLogListProps) {
 
 
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col">
       {/* Header with Add Button */}
-      <div className="flex justify-between items-center">
-  
-        <div className="flex items-center gap-2">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-3">
+          <h3 className="text-lg font-semibold text-gray-800">
+            Care Logs {careLogs.length > 0 && `(${careLogs.length})`}
+          </h3>
           {careLogs.length > 0 && (
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="outline"
               onClick={() => setShowMergedDialog(true)}
               title="View all care logs as merged text"
+              className="h-8"
             >
               <AlignLeft className="w-4 h-4 mr-2" />
-              Merged
+              Merged View
             </Button>
           )}
-          <Dialog open={showCreateDialog} onOpenChange={(open) => {
-            setShowCreateDialog(open);
-            if (open) {
-              // Reset form with today's date when dialog opens
-              resetForm();
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button size="sm" data-testid="button-add-care-log">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Care Log
-              </Button>
-            </DialogTrigger>
+        </div>
+
+        <Dialog open={showCreateDialog} onOpenChange={(open) => {
+          setShowCreateDialog(open);
+          if (open) {
+            // Reset form with today's date when dialog opens
+            resetForm();
+          }
+        }}>
+          <DialogTrigger asChild>
+            <Button size="sm" data-testid="button-add-care-log" className="h-8">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Care Log
+            </Button>
+          </DialogTrigger>
           <DialogContent data-testid="dialog-create-care-log">
             <DialogHeader>
               <DialogTitle>Add New Care Log</DialogTitle>
@@ -304,28 +309,60 @@ export function CareLogList({ familyId }: CareLogListProps) {
             </form>
           </DialogContent>
           </Dialog>
-        </div>
       </div>
 
-      {/* Care Logs List */}
-      {careLogs.length === 0 ? (
-        <div className="p-6 border border-dashed border-gray-300 rounded-lg text-center text-muted-foreground">
-          <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-
-        </div>
+      {/* Care Logs Content */}
+      <div className="flex-1">
+        {careLogs.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+            <div className="bg-gray-50 rounded-full p-6 mb-6">
+              <FileText className="w-16 h-16 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-3">No Care Logs Yet</h3>
+            <p className="text-gray-500 mb-6 max-w-md">
+              Start documenting pastoral care activities for this family. Care logs help track visits,
+              prayer requests, phone calls, and other important interactions.
+            </p>
+            <div className="space-y-4 text-sm text-gray-600">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span>Track home visits and meetings</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span>Record prayer requests and spiritual conversations</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                <span>Document phone calls and text communications</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <span>Note important family updates and needs</span>
+              </div>
+            </div>
+            <div className="mt-8">
+              <Button
+                onClick={() => setShowCreateDialog(true)}
+                className="px-6 py-2"
+                data-testid="button-add-first-care-log"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Your First Care Log
+              </Button>
+            </div>
+          </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
           {careLogs.map((log) => (
-            <Card key={log.id} className="border-l-4 border-l-primary/30">
-              <CardContent className="p-4">
+            <Card key={log.id} className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-            
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{log.description}</p>
-                    <div className="flex items-center text-xs text-muted-foreground">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap mb-3 leading-relaxed">{log.description}</p>
+                    <div className="flex items-center text-xs text-muted-foreground bg-gray-50 px-2 py-1 rounded">
                       <User className="w-3 h-3 mr-1" />
-                      {log.staff.nickName} on {log.createdAt ? new Date(log.createdAt).toLocaleDateString() : 'Unknown'}
-     
+                      {log.staff.nickName} • {log.createdAt ? new Date(log.createdAt).toLocaleDateString() : 'Unknown'}
                     </div>
                   </div>
                   {canEditOrDelete(log) && (
@@ -355,6 +392,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
           ))}
         </div>
       )}
+      </div>
 
       {/* Edit Dialog */}
       {editingLog && (

@@ -17,6 +17,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Users, Plus, Edit, Trash2, Settings, ArrowLeft, History, Clock } from 'lucide-react';
+import { Header } from '@/components/Header';
 
 const staffFormSchema = insertStaffSchema.extend({
   personalPin: z.string().length(4, "PIN must be exactly 4 digits").regex(/^\d+$/, "PIN must contain only numbers")
@@ -260,21 +261,14 @@ export default function StaffManagementPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-            <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setLocation('/')}
-                className="self-start"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
-              </Button>
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+
+      <div className="pt-20 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
                   <Settings className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 text-primary" />
