@@ -1082,7 +1082,7 @@ export default function FamilyFormPage({
                       className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
                       value="children"
                     >
-                      자녀
+                      사업장
                     </TabsTrigger>
                     <TabsTrigger
                       className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
