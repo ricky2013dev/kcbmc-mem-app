@@ -1562,32 +1562,12 @@ export default function FamilyFormPage({
                   <CardContent className={styles.sectionContent}>
                     <div className={styles.grid}>
 
-                                            <FormField
-                        control={form.control}
-                        name="bizCategory"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Category</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                placeholder="Business category"
-                                data-testid="input-biz-category"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-
-
-                                            <FormField
+                      <FormField
                         control={form.control}
                         name="bizName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Business Name</FormLabel>
+                    
                             <FormControl>
                               <Input
                                 {...field}
@@ -1605,7 +1585,7 @@ export default function FamilyFormPage({
                         name="bizTitle"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Title</FormLabel>
+                           
                             <FormControl>
                               <Input
                                 {...field}
@@ -1618,6 +1598,26 @@ export default function FamilyFormPage({
                         )}
                       />
 
+                                            <FormField
+                        control={form.control}
+                        name="bizCategory"
+                        render={({ field }) => (
+                          <FormItem>
+                           
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Business category"
+                                data-testid="input-biz-category"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+
+
 
 
 
@@ -1628,7 +1628,7 @@ export default function FamilyFormPage({
                           name="bizIntro"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Business Introduction</FormLabel>
+                             
                               <FormControl>
                                 <Textarea
                                   {...field}

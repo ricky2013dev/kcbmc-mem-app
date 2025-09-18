@@ -355,7 +355,7 @@ export function FamilyExpandedDetails({
   };
 
   return (
-    <div className={`${styles.expandedContent} px-6 py-4`}>
+    <div className={`${styles.expandedContent} px-6 py-4`} style={{position: 'relative'}}>
       <Tabs defaultValue="current-info" className="w-full h-full">
         {/* Header with tabs and edit button */}
         <div className="flex justify-between items-center gap-4 mb-4">
@@ -459,7 +459,7 @@ export function FamilyExpandedDetails({
                   )}
 
                   {/* Courses Information Section */}
-                  {getPrimaryCourses(family)?.courses.length && (
+                  {getPrimaryCourses(family)?.courses?.length > 0 && (
                     <div className="bg-blue-50 rounded-xl p-6 shadow-sm border border-blue-200">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <GraduationCap className="w-5 h-5 mr-2 text-blue-600" />
@@ -487,6 +487,15 @@ export function FamilyExpandedDetails({
           </div>
         </TabsContent>
       </Tabs>
+      <style jsx>{`
+        /* Hide any debugging elements */
+        div[style*="border: 2px solid red"],
+        div[style*="border:2px solid red"],
+        div[style*="border-color: red"],
+        div[style*="border-color:red"] {
+          display: none !important;
+        }
+      `}</style>
     </div>
   );
 }
