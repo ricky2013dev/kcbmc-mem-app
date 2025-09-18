@@ -169,21 +169,21 @@
 .main {
   max-width: 112rem;
   margin: 0 auto;
-  padding: 4.5rem 0.75rem 4rem;
+  padding: 4.5rem 0.75rem 0.2rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.5rem;
 }
 
 @media (min-width: 768px) {
   .main {
-    padding: 6rem 1rem 4.5rem;
+   
     gap: 2rem;
   }
 }
 
 .searchCard {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(226, 232, 240, 0.3);
@@ -208,8 +208,8 @@
 }
 
 .searchHeaderCompact {
-  padding-bottom: 0.5rem;
-  padding-top: 1rem;
+  padding-bottom: 0;
+  padding-top: 0;
 }
 
 @media (min-width: 768px) {

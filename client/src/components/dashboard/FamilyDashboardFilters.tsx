@@ -93,9 +93,9 @@ export function FamilyDashboardFilters({
   };
 
   return (
-    <Card className={styles.searchCard}>
+    <Card >
       <CardHeader className={!showFilters ? styles.searchHeaderCompact : ''}>
-        <div className={styles.searchHeader}>
+        <div >
           <Button
             variant="ghost"
             size="sm"
