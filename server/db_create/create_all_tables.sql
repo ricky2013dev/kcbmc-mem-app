@@ -169,6 +169,39 @@ ALTER TABLE "announcements" ADD CONSTRAINT "announcements_created_by_staff_id_fk
 ALTER TABLE "staff_login_logs" ADD CONSTRAINT "staff_login_logs_staff_id_staff_id_fk" 
 	FOREIGN KEY ("staff_id") REFERENCES "staff"("id") ON DELETE CASCADE;
 
+
+
+
+-- Add business information fields to families table
+-- This script adds 5 new business-related columns to the existing families table
+
+ALTER TABLE families
+ADD COLUMN IF NOT EXISTS biz VARCHAR(255),
+ADD COLUMN IF NOT EXISTS biz_title VARCHAR(255),
+ADD COLUMN IF NOT EXISTS biz_category VARCHAR(255),
+ADD COLUMN IF NOT EXISTS biz_name VARCHAR(255),
+ADD COLUMN IF NOT EXISTS biz_intro TEXT;
+
+-- Add comments to document the purpose of each field
+COMMENT ON COLUMN families.biz IS 'Business type or industry';
+COMMENT ON COLUMN families.biz_title IS 'Business title or position of family member';
+COMMENT ON COLUMN families.biz_category IS 'Business category or sector';
+COMMENT ON COLUMN families.biz_name IS 'Name of the business or company';
+COMMENT ON COLUMN families.biz_intro IS 'Business introduction and description';
+
+-- Optional: Create an index on biz_category for faster searching if needed
+-- CREATE INDEX IF NOT EXISTS idx_families_biz_category ON families(biz_category);
+
+-- Verify the changes
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'families'
+  AND column_name IN ('biz', 'biz_title', 'biz_category', 'biz_name', 'biz_intro')
+ORDER BY column_name;
+
+
+
+
 -- ===============================================
 -- INDEXES FOR PERFORMANCE
 -- ===============================================

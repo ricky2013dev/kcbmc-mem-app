@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { FamilyWithMembers } from '@server/schema';
 import { COURSE_OPTIONS } from '@/types/family';
 import { getGradeGroupFirstChar } from '@/utils/grade-utils';
-import { Users, Search, Edit, Copy, Phone, MessageSquare, MapPin, X, GraduationCap, Info } from 'lucide-react';
+import { Users, Search, Edit, Copy, Phone, MessageSquare, MapPin, X, GraduationCap, Info, Briefcase } from 'lucide-react';
 import styles from '../../pages/dashboards/dashboard.module.css';
 import { CareLogList } from './CareLogList';
 
@@ -311,6 +311,49 @@ export function FamilyExpandedDetails({
     );
   };
 
+  const renderBusinessInfo = () => {
+    const hasBusinessInfo = family.biz || family.bizTitle || family.bizCategory || family.bizName || family.bizIntro;
+
+    if (!hasBusinessInfo) return null;
+
+    return (
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {family.bizCategory && (
+            <div>
+
+              <p className="text-sm font-medium text-gray-900">{family.bizCategory}</p>
+            </div>
+          )}
+          {family.bizName && (
+            <div>
+  
+              <p className="text-sm font-medium text-gray-900">{family.bizName}</p>
+            </div>
+          )}
+          {family.bizTitle && (
+            <div>
+ 
+              <p className="text-sm font-medium text-gray-900">{family.bizTitle}</p>
+            </div>
+          )}
+          {family.biz && (
+            <div>
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Type</span>
+              <p className="text-sm font-medium text-gray-900">{family.biz}</p>
+            </div>
+          )}
+        </div>
+        {family.bizIntro && (
+          <div>
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Introduction</span>
+            <p className="text-sm text-gray-700 leading-relaxed mt-1">{family.bizIntro}</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className={`${styles.expandedContent} px-6 py-4`}>
       <Tabs defaultValue="current-info" className="w-full h-full">
@@ -394,7 +437,7 @@ export function FamilyExpandedDetails({
                 <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     <Phone className="w-5 h-5 mr-2 text-blue-600" />
-                    Business Information
+                    Contact Information
                   </h3>
                   <div className="space-y-4">
                     {renderContactInfo()}
@@ -402,16 +445,25 @@ export function FamilyExpandedDetails({
                   </div>
                 </div>
 
-                {/* Children and Courses Combined Section */}
+                {/* Business and Courses Combined Section */}
                 <div className="space-y-6">
-   
+                  {/* Business Information Section */}
+                  {(family.biz || family.bizTitle || family.bizCategory || family.bizName || family.bizIntro) && (
+                    <div className="bg-green-50 rounded-xl p-6 shadow-sm border border-green-200">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <Briefcase className="w-5 h-5 mr-2 text-green-600" />
+                        Business Information
+                      </h3>
+                      {renderBusinessInfo()}
+                    </div>
+                  )}
 
                   {/* Courses Information Section */}
                   {getPrimaryCourses(family)?.courses.length && (
                     <div className="bg-blue-50 rounded-xl p-6 shadow-sm border border-blue-200">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <GraduationCap className="w-5 h-5 mr-2 text-blue-600" />
-                        KCBMC Information 
+                        KCBMC Information
                       </h3>
                       {renderCoursesInfo()}
                     </div>

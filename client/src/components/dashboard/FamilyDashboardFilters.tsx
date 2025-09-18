@@ -105,12 +105,12 @@ export function FamilyDashboardFilters({
           >
             {showFilters ? (
               <>
-                <ChevronUp className="w-4 h-4 mr-2 text-blue-600" />
+                <ChevronUp className="w-4 h-2 mr-2 text-blue-600" />
                 <span className="text-blue-600">Hide Filters</span>
               </>
             ) : (
               <>
-                <ChevronDown className="w-4 h-4 mr-2 text-blue-600" />
+                <ChevronDown className="w-4 h-2 mr-2 text-blue-600" />
                 <span className="text-blue-600">Search Filters</span>
               </>
             )}
@@ -121,7 +121,7 @@ export function FamilyDashboardFilters({
       {showFilters && (
         <CardContent className={styles.searchContent}>
           {/* Department Filter */}
-          <div className="space-y-4">
+          <div className="space-y-1">
             <div>
               <Label htmlFor="department">Department</Label>
               <Select

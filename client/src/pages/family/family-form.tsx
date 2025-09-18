@@ -88,6 +88,11 @@ const familyFormSchema = z
     familyNotes: z.string().optional(),
     familyPicture: z.string().optional(),
     supportTeamMember: z.string().optional(),
+    biz: z.string().optional(),
+    bizTitle: z.string().optional(),
+    bizCategory: z.string().optional(),
+    bizName: z.string().optional(),
+    bizIntro: z.string().optional(),
     husband: z.object({
       koreanName: z.string().optional(),
       englishName: z.string().optional(),
@@ -253,6 +258,11 @@ export default function FamilyFormPage({
       familyNotes: "",
       familyPicture: "",
       supportTeamMember: "",
+      biz: "",
+      bizTitle: "",
+      bizCategory: "",
+      bizName: "",
+      bizIntro: "",
       husband: {
         koreanName: "",
         englishName: "",
@@ -306,6 +316,11 @@ export default function FamilyFormPage({
         familyNotes: data.familyNotes || undefined,
         familyPicture: data.familyPicture || undefined,
         supportTeamMember: data.supportTeamMember || undefined,
+        biz: data.biz || undefined,
+        bizTitle: data.bizTitle || undefined,
+        bizCategory: data.bizCategory || undefined,
+        bizName: data.bizName || undefined,
+        bizIntro: data.bizIntro || undefined,
       };
 
       const members = [
@@ -393,6 +408,11 @@ export default function FamilyFormPage({
         familyNotes: family.familyNotes || "",
         familyPicture: family.familyPicture || "",
         supportTeamMember: family.supportTeamMember || "",
+        biz: family.biz || "",
+        bizTitle: family.bizTitle || "",
+        bizCategory: family.bizCategory || "",
+        bizName: family.bizName || "",
+        bizIntro: family.bizIntro || "",
         husband: husband
           ? {
               koreanName: husband.koreanName,
@@ -1070,25 +1090,13 @@ export default function FamilyFormPage({
                       className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
                       value="husband"
                     >
-                      남편
+                      회원
                     </TabsTrigger>
                     <TabsTrigger
                       className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
                       value="wife"
                     >
-                      아내
-                    </TabsTrigger>
-                    <TabsTrigger
-                      className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
-                      value="children"
-                    >
-                      사업장
-                    </TabsTrigger>
-                    <TabsTrigger
-                      className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
-                      value="address"
-                    >
-                      주소
+                      배우자
                     </TabsTrigger>
                     <TabsTrigger
                       className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
@@ -1098,9 +1106,21 @@ export default function FamilyFormPage({
                     </TabsTrigger>
                     <TabsTrigger
                       className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+                      value="business"
+                    >
+                      회사
+                    </TabsTrigger>
+                    <TabsTrigger
+                      className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+                      value="address"
+                    >
+                      주소
+                    </TabsTrigger>
+                    <TabsTrigger
+                      className="text-xs font-medium px-1 rounded-md bg-white/50 hover:bg-white border-0 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
                       value="basic"
                     >
-                      추가
+                      지회
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -1245,7 +1265,7 @@ export default function FamilyFormPage({
                         name="husband.koreanName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>남편이름</FormLabel>
+                            <FormLabel>이름</FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
@@ -1285,33 +1305,7 @@ export default function FamilyFormPage({
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
-                        name="husband.birthDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              생일(8자리 숫자만 입력) 등록시만 필요
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="text"
-                                maxLength={10}
-                                placeholder="예: 2012년 3월 8일, 20120308"
-                                onChange={(e) =>
-                                  handleBirthDateChange(
-                                    e.target.value,
-                                    field.onChange
-                                  )
-                                }
-                                data-testid="input-husband-birth-date"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+
 
                       <div className={styles.fullWidth}>
                         <FormField
@@ -1348,7 +1342,7 @@ export default function FamilyFormPage({
                         name="wife.koreanName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>아내이름</FormLabel>
+                            <FormLabel>이름</FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
@@ -1387,33 +1381,6 @@ export default function FamilyFormPage({
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
-                        name="wife.birthDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              생일(8자리 숫자만 입력) 등록시만 필요
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="text"
-                                placeholder="예: 2012년 3월 8일, 20120308"
-                                maxLength={10}
-                                onChange={(e) =>
-                                  handleBirthDateChange(
-                                    e.target.value,
-                                    field.onChange
-                                  )
-                                }
-                                data-testid="input-wife-birth-date"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
 
                       <div className={styles.fullWidth}>
                         <FormField
@@ -1535,32 +1502,7 @@ export default function FamilyFormPage({
                                 )}
                               />
 
-                              <FormField
-                                control={form.control}
-                                name={`children.${index}.birthDate`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        type="text"
-                                        placeholder="생일 (e.g., 20100708)"
-                                        maxLength={10}
-                                        onChange={(e) =>
-                                          handleChildBirthDateChange(
-                                            e.target.value,
-                                            field.onChange,
-                                            index,
-                                            form
-                                          )
-                                        }
-                                        data-testid={`input-child-${index}-birth-date`}
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+ 
 
                               <FormField
                                 control={form.control}
@@ -1604,6 +1546,103 @@ export default function FamilyFormPage({
                         </TabsContent>
                       ))}
                     </Tabs>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="business">
+                {/* Business Information Section */}
+                <Card>
+                  <CardHeader>
+                    <h2 className={styles.sectionTitle}>
+                      <Home className="w-5 h-5 mr-2 text-primary" />
+                      Business Information
+                    </h2>
+                  </CardHeader>
+                  <CardContent className={styles.sectionContent}>
+                    <div className={styles.grid}>
+
+                                            <FormField
+                        control={form.control}
+                        name="bizCategory"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Business category"
+                                data-testid="input-biz-category"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+
+
+                                            <FormField
+                        control={form.control}
+                        name="bizName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Business Name</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Business name"
+                                data-testid="input-biz-name"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="bizTitle"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Title</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Business title"
+                                data-testid="input-biz-title"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+
+
+
+
+                      <div className={styles.fullWidth}>
+                        <FormField
+                          control={form.control}
+                          name="bizIntro"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Business Introduction</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  {...field}
+                                  placeholder="Business introduction and description"
+                                  rows={4}
+                                  data-testid="textarea-biz-intro"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>

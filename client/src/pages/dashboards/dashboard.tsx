@@ -809,39 +809,7 @@ export default function DashboardPage() {
 
         {/* Results Section */}
         <Card className={styles.resultsCard}>
-          <CardHeader className={`${styles.resultsHeader} py-2 px-4`}>
-            <div className="flex items-center justify-between min-h-0">
-              <div className="flex items-center gap-2">
-                <h4 className={styles.resultsTitle}> Results {hasSearched && (
-                  < >
-                    : {families.length} 
-                  </>
-                )}</h4>
-                {hasSearched && families.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={printSearchResults}
-                    title="Print Search Results"
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                  >
-                    <Printer className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-              {!showFilters && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setShowFilters(true)}
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  <ChevronDown className="w-4 h-4 mr-2 text-blue-600" />
-                  Change Filters
-                </Button>
-              )}
-            </div>
-          </CardHeader>
+     
           
           {!hasSearched ? (
             <CardContent className={styles.emptyState}>
