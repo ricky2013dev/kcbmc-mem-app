@@ -2,11 +2,10 @@ import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { FamilyWithMembers } from '@server/schema';
 import { COURSE_OPTIONS } from '@/types/family';
 import { getGradeGroupFirstChar } from '@/utils/grade-utils';
-import { Users, Search, Edit, Copy, Phone, MessageSquare, MapPin, X, GraduationCap, Info, Briefcase } from 'lucide-react';
+import { Users, Search, Edit, Copy, Phone, MessageSquare, MapPin, X, GraduationCap, Info, Briefcase, FileText } from 'lucide-react';
 import styles from '../../pages/dashboards/dashboard.module.css';
 import { CareLogList } from './CareLogList';
 
@@ -34,13 +33,14 @@ export function FamilyExpandedDetails({
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Component to display care log tab title with count
-  const CareLogTabTitle = ({ familyId }: { familyId: string }) => {
+  // Component to display care log section title with count
+  const CareLogSectionTitle = ({ familyId }: { familyId: string }) => {
     const { data: careLogs } = useCareLogsData(familyId);
     const careLogCount = careLogs?.length || 0;
 
     return (
-      <div className="flex items-center w-full gap-2">
+      <div className="flex items-center gap-2">
+        <FileText className="w-5 h-5 text-orange-600" />
         <span>지회 노트</span>
         {careLogCount > 0 && (
           <span className="inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-full">
@@ -356,133 +356,115 @@ export function FamilyExpandedDetails({
 
   return (
     <div className={`${styles.expandedContent} px-6 py-4`} style={{position: 'relative'}}>
-      <Tabs defaultValue="current-info" className="w-full h-full">
-        {/* Header with tabs and edit button */}
-        <div className="mb-4">
-          <TabsList className="flex w-full">
-            <TabsTrigger value="current-info" className="flex-1">기본정보</TabsTrigger>
-            <TabsTrigger value="care-logs" className="flex-1">
-              <CareLogTabTitle familyId={family.id} />
-            </TabsTrigger>
-          </TabsList>
+      {/* Full-width desktop layout without tabs */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 lg:grid-cols-3 gap-8 h-full">
+        {/* Left column: Family picture - larger and more prominent */}
+        <div className="xl:col-span-1 lg:col-span-1">
+          <div className="flex flex-col items-center lg:items-start space-y-4">
+            <div className="relative">
+              {family.familyPicture ? (
+                <div
+                  className="relative cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onImageClick(family.familyPicture!, `${family.familyName} family`);
+                  }}
+                >
+                  <img
+                    src={family.familyPicture}
+                    alt={`${family.familyName} family`}
+                    className={`w-56 h-56 object-cover rounded-2xl border-4 ${getStatusBorderClassName(family.memberStatus)} shadow-xl`}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.parentElement?.parentElement?.querySelector('.expanded-fallback-icon') as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                  <div className="absolute top-3 right-3 bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-all">
+                    <Search className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+              ) : (
+                <div className={`w-56 h-56 rounded-2xl border-4 ${getStatusBorderClassName(family.memberStatus)} shadow-xl bg-gray-100 flex items-center justify-center`}>
+                  <Users className="w-24 h-24 text-muted-foreground" />
+                </div>
+              )}
+              <div className="expanded-fallback-icon hidden w-56 h-56 rounded-2xl border-4 border-gray-300 shadow-xl bg-gray-100 items-center justify-center">
+                <Users className="w-24 h-24 text-muted-foreground" />
+              </div>
+            </div>
+
+            {/* Family name and status below picture */}
+            <div className="text-center lg:text-left">
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocation(`/family/${family.id}/edit`);
+                  }}
+                  data-testid={`button-edit-${family.id}`}
+                  className="px-4 py-1 h-8 bg-blue-500 hover:bg-blue-600 text-white"
+                  title="Edit family"
+                >
+                  <Edit className="w-4 h-4 mr-1" />Edit
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <TabsContent value="current-info" className="mt-0 flex-1">
-          {/* Full-width desktop layout */}
-          <div className="grid grid-cols-1 xl:grid-cols-4 lg:grid-cols-3 gap-8 h-full">
-            {/* Left column: Family picture - larger and more prominent */}
-            <div className="xl:col-span-1 lg:col-span-1">
-              <div className="flex flex-col items-center lg:items-start space-y-4">
-                <div className="relative">
-                  {family.familyPicture ? (
-                    <div
-                      className="relative cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onImageClick(family.familyPicture!, `${family.familyName} family`);
-                      }}
-                    >
-                      <img
-                        src={family.familyPicture}
-                        alt={`${family.familyName} family`}
-                        className={`w-56 h-56 object-cover rounded-2xl border-4 ${getStatusBorderClassName(family.memberStatus)} shadow-xl`}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const fallback = target.parentElement?.parentElement?.querySelector('.expanded-fallback-icon') as HTMLElement;
-                          if (fallback) fallback.style.display = 'flex';
-                        }}
-                      />
-                      <div className="absolute top-3 right-3 bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-all">
-                        <Search className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={`w-56 h-56 rounded-2xl border-4 ${getStatusBorderClassName(family.memberStatus)} shadow-xl bg-gray-100 flex items-center justify-center`}>
-                      <Users className="w-24 h-24 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="expanded-fallback-icon hidden w-56 h-56 rounded-2xl border-4 border-gray-300 shadow-xl bg-gray-100 items-center justify-center">
-                    <Users className="w-24 h-24 text-muted-foreground" />
-                  </div>
-                </div>
-
-                {/* Family name and status below picture */}
-                <div className="text-center lg:text-left">
-               
-                            <div className="flex items-center gap-2">
-    
-            <Button
-              size="sm"
-              variant="default"
-              onClick={(e) => {
-                e.stopPropagation();
-                setLocation(`/family/${family.id}/edit`);
-              }}
-              data-testid={`button-edit-${family.id}`}
-              className="px-4 py-1 h-8 bg-blue-500 hover:bg-blue-600 text-white"
-              title="Edit family"
-            >
-              <Edit className="w-4 h-4 mr-1" />Edit
-            </Button>
-          </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right columns: Contact information in organized sections */}
-            <div className="xl:col-span-3 lg:col-span-2">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-                {/* Contact Information Section */}
-                <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    <Phone className="w-5 h-5 mr-2 text-blue-600" />
-                    Contact Information
-                  </h3>
-                  <div className="space-y-4">
-                    {renderContactInfo()}
-                    {renderAddressInfo()}
-                  </div>
-                </div>
-
-                {/* Business and Courses Combined Section */}
-                <div className="space-y-6">
-                  {/* Business Information Section */}
-                  {(family.biz || family.bizTitle || family.bizCategory || family.bizName || family.bizIntro) && (
-                    <div className="bg-green-50 rounded-xl p-6 shadow-sm border border-green-200">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <Briefcase className="w-5 h-5 mr-2 text-green-600" />
-                        Business Information
-                      </h3>
-                      {renderBusinessInfo()}
-                    </div>
-                  )}
-
-                  {/* Courses Information Section */}
-                  {getPrimaryCourses(family)?.courses?.length > 0 && (
-                    <div className="bg-blue-50 rounded-xl p-6 shadow-sm border border-blue-200">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <GraduationCap className="w-5 h-5 mr-2 text-blue-600" />
-                        KCBMC Information
-                      </h3>
-                      {renderCoursesInfo()}
-                    </div>
-                  )}
-                </div>
-              </div>
+        {/* Right columns: All information sections */}
+        <div className="xl:col-span-3 lg:col-span-2 space-y-6">
+          {/* Contact Information Section */}
+          <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <Phone className="w-5 h-5 mr-2 text-blue-600" />
+              Contact Information
+            </h3>
+            <div className="space-y-4">
+              {renderContactInfo()}
+              {renderAddressInfo()}
             </div>
           </div>
-        </TabsContent>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Business Information Section */}
+            {(family.biz || family.bizTitle || family.bizCategory || family.bizName || family.bizIntro) && (
+              <div className="bg-green-50 rounded-xl p-6 shadow-sm border border-green-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <Briefcase className="w-5 h-5 mr-2 text-green-600" />
+                  Business Information
+                </h3>
+                {renderBusinessInfo()}
+              </div>
+            )}
 
-
-        <TabsContent value="care-logs" className="mt-0 flex-1">
-          <div className="h-full w-full">
-            {/* <CareLogList familyId={family.id} /> */}
+            {/* Courses Information Section */}
+            {getPrimaryCourses(family)?.courses && getPrimaryCourses(family)?.courses.length > 0 && (
+              <div className="bg-blue-50 rounded-xl p-6 shadow-sm border border-blue-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <GraduationCap className="w-5 h-5 mr-2 text-blue-600" />
+                  KCBMC Information
+                </h3>
+                {renderCoursesInfo()}
+              </div>
+            )}
           </div>
-        </TabsContent>
-      </Tabs>
 
+          {/* Other Information Section with Care Log */}
+          <div className="bg-orange-50 rounded-xl p-6 shadow-sm border border-orange-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <CareLogSectionTitle familyId={family.id} />
+            </h3>
+            <div className="h-48 overflow-y-auto">
+              <CareLogList familyId={family.id} />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

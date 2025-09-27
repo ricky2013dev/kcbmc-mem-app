@@ -330,10 +330,7 @@ export function CareLogList({ familyId }: CareLogListProps) {
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <p className="text-sm text-gray-700 whitespace-pre-wrap mb-3 leading-relaxed">{log.description}</p>
-                    <div className="flex items-center text-xs text-muted-foreground bg-gray-50 px-2 py-1 rounded">
-                      <User className="w-3 h-3 mr-1" />
-                      {log.staff.nickName} • {log.createdAt ? new Date(log.createdAt).toLocaleDateString() : 'Unknown'}
-                    </div>
+
                   </div>
                   {canEditOrDelete(log) && (
                     <div className="flex gap-1 ml-4">
