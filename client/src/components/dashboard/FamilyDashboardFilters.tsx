@@ -105,16 +105,29 @@ export function FamilyDashboardFilters({
           >
             {showFilters ? (
               <>
-                <ChevronUp className="w-4 h-2 mr-2 text-blue-600" />
-                <span className="text-blue-600">Hide Filters</span>
+                <ChevronUp className="w-2 h-2 mr-2 text-blue-600" />
+                <span className="text-blue-600 text-xs">Hide Filters</span>
               </>
             ) : (
               <>
-                <ChevronDown className="w-4 h-2 mr-2 text-blue-600" />
-                <span className="text-blue-600">Search Filters</span>
+                <ChevronDown className="w-2 h-2 mr-2 text-blue-600" />
+                <span className="text-blue-600 text-xs">Filters</span>
               </>
             )}
           </Button>
+
+      {!showFilters && hasSearched && getActiveFilters().length > 0 && (
+     
+          <>
+            {getActiveFilters().map((filter, index) => (
+              <Badge key={index} variant="secondary" className="text-xs px-1.5 py-0.5 whitespace-nowrap flex-shrink-0">
+               
+                <span className="ml-0.5">{filter.value}</span>
+              </Badge>
+            ))}
+          </>
+
+      )}
         </div>
       </CardHeader>
 
@@ -123,7 +136,7 @@ export function FamilyDashboardFilters({
           {/* Department Filter */}
           <div className="space-y-1">
             <div>
-              <Label htmlFor="department">Department</Label>
+              <Label htmlFor="department"></Label>
               <Select
                 value={filters.departmentId}
                 onValueChange={handleDepartmentChange}
@@ -144,10 +157,10 @@ export function FamilyDashboardFilters({
             {/* Team Filter - Only show if department is selected */}
             {filters.departmentId && (
               <div>
-                <Label>Teams (select multiple)</Label>
+                
                 <div className="flex flex-wrap gap-2 mt-2 min-h-[2.5rem] p-3 border border-input bg-background rounded-md">
                   {getAvailableTeams().length === 0 ? (
-                    <span className="text-muted-foreground text-sm">No teams available in this department</span>
+                    <span className="text-muted-foreground text-sm">No 지회 available in 연합회</span>
                   ) : (
                     getAvailableTeams().map((team) => {
                       const isSelected = filters.teamIds.includes(team.id);
@@ -201,20 +214,7 @@ export function FamilyDashboardFilters({
         </CardContent>
       )}
 
-      {/* Active Filters Display - only show when filters are hidden */}
-      {!showFilters && hasSearched && getActiveFilters().length > 0 && (
-        <CardContent className="pt-0 pb-3">
-          <div className="flex flex-nowrap gap-1 pt-1 border-t border-border overflow-x-auto">
-            <span className="text-xs font-medium text-muted-foreground mr-1 flex-shrink-0"></span>
-            {getActiveFilters().map((filter, index) => (
-              <Badge key={index} variant="secondary" className="text-xs px-1.5 py-0.5 whitespace-nowrap flex-shrink-0">
-                <span className="font-medium">{filter.label}:</span>
-                <span className="ml-0.5">{filter.value}</span>
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      )}
+
     </Card>
   );
 }

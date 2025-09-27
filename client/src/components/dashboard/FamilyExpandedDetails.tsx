@@ -40,7 +40,7 @@ export function FamilyExpandedDetails({
     const careLogCount = careLogs?.length || 0;
 
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center w-full gap-2">
         <span>지회 노트</span>
         {careLogCount > 0 && (
           <span className="inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-full">
@@ -358,10 +358,10 @@ export function FamilyExpandedDetails({
     <div className={`${styles.expandedContent} px-6 py-4`} style={{position: 'relative'}}>
       <Tabs defaultValue="current-info" className="w-full h-full">
         {/* Header with tabs and edit button */}
-        <div className="flex justify-between items-center gap-4 mb-4">
-          <TabsList className="grid grid-cols-2 w-80">
-            <TabsTrigger value="current-info">기본정보</TabsTrigger>
-            <TabsTrigger value="care-logs">
+        <div className="mb-4">
+          <TabsList className="flex w-full">
+            <TabsTrigger value="current-info" className="flex-1">기본정보</TabsTrigger>
+            <TabsTrigger value="care-logs" className="flex-1">
               <CareLogTabTitle familyId={family.id} />
             </TabsTrigger>
           </TabsList>
@@ -474,28 +474,15 @@ export function FamilyExpandedDetails({
           </div>
         </TabsContent>
 
-        <TabsContent value="staff-notes" className="mt-0 flex-1">
-          <div className="p-8 border border-dashed border-gray-300 rounded-xl text-center text-muted-foreground h-full flex flex-col justify-center">
-            <p className="text-lg">Staff notes functionality will be implemented later.</p>
-            <p className="text-sm mt-2">This will include internal staff communications and follow-up actions.</p>
-          </div>
-        </TabsContent>
+
 
         <TabsContent value="care-logs" className="mt-0 flex-1">
-          <div className="h-full">
-            <CareLogList familyId={family.id} />
+          <div className="h-full w-full">
+            {/* <CareLogList familyId={family.id} /> */}
           </div>
         </TabsContent>
       </Tabs>
-      <style jsx>{`
-        /* Hide any debugging elements */
-        div[style*="border: 2px solid red"],
-        div[style*="border:2px solid red"],
-        div[style*="border-color: red"],
-        div[style*="border-color:red"] {
-          display: none !important;
-        }
-      `}</style>
+
     </div>
   );
 }

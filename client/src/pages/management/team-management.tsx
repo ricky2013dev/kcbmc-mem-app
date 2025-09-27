@@ -343,28 +343,7 @@ export default function TeamManagement() {
                 />
               </div>
               <div>
-                <Label>Assigned Staff</Label>
-                <div className="border rounded-md p-4 max-h-40 overflow-y-auto">
-                  {staff.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">No staff members available</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {staff.map((staffMember) => (
-                        <label key={staffMember.id} className="flex items-center space-x-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.assignedStaff.includes(staffMember.id)}
-                            onChange={(e) => handleStaffAssignment(staffMember.id, e.target.checked)}
-                            className="rounded"
-                          />
-                          <span className="text-sm">
-                            {staffMember.fullName} ({staffMember.nickName}) - {staffMember.group}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
+
               </div>
               <div className="flex justify-end space-x-2 pt-4">
                 <Button type="button" variant="outline" onClick={handleCloseDialog}>
@@ -487,20 +466,7 @@ export default function TeamManagement() {
                   </div>
                 )}
                 
-                <div>
-                  <h4 className="font-medium mb-2">Assigned Staff ({team.assignedStaff?.length || 0})</h4>
-                  {team.assignedStaff && team.assignedStaff.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {team.assignedStaff.map((staffId) => (
-                        <Badge key={staffId} variant="secondary">
-                          {getStaffName(staffId)}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-sm">No staff assigned</p>
-                  )}
-                </div>
+ 
               </CardContent>
             </Card>
           ))

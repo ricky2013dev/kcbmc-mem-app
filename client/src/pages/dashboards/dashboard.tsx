@@ -110,6 +110,7 @@ export default function DashboardPage() {
   const [editingFamilyNotes, setEditingFamilyNotes] = useState<string | null>(null);
   const [familyNotesText, setFamilyNotesText] = useState('');
   const [expandedGradeGroups, setExpandedGradeGroups] = useState<Set<string>>(new Set());
+  const [nameFilter, setNameFilter] = useState('');
 
   const { data: families = [], isLoading } = useQuery<FamilyWithMembers[]>({
     queryKey: ['families', filters, teams],
@@ -390,18 +391,25 @@ export default function DashboardPage() {
   // Group families by team for display
   const getGroupedFamilies = () => {
     if (!families || families.length === 0) return [];
-    
+
+    // Apply name filter first
+    const filteredFamilies = nameFilter.trim()
+      ? families.filter(family =>
+          family.familyName.toLowerCase().includes(nameFilter.toLowerCase())
+        )
+      : families;
+
     // If showing all teams in department or multiple teams, group by team
     const shouldGroupByTeam = filters.teamIds.length === 0 || filters.teamIds.length > 1;
-    
+
     if (!shouldGroupByTeam) {
-      return [{ teamName: null, teamId: null, families }];
+      return [{ teamName: null, teamId: null, families: filteredFamilies }];
     }
     
     // Group families by their teamId
     const groupedMap = new Map<string, { team: any; families: any[] }>();
-    
-    families.forEach(family => {
+
+    filteredFamilies.forEach(family => {
       if (family.teamId) {
         const team = teams.find(t => t.id === family.teamId);
         const teamId = family.teamId;
@@ -809,8 +817,31 @@ export default function DashboardPage() {
 
         {/* Results Section */}
         <Card className={styles.resultsCard}>
-     
-          
+          {hasSearched && (
+            <CardHeader className="border-b bg-gray-50/50 p-4">
+              <div className="flex items-center gap-2">
+                <Search className="w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="이름 검색"
+                  value={nameFilter}
+                  onChange={(e) => setNameFilter(e.target.value)}
+                  className="flex-1 h-9"
+                />
+                {nameFilter && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setNameFilter('')}
+                    className="h-9 px-2"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+          )}
+
           {!hasSearched ? (
             <CardContent className={styles.emptyState}>
               <div className={styles.emptyContent}>
@@ -824,15 +855,19 @@ export default function DashboardPage() {
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-center text-muted-foreground">Searching families...</p>
             </CardContent>
-          ) : families.length === 0 ? (
+          ) : getGroupedFamilies().length === 0 || getGroupedFamilies().every(group => group.families.length === 0) ? (
             <CardContent className={styles.emptyState}>
               <div className={styles.emptyContent}>
                 <Users className="w-16 h-16 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No families found in selected filters</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  {nameFilter.trim() ? 'No families found matching your search' : 'No families found in selected filters'}
+                </h3>
                 <p className="text-muted-foreground">
-                  {filters.teamIds.length > 0 
-                    ? 'No families found in the selected teams. Try selecting different teams or clear team selection to see all families in the department.'
-                    : 'No families found in this department.'
+                  {nameFilter.trim()
+                    ? `No families found with names containing "${nameFilter}". Try a different search term.`
+                    : filters.teamIds.length > 0
+                      ? 'No families found in the selected teams. Try selecting different teams or clear team selection to see all families in the department.'
+                      : 'No families found in this department.'
                   }
                 </p>
               </div>
