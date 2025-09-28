@@ -17,6 +17,7 @@ import DepartmentManagementPage from "@/pages/management/department-management";
 import TeamManagementPage from "@/pages/management/team-management";
 import TeamDashboardPage from "@/pages/dashboards/team-dashboard";
 import FamilyTeamDashboardPage from "@/pages/dashboards/family-team-dashboard";
+import DonationListPage from "@/pages/donations/donation-list";
 import NotFound from "@/pages/public/not-found";
 
 function Router() {
@@ -56,6 +57,7 @@ function Router() {
             <Route path="/teams" component={TeamManagementPage} />
             <Route path="/team-dashboard" component={TeamDashboardPage} />
             <Route path="/family-dashboard" component={FamilyTeamDashboardPage} />
+            <Route path="/donations" component={DonationListPage} />
           </>
         )}
         <Route component={NotFound} />

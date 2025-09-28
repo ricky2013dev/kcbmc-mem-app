@@ -1,13 +1,14 @@
 import { sql } from "drizzle-orm";
-import { 
-  pgTable, 
-  text, 
-  varchar, 
-  timestamp, 
-  boolean, 
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  boolean,
   integer,
   date,
-  jsonb
+  jsonb,
+  decimal
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -142,11 +143,28 @@ export const eventAttendance = pgTable("event_attendance", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Donations table
+export const donations = pgTable("donations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull().references(() => families.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull().default("Regular"), // Regular, Special
+  date: date("date").notNull(),
+  received: boolean("received").notNull().default(true),
+  emailForThank: boolean("email_for_thank").notNull().default(false),
+  emailForTax: boolean("email_for_tax").notNull().default(false),
+  comment: text("comment"),
+  createdBy: varchar("created_by").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const familiesRelations = relations(families, ({ one, many }) => ({
   members: many(familyMembers),
   careLogs: many(careLogs),
   eventAttendance: many(eventAttendance),
+  donations: many(donations),
   team: one(teams, {
     fields: [families.teamId],
     references: [teams.id],
@@ -166,6 +184,7 @@ export const staffRelations = relations(staff, ({ many }) => ({
   announcements: many(announcements),
   createdEvents: many(events),
   updatedAttendance: many(eventAttendance),
+  createdDonations: many(donations),
   loginLogs: many(staffLoginLogs),
 }));
 
@@ -221,6 +240,17 @@ export const staffLoginLogsRelations = relations(staffLoginLogs, ({ one }) => ({
   }),
 }));
 
+export const donationsRelations = relations(donations, ({ one }) => ({
+  family: one(families, {
+    fields: [donations.familyId],
+    references: [families.id],
+  }),
+  createdByStaff: one(staff, {
+    fields: [donations.createdBy],
+    references: [staff.id],
+  }),
+}));
+
 // Zod schemas
 export const insertStaffSchema = createInsertSchema(staff).omit({
   id: true,
@@ -271,6 +301,12 @@ export const insertEventAttendanceSchema = createInsertSchema(eventAttendance).o
 export const insertStaffLoginLogSchema = createInsertSchema(staffLoginLogs).omit({
   id: true,
   createdAt: true,
+});
+
+export const insertDonationSchema = createInsertSchema(donations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // Types
@@ -373,6 +409,21 @@ export type StaffLoginLogWithStaff = StaffLoginLog & {
     fullName: string;
     nickName: string;
     group: string;
+  };
+};
+
+export type Donation = typeof donations.$inferSelect;
+export type InsertDonation = z.infer<typeof insertDonationSchema>;
+
+export type DonationWithDetails = Donation & {
+  family: {
+    id: string;
+    familyName: string;
+  };
+  createdByStaff: {
+    id: string;
+    fullName: string;
+    nickName: string;
   };
 };
 

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertFamilySchema, insertFamilyMemberSchema, insertStaffSchema, insertAnnouncementSchema, insertEventSchema, insertEventAttendanceSchema, insertDepartmentSchema, insertTeamSchema } from "@server/schema";
+import { insertFamilySchema, insertFamilyMemberSchema, insertStaffSchema, insertAnnouncementSchema, insertEventSchema, insertEventAttendanceSchema, insertDepartmentSchema, insertTeamSchema, insertDonationSchema } from "@server/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
@@ -1412,6 +1412,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete team error:", error);
       res.status(500).json({ message: "Failed to delete team" });
+    }
+  });
+
+  // Donation routes
+  app.get("/api/donations", requireAuth, async (req, res) => {
+    try {
+      const filters = {
+        familyName: req.query.familyName as string,
+        type: req.query.type as string,
+        dateFrom: req.query.dateFrom as string,
+        dateTo: req.query.dateTo as string,
+        received: req.query.received as string,
+        emailForThank: req.query.emailForThank as string,
+        emailForTax: req.query.emailForTax as string,
+      };
+
+      // Remove empty filters
+      Object.keys(filters).forEach(key => {
+        if (!filters[key as keyof typeof filters]) {
+          delete filters[key as keyof typeof filters];
+        }
+      });
+
+      const donations = await storage.getDonations(filters);
+      res.json(donations);
+    } catch (error) {
+      console.error("Get donations error:", error);
+      res.status(500).json({ message: "Failed to get donations" });
+    }
+  });
+
+  app.get("/api/donations/:id", requireAuth, async (req, res) => {
+    try {
+      const donation = await storage.getDonationById(req.params.id);
+      if (!donation) {
+        return res.status(404).json({ message: "Donation not found" });
+      }
+      res.json(donation);
+    } catch (error) {
+      console.error("Get donation error:", error);
+      res.status(500).json({ message: "Failed to get donation" });
+    }
+  });
+
+  app.post("/api/donations", requireAuth, async (req, res) => {
+    try {
+      console.log("Creating donation with data:", req.body);
+      console.log("Session staff ID:", req.session.staffId);
+
+      // Validate required fields before schema parsing
+      if (!req.body.familyId) {
+        console.error("Missing familyId");
+        return res.status(400).json({ message: "Family must be selected" });
+      }
+
+      if (!req.body.amount || parseFloat(req.body.amount) <= 0) {
+        console.error("Invalid amount:", req.body.amount);
+        return res.status(400).json({ message: "Valid amount is required" });
+      }
+
+      if (!req.body.date) {
+        console.error("Missing date");
+        return res.status(400).json({ message: "Date is required" });
+      }
+
+      if (!req.session.staffId) {
+        console.error("No staff ID in session");
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const donationData = insertDonationSchema.parse({
+        ...req.body,
+        createdBy: req.session.staffId
+      });
+
+      console.log("Parsed donation data:", donationData);
+
+      // Verify family exists
+      const family = await storage.getFamily(donationData.familyId);
+      if (!family) {
+        console.error("Family not found:", donationData.familyId);
+        return res.status(400).json({ message: "Selected family not found" });
+      }
+
+      const donation = await storage.createDonation(donationData);
+      console.log("Donation created successfully:", donation.id);
+      res.status(201).json(donation);
+    } catch (error) {
+      console.error("Create donation error:", error);
+      if (error instanceof z.ZodError) {
+        console.error("Validation errors:", error.errors);
+        return res.status(400).json({
+          message: "Invalid donation data",
+          errors: error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ')
+        });
+      }
+      if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes('foreign key')) {
+        return res.status(400).json({ message: "Invalid family or staff reference" });
+      }
+      const errorMessage = error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? error.message : 'Unknown error';
+      res.status(500).json({ message: "Failed to create donation", details: errorMessage });
+    }
+  });
+
+  app.put("/api/donations/:id", requireAuth, async (req, res) => {
+    try {
+      const donationData = insertDonationSchema.partial().parse(req.body);
+      const donation = await storage.updateDonation(req.params.id, donationData);
+
+      if (!donation) {
+        return res.status(404).json({ message: "Donation not found" });
+      }
+
+      res.json(donation);
+    } catch (error) {
+      console.error("Update donation error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid donation data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update donation" });
+    }
+  });
+
+  app.delete("/api/donations/:id", requireAuth, async (req, res) => {
+    try {
+      const success = await storage.deleteDonation(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Donation not found" });
+      }
+      res.json({ message: "Donation deleted successfully" });
+    } catch (error) {
+      console.error("Delete donation error:", error);
+      res.status(500).json({ message: "Failed to delete donation" });
     }
   });
 

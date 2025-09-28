@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { RefreshButton } from '@/components/RefreshButton';
-import { Bell, LogOut, Menu, Users, Settings, Globe, Calendar, FolderOpen, UserCheck } from 'lucide-react';
+import { Bell, LogOut, Menu, Users, Settings, Globe, Calendar, FolderOpen, UserCheck, DollarSign } from 'lucide-react';
 import styles from './Header.module.css';
 
 interface AnnouncementWithStaff {
@@ -71,6 +71,13 @@ export function Header({
       icon: Users,
       className: 'text-cyan-700 hover:text-primary-foreground/80',
       testId: 'button-family-dashboard'
+    },
+    {
+      label: 'Donations',
+      path: '/donations',
+      icon: DollarSign,
+      className: 'text-emerald-700 hover:text-primary-foreground/80',
+      testId: 'button-donations'
     },
 
   ];

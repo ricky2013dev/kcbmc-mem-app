@@ -1,15 +1,16 @@
-import { 
-  staff, 
-  families, 
+import {
+  staff,
+  families,
   familyMembers,
   careLogs,
   announcements,
   events,
   eventAttendance,
+  donations,
   staffLoginLogs,
   departments,
   teams,
-  type Staff, 
+  type Staff,
   type InsertStaff,
   type Family,
   type InsertFamily,
@@ -29,6 +30,9 @@ import {
   type EventAttendance,
   type InsertEventAttendance,
   type EventAttendanceWithDetails,
+  type Donation,
+  type InsertDonation,
+  type DonationWithDetails,
   type StaffLoginLog,
   type InsertStaffLoginLog,
   type StaffLoginLogWithStaff,
@@ -42,6 +46,131 @@ import {
 } from "@server/schema";
 import { db } from "./db";
 import { eq, and, or, like, gte, lte, desc, isNotNull, isNull } from "drizzle-orm";
+
+// Donation storage functions
+export async function getDonations(filters?: {
+  familyName?: string;
+  type?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  received?: string;
+  emailForThank?: string;
+  emailForTax?: string;
+}): Promise<DonationWithDetails[]> {
+  const conditions = [];
+
+  if (filters?.familyName) {
+    conditions.push(like(families.familyName, `%${filters.familyName}%`));
+  }
+
+  if (filters?.type) {
+    conditions.push(eq(donations.type, filters.type));
+  }
+
+  if (filters?.dateFrom) {
+    conditions.push(gte(donations.date, filters.dateFrom));
+  }
+
+  if (filters?.dateTo) {
+    conditions.push(lte(donations.date, filters.dateTo));
+  }
+
+  if (filters?.received) {
+    conditions.push(eq(donations.received, filters.received === 'true'));
+  }
+
+  if (filters?.emailForThank) {
+    conditions.push(eq(donations.emailForThank, filters.emailForThank === 'true'));
+  }
+
+  if (filters?.emailForTax) {
+    conditions.push(eq(donations.emailForTax, filters.emailForTax === 'true'));
+  }
+
+  const result = await db
+    .select({
+      id: donations.id,
+      familyId: donations.familyId,
+      amount: donations.amount,
+      type: donations.type,
+      date: donations.date,
+      received: donations.received,
+      emailForThank: donations.emailForThank,
+      emailForTax: donations.emailForTax,
+      comment: donations.comment,
+      createdAt: donations.createdAt,
+      updatedAt: donations.updatedAt,
+      family: {
+        id: families.id,
+        familyName: families.familyName,
+      },
+      createdByStaff: {
+        id: staff.id,
+        fullName: staff.fullName,
+        nickName: staff.nickName,
+      },
+    })
+    .from(donations)
+    .innerJoin(families, eq(donations.familyId, families.id))
+    .innerJoin(staff, eq(donations.createdBy, staff.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(donations.date), desc(donations.createdAt));
+
+  return result;
+}
+
+export async function getDonationById(id: string): Promise<DonationWithDetails | null> {
+  const result = await db
+    .select({
+      id: donations.id,
+      familyId: donations.familyId,
+      amount: donations.amount,
+      type: donations.type,
+      date: donations.date,
+      received: donations.received,
+      emailForThank: donations.emailForThank,
+      emailForTax: donations.emailForTax,
+      comment: donations.comment,
+      createdAt: donations.createdAt,
+      updatedAt: donations.updatedAt,
+      family: {
+        id: families.id,
+        familyName: families.familyName,
+      },
+      createdByStaff: {
+        id: staff.id,
+        fullName: staff.fullName,
+        nickName: staff.nickName,
+      },
+    })
+    .from(donations)
+    .innerJoin(families, eq(donations.familyId, families.id))
+    .innerJoin(staff, eq(donations.createdBy, staff.id))
+    .where(eq(donations.id, id))
+    .limit(1);
+
+  return result[0] || null;
+}
+
+export async function createDonation(donationData: InsertDonation): Promise<Donation> {
+  const [newDonation] = await db.insert(donations).values(donationData).returning();
+  return newDonation;
+}
+
+export async function updateDonation(id: string, donationData: Partial<InsertDonation>): Promise<Donation | null> {
+  const [updatedDonation] = await db
+    .update(donations)
+    .set({ ...donationData, updatedAt: new Date() })
+    .where(eq(donations.id, id))
+    .returning();
+
+  return updatedDonation || null;
+}
+
+export async function deleteDonation(id: string): Promise<boolean> {
+  const result = await db.delete(donations).where(eq(donations.id, id));
+  return result.rowCount > 0;
+}
 
 // Generate the next sequential family code
 async function generateUniqueFamilyCode(): Promise<string> {
@@ -1199,6 +1328,27 @@ export class DatabaseStorage implements IStorage {
     }
 
     return Array.from(familiesMap.values());
+  }
+
+  // Donation methods
+  async createDonation(donationData: InsertDonation): Promise<Donation> {
+    return createDonation(donationData);
+  }
+
+  async updateDonation(id: string, donationData: Partial<InsertDonation>): Promise<Donation | null> {
+    return updateDonation(id, donationData);
+  }
+
+  async deleteDonation(id: string): Promise<boolean> {
+    return deleteDonation(id);
+  }
+
+  async getDonations(filters?: any): Promise<any[]> {
+    return getDonations(filters);
+  }
+
+  async getDonationById(id: string): Promise<any | null> {
+    return getDonationById(id);
   }
 }
 
