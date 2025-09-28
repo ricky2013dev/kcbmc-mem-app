@@ -905,6 +905,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update family display order within team
+  app.put("/api/teams/:teamId/families/order", requireAuth, async (req, res) => {
+    try {
+      const familyOrderSchema = z.object({
+        familyOrders: z.array(z.object({
+          id: z.string(),
+          displayOrder: z.number()
+        }))
+      });
+
+      const { familyOrders } = familyOrderSchema.parse(req.body);
+      await storage.updateFamilyOrder(req.params.teamId, familyOrders);
+
+      res.json({ success: true, message: "Family order updated successfully" });
+    } catch (error) {
+      console.error("Update family order error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update family order" });
+    }
+  });
+
   // Public announcement route (no authentication required)
   app.get("/api/announcements/public/:id", async (req, res) => {
     try {

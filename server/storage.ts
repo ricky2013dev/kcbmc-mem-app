@@ -95,6 +95,7 @@ export interface IStorage {
   createFamily(family: InsertFamily, members: InsertFamilyMember[]): Promise<FamilyWithMembers>;
   updateFamily(id: string, family: Partial<InsertFamily>, members: InsertFamilyMember[]): Promise<FamilyWithMembers>;
   updateFamilyOnly(id: string, family: Partial<InsertFamily>): Promise<FamilyWithMembers>;
+  updateFamilyOrder(teamId: string, familyOrders: Array<{ id: string; displayOrder: number }>): Promise<void>;
   deleteFamily(id: string): Promise<void>;
   
   // Care log operations
@@ -214,7 +215,7 @@ export class DatabaseStorage implements IStorage {
 
     const members = await db.select().from(familyMembers)
       .where(eq(familyMembers.familyId, id))
-      .orderBy(familyMembers.relationship);
+      .orderBy(familyMembers.displayOrder, familyMembers.relationship);
 
     return { ...family, members };
   }
@@ -277,16 +278,16 @@ export class DatabaseStorage implements IStorage {
       // We'll handle this with a more complex query after basic filtering
     }
     
-    const familyList = conditions.length > 0 
-      ? await db.select().from(families).where(and(...conditions)).orderBy(desc(families.visitedDate))
-      : await db.select().from(families).orderBy(desc(families.visitedDate));
+    const familyList = conditions.length > 0
+      ? await db.select().from(families).where(and(...conditions)).orderBy(families.displayOrder, families.familyName)
+      : await db.select().from(families).orderBy(families.displayOrder, families.familyName);
     
     // Get members for each family
     const familiesWithMembers: FamilyWithMembers[] = [];
     for (const family of familyList) {
       const members = await db.select().from(familyMembers)
         .where(eq(familyMembers.familyId, family.id))
-        .orderBy(familyMembers.relationship);
+        .orderBy(familyMembers.displayOrder, familyMembers.relationship);
       
       familiesWithMembers.push({ ...family, members });
     }
@@ -325,11 +326,12 @@ export class DatabaseStorage implements IStorage {
       familyCode
     }).returning();
     
-    const familyMembersData = members.map(member => {
+    const familyMembersData = members.map((member, index) => {
       const cleanedMember = cleanDateFields(member);
       return {
         ...cleanedMember,
         familyId: family.id,
+        displayOrder: member.displayOrder ?? index + 1,
         courses: (cleanedMember.courses as string[]) || []
       };
     });
@@ -352,11 +354,12 @@ export class DatabaseStorage implements IStorage {
     await db.delete(familyMembers).where(eq(familyMembers.familyId, id));
     
     // Insert new members
-    const familyMembersData = members.map(member => {
+    const familyMembersData = members.map((member, index) => {
       const cleanedMember = cleanDateFields(member);
       return {
         ...cleanedMember,
         familyId: id,
+        displayOrder: member.displayOrder ?? index + 1,
         courses: (cleanedMember.courses as string[]) || []
       };
     });
@@ -378,9 +381,21 @@ export class DatabaseStorage implements IStorage {
     // Get existing members without modifying them
     const existingMembers = await db.select()
       .from(familyMembers)
-      .where(eq(familyMembers.familyId, id));
+      .where(eq(familyMembers.familyId, id))
+      .orderBy(familyMembers.displayOrder, familyMembers.relationship);
     
     return { ...family, members: existingMembers };
+  }
+
+  async updateFamilyOrder(teamId: string, familyOrders: Array<{ id: string; displayOrder: number }>): Promise<void> {
+    for (const familyOrder of familyOrders) {
+      await db.update(families)
+        .set({ displayOrder: familyOrder.displayOrder, updatedAt: new Date() })
+        .where(and(
+          eq(families.id, familyOrder.id),
+          eq(families.teamId, teamId)
+        ));
+    }
   }
 
   async deleteFamily(id: string): Promise<void> {
@@ -776,7 +791,7 @@ export class DatabaseStorage implements IStorage {
     .leftJoin(familyMembers, eq(eventAttendance.familyMemberId, familyMembers.id))
     .innerJoin(staff, eq(eventAttendance.updatedBy, staff.id))
     .where(eq(eventAttendance.eventId, eventId))
-    .orderBy(families.familyName);
+    .orderBy(families.displayOrder, families.familyName);
 
     return results.map(r => ({
       ...r,
@@ -1139,7 +1154,7 @@ export class DatabaseStorage implements IStorage {
       .from(families)
       .leftJoin(familyMembers, eq(families.id, familyMembers.familyId))
       .where(eq(families.teamId, teamId))
-      .orderBy(families.familyName);
+      .orderBy(families.displayOrder, families.familyName);
 
     // Group family members by family
     const familiesMap = new Map<string, FamilyWithMembers>();

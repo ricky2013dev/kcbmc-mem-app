@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from '@/lib/queryClient';
-import { Users, UserCheck, ChevronDown, ChevronUp, Move, Home, User } from "lucide-react";
+import { Users, UserCheck, ChevronDown, ChevronUp, Move, Home, User, ArrowUp, ArrowDown } from "lucide-react";
 import { useLocation } from "wouter";
 import type { FamilyWithMembers, Department, Team } from '@server/schema';
 import { Header } from '@/components/Header';
@@ -25,12 +26,14 @@ interface DraggableFamily {
   familyName: string;
   teamId?: string;
   memberStatus: string;
-  familyPicture?: string;
+  familyPicture?: string | null;
+  displayOrder?: number | null;
   members: Array<{
     id: string;
     relationship: string;
     koreanName: string;
     englishName: string;
+    displayOrder?: number | null;
   }>;
 }
 
@@ -106,6 +109,31 @@ export default function FamilyTeamDashboard() {
     },
   });
 
+  // Mutation to update family order within team
+  const updateFamilyOrderMutation = useMutation({
+    mutationFn: async ({ teamId, familyOrders }: { teamId: string; familyOrders: Array<{ id: string; displayOrder: number }> }) => {
+      const response = await apiRequest('PUT', `/api/teams/${teamId}/families/order`, {
+        familyOrders
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/departments/with-teams-and-families"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/families/unassigned"] });
+      toast({
+        title: "Success",
+        description: "Family order updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update family order",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Get all families from teams
   const getAllTeamFamilies = (): DraggableFamily[] => {
     const families: DraggableFamily[] = [];
@@ -147,6 +175,47 @@ export default function FamilyTeamDashboard() {
     return team.assignedStaff ? team.assignedStaff.length : 0;
   };
 
+  // Move family up/down within team
+  const moveFamily = (teamId: string, familyId: string, direction: 'up' | 'down') => {
+    // Find the team and its families
+    let targetTeam: TeamWithFamilies | undefined;
+    for (const dept of departments) {
+      for (const team of dept.teams) {
+        if (team.id === teamId) {
+          targetTeam = team;
+          break;
+        }
+      }
+      if (targetTeam) break;
+    }
+
+    if (!targetTeam) return;
+
+    // Sort families by display order
+    const sortedFamilies = targetTeam.families.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    const currentIndex = sortedFamilies.findIndex(f => f.id === familyId);
+
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+    // Check bounds
+    if (newIndex < 0 || newIndex >= sortedFamilies.length) return;
+
+    // Swap the families
+    const reorderedFamilies = [...sortedFamilies];
+    [reorderedFamilies[currentIndex], reorderedFamilies[newIndex]] =
+    [reorderedFamilies[newIndex], reorderedFamilies[currentIndex]];
+
+    // Update display orders
+    const familyOrders = reorderedFamilies.map((family, index) => ({
+      id: family.id,
+      displayOrder: index + 1
+    }));
+
+    updateFamilyOrderMutation.mutate({ teamId, familyOrders });
+  };
+
   // Toggle department expansion
   const toggleDepartment = (departmentId: string) => {
     setExpandedDepartments(prev => {
@@ -175,16 +244,20 @@ export default function FamilyTeamDashboard() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (!over || active.id === over.id) {
       setActiveId(null);
       setDraggedFamily(null);
       return;
     }
 
-    const familyId = active.id as string;
-    const targetId = over.id as string;
-    
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // This is family-level dragging
+    const familyId = activeId;
+    const targetId = overId;
+
     // Check if dropping on unassigned area
     if (targetId === 'unassigned') {
       updateFamilyTeamMutation.mutate({ familyId });
@@ -210,6 +283,7 @@ export default function FamilyTeamDashboard() {
     setDraggedFamily(null);
   };
 
+  // Loading state
   if (departmentsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -322,8 +396,16 @@ export default function FamilyTeamDashboard() {
                                   </div>
                                 ) : (
                                   <div className="grid gap-2">
-                                    {teamFamilies.map((family) => (
-                                      <DraggableFamilyCard key={family.id} family={family} compact />
+                                    {teamFamilies.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)).map((family, index) => (
+                                      <DraggableFamilyCard
+                                        key={family.id}
+                                        family={family}
+                                        compact
+                                        teamId={team.id}
+                                        onMoveFamily={moveFamily}
+                                        isFirst={index === 0}
+                                        isLast={index === teamFamilies.length - 1}
+                                      />
                                     ))}
                                   </div>
                                 )}
@@ -367,8 +449,22 @@ export default function FamilyTeamDashboard() {
   );
 }
 
-// Draggable Family Card Component
-function DraggableFamilyCard({ family, compact = false }: { family: DraggableFamily; compact?: boolean }) {
+// Draggable Family Card Component with Family Reordering
+function DraggableFamilyCard({
+  family,
+  compact = false,
+  teamId,
+  onMoveFamily,
+  isFirst = false,
+  isLast = false
+}: {
+  family: DraggableFamily;
+  compact?: boolean;
+  teamId?: string;
+  onMoveFamily?: (teamId: string, familyId: string, direction: 'up' | 'down') => void;
+  isFirst?: boolean;
+  isLast?: boolean;
+}) {
   const {
     attributes,
     listeners,
@@ -383,10 +479,6 @@ function DraggableFamilyCard({ family, compact = false }: { family: DraggableFam
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
-  const husband = family.members.find(m => m.relationship === 'husband');
-  const wife = family.members.find(m => m.relationship === 'wife');
-  const children = family.members.filter(m => m.relationship === 'child');
-
   const getStatusBadgeClassName = (status: string) => {
     switch (status) {
       case 'member': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -396,80 +488,124 @@ function DraggableFamilyCard({ family, compact = false }: { family: DraggableFam
     }
   };
 
+  const husband = family.members.find(m => m.relationship === 'husband');
+  const wife = family.members.find(m => m.relationship === 'wife');
+  const children = family.members.filter(m => m.relationship === 'child');
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
       className={`
-        bg-white border rounded-lg cursor-grab transition-all hover:shadow-md active:cursor-grabbing
+        bg-white border rounded-lg transition-all hover:shadow-md flex items-center
         ${isDragging ? 'opacity-50 shadow-lg' : 'hover:border-blue-300'}
-        ${compact ? 'p-3' : 'p-4'}
+        ${compact ? 'p-2 gap-2' : 'p-4 gap-3'}
       `}
     >
-      <div className="flex items-start gap-3">
-        {/* Family Icon/Picture */}
-        <div className={`flex-shrink-0 ${compact ? 'w-8 h-8' : 'w-10 h-10'} bg-primary/10 rounded-full flex items-center justify-center`}>
-          {family.familyPicture ? (
-            <img 
-              src={family.familyPicture} 
-              alt={`${family.familyName} family`}
-              className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} object-cover rounded-full`}
-            />
-          ) : (
-            <Users className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-primary`} />
-          )}
+      {/* Drag handle for family assignment between teams */}
+      <div
+        {...listeners}
+        {...attributes}
+        className="cursor-grab active:cursor-grabbing flex-shrink-0"
+      >
+        <Move className={`text-gray-400 ${compact ? 'w-3 h-3' : 'w-4 h-4'}`} />
+      </div>
+
+      {/* Family Icon/Picture */}
+      <div className={`flex-shrink-0 ${compact ? 'w-6 h-6' : 'w-10 h-10'} bg-primary/10 rounded-full flex items-center justify-center`}>
+        {family.familyPicture ? (
+          <img
+            src={family.familyPicture}
+            alt={`${family.familyName} family`}
+            className={`${compact ? 'w-6 h-6' : 'w-10 h-10'} object-cover rounded-full`}
+          />
+        ) : (
+          <Users className={`${compact ? 'w-3 h-3' : 'w-5 h-5'} text-primary`} />
+        )}
+      </div>
+
+      {/* Family Details */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h4 className={`font-semibold text-gray-900 truncate ${compact ? 'text-sm' : ''}`}>
+            {family.familyName}
+          </h4>
+          <Badge
+            variant="outline"
+            className={`text-xs flex-shrink-0 ${getStatusBadgeClassName(family.memberStatus)}`}
+          >
+            {family.memberStatus}
+          </Badge>
         </div>
 
-        {/* Family Details */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Move className="w-3 h-3 text-gray-400 flex-shrink-0" />
-            <h4 className={`font-semibold text-gray-900 truncate ${compact ? 'text-sm' : ''}`}>
-              {family.familyName}
-            </h4>
-            <Badge 
-              variant="outline" 
-              className={`text-xs flex-shrink-0 ${getStatusBadgeClassName(family.memberStatus)}`}
-            >
-              {family.memberStatus}
-            </Badge>
+        {/* Member summary */}
+        {!compact && (
+          <div className="flex items-center gap-3 mt-1">
+            {husband && (
+              <span className="text-xs text-blue-600">👤 {husband.koreanName || husband.englishName}</span>
+            )}
+            {wife && (
+              <span className="text-xs text-pink-600">👤 {wife.koreanName || wife.englishName}</span>
+            )}
+            {children.length > 0 && (
+              <span className="text-xs text-green-600">👥 {children.length} 자녀</span>
+            )}
           </div>
-          
-          {!compact && (
-            <div className="space-y-1">
-              {husband && (
-                <div className="flex items-center gap-1">
-                  <User className="w-3 h-3 text-blue-600" />
-                  <span className="text-xs text-gray-600">
-                    {husband.koreanName || husband.englishName} (남편)
-                  </span>
-                </div>
-              )}
-              {wife && (
-                <div className="flex items-center gap-1">
-                  <User className="w-3 h-3 text-pink-600" />
-                  <span className="text-xs text-gray-600">
-                    {wife.koreanName || wife.englishName} (아내)
-                  </span>
-                </div>
-              )}
-              {children.length > 0 && (
-                <div className="flex items-center gap-1">
-                  <Users className="w-3 h-3 text-green-600" />
-                  <span className="text-xs text-gray-600">
-                    자녀 {children.length}명
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        )}
+
+        {compact && (
+          <span className="text-xs text-gray-500">{family.members.length} members</span>
+        )}
       </div>
+
+      {/* Family ordering arrows - only show when in a team */}
+      {teamId && onMoveFamily && (
+        <div className="flex flex-col gap-1 ml-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveFamily(teamId, family.id, 'up');
+            }}
+            disabled={isFirst}
+            className={`
+              p-1 rounded transition-colors
+              ${isFirst
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 cursor-pointer'
+              }
+            `}
+            title="Move up"
+          >
+            <ArrowUp className={compact ? 'w-3 h-3' : 'w-4 h-4'} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveFamily(teamId, family.id, 'down');
+            }}
+            disabled={isLast}
+            className={`
+              p-1 rounded transition-colors
+              ${isLast
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 cursor-pointer'
+              }
+            `}
+            title="Move down"
+          >
+            <ArrowDown className={compact ? 'w-3 h-3' : 'w-4 h-4'} />
+          </button>
+        </div>
+      )}
+
+      {/* Display order indicator for debugging */}
+      {family.displayOrder && (
+        <span className="text-xs text-gray-400">#{family.displayOrder}</span>
+      )}
     </div>
   );
 }
+
 
 // Droppable Area Component
 function DroppableArea({ id, children }: { id: string; children: React.ReactNode }) {

@@ -122,8 +122,7 @@ export default function DashboardPage() {
         const familyPromises = filters.teamIds.map(async (teamId) => {
           const queryParams = new URLSearchParams();
           queryParams.append('teamId', teamId);
-          queryParams.append('sortBy', 'visitedDate');
-          queryParams.append('sortOrder', 'desc');
+          // Backend now handles sorting by displayOrder then familyName
           
           const url = `/api/families?${queryParams.toString()}`;
           const response = await apiRequest('GET', url);
@@ -134,15 +133,18 @@ export default function DashboardPage() {
         const allFamilies = familyArrays.flat();
         
         // Remove duplicates by family ID (in case a family appears in multiple teams)
-        const uniqueFamilies = allFamilies.filter((family, index, arr) => 
+        const uniqueFamilies = allFamilies.filter((family, index, arr) =>
           arr.findIndex(f => f.id === family.id) === index
         );
-        
-        // Sort by visitedDate descending (most recent first)
+
+        // Sort by displayOrder first, then familyName
         uniqueFamilies.sort((a, b) => {
-          const dateA = new Date(a.visitedDate || '1900-01-01').getTime();
-          const dateB = new Date(b.visitedDate || '1900-01-01').getTime();
-          return dateB - dateA; // descending order
+          const orderA = a.displayOrder || 0;
+          const orderB = b.displayOrder || 0;
+          if (orderA !== orderB) {
+            return orderA - orderB;
+          }
+          return a.familyName.localeCompare(b.familyName);
         });
         
         return uniqueFamilies;
@@ -160,8 +162,7 @@ export default function DashboardPage() {
         const familyPromises = availableTeams.map(async (team) => {
           const queryParams = new URLSearchParams();
           queryParams.append('teamId', team.id);
-          queryParams.append('sortBy', 'visitedDate');
-          queryParams.append('sortOrder', 'desc');
+          // Backend now handles sorting by displayOrder then familyName
           
           const url = `/api/families?${queryParams.toString()}`;
           const response = await apiRequest('GET', url);
@@ -172,15 +173,18 @@ export default function DashboardPage() {
         const allFamilies = familyArrays.flat();
         
         // Remove duplicates by family ID
-        const uniqueFamilies = allFamilies.filter((family, index, arr) => 
+        const uniqueFamilies = allFamilies.filter((family, index, arr) =>
           arr.findIndex(f => f.id === family.id) === index
         );
-        
-        // Sort by visitedDate descending (most recent first)
+
+        // Sort by displayOrder first, then familyName
         uniqueFamilies.sort((a, b) => {
-          const dateA = new Date(a.visitedDate || '1900-01-01').getTime();
-          const dateB = new Date(b.visitedDate || '1900-01-01').getTime();
-          return dateB - dateA; // descending order
+          const orderA = a.displayOrder || 0;
+          const orderB = b.displayOrder || 0;
+          if (orderA !== orderB) {
+            return orderA - orderB;
+          }
+          return a.familyName.localeCompare(b.familyName);
         });
         
         return uniqueFamilies;
@@ -432,9 +436,13 @@ export default function DashboardPage() {
         teamName: group.team.name,
         teamId: group.team.id,
         families: group.families.sort((a, b) => {
-          const dateA = new Date(a.visitedDate || '1900-01-01').getTime();
-          const dateB = new Date(b.visitedDate || '1900-01-01').getTime();
-          return dateB - dateA; // descending order
+          // Use displayOrder first, then familyName as fallback
+          const orderA = a.displayOrder || 0;
+          const orderB = b.displayOrder || 0;
+          if (orderA !== orderB) {
+            return orderA - orderB;
+          }
+          return a.familyName.localeCompare(b.familyName);
         })
       }));
   };

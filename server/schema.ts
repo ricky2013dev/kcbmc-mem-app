@@ -65,6 +65,7 @@ export const families = pgTable("families", {
   bizName: varchar("biz_name", { length: 255 }),
   bizIntro: text("biz_intro"),
   teamId: varchar("team_id").references(() => teams.id, { onDelete: "set null" }),
+  displayOrder: integer("display_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -83,6 +84,7 @@ export const familyMembers = pgTable("family_members", {
   gradeLevel: varchar("grade_level", { length: 10 }), // for children
   gradeGroup: varchar("grade_group", { length: 50 }), // for children
   school: varchar("school", { length: 255 }), // for children
+  displayOrder: integer("display_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
