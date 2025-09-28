@@ -65,13 +65,7 @@ export function Header({
       className: 'text-orange-700 hover:text-primary-foreground/80',
       testId: 'button-departments'
     },
-    {
-      label: '지회(카드뷰)',
-      path: '/family-dashboard',
-      icon: Users,
-      className: 'text-cyan-700 hover:text-primary-foreground/80',
-      testId: 'button-family-dashboard'
-    },
+
     {
       label: 'Donations',
       path: '/donations',
@@ -83,6 +77,13 @@ export function Header({
   ];
 
   const adminMenuItems = [
+        {
+      label: '지회(카드뷰)',
+      path: '/family-dashboard',
+      icon: Users,
+      className: 'text-cyan-700 hover:text-primary-foreground/80',
+      testId: 'button-family-dashboard'
+    },
     {
       label: 'Staff',
       path: '/staff-management',
