@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { RefreshButton } from '@/components/RefreshButton';
-import { Bell, LogOut, Menu, Users, Settings, Globe, Calendar, FolderOpen, UserCheck, DollarSign } from 'lucide-react';
+import { Bell, LogOut, Menu, Users, Settings, Globe, Calendar, FolderOpen, UserCheck, DollarSign, Upload } from 'lucide-react';
 import styles from './Header.module.css';
 
 interface AnnouncementWithStaff {
@@ -111,6 +111,13 @@ export function Header({
       icon: Calendar,
       className: 'text-purple-700 hover:text-primary-foreground/80',
       testId: 'button-events'
+    },
+    {
+      label: 'Upload CSV',
+      path: '/csv-upload',
+      icon: Upload,
+      className: 'text-pink-700 hover:text-primary-foreground/80',
+      testId: 'button-csv-upload'
     }
   ];
 

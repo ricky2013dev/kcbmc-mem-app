@@ -21,7 +21,7 @@ import { PlusIcon, PencilIcon, TrashIcon, FolderIcon, UsersIcon, ChevronDownIcon
 import { Header } from '@/components/Header';
 
 // Draggable Family Component
-function DraggableFamilyCard({ family }: { family: any }) {
+function DraggableFamilyCard({ family, onDelete }: { family: any; onDelete: (familyId: string) => void }) {
   const [, setLocation] = useLocation();
   const {
     attributes,
@@ -34,10 +34,17 @@ function DraggableFamilyCard({ family }: { family: any }) {
   });
 
   const handleEditClick = (e: React.MouseEvent) => {
-
     e.stopPropagation();
     e.preventDefault();
     setLocation(`/family/${family.id}/edit`);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (confirm(`Are you sure you want to delete family "${family.familyName}"?`)) {
+      onDelete(family.id);
+    }
   };
 
   const style = transform ? {
@@ -54,7 +61,7 @@ function DraggableFamilyCard({ family }: { family: any }) {
       `}
     >
       <div className="flex items-start justify-between">
-        <div 
+        <div
           className="flex-1 cursor-grab active:cursor-grabbing"
           {...listeners}
           {...attributes}
@@ -63,19 +70,24 @@ function DraggableFamilyCard({ family }: { family: any }) {
             <Move className="w-2 h-2 sm:w-3 sm:h-3 text-gray-400 flex-shrink-0" />
             <Users2Icon className="w-2 h-2 sm:w-3 sm:h-3 text-purple-600 flex-shrink-0" />
             <span className="text-xs sm:text-sm font-medium truncate min-w-0 flex-1">{family.familyName}</span>
-
           </div>
-          
-
         </div>
-        <div className="flex-shrink-0 ml-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+        <div className="flex-shrink-0 ml-2 flex gap-1">
+          <Button
+            variant="outline"
+            size="sm"
             className="h-6 px-2 text-xs"
             onClick={handleEditClick}
           >
             <PencilIcon className="w-3 h-3" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={handleDeleteClick}
+          >
+            <TrashIcon className="w-3 h-3" />
           </Button>
         </div>
       </div>
@@ -592,6 +604,38 @@ export default function DepartmentTeamManagement() {
     },
   });
 
+  const deleteFamilyMutation = useMutation({
+    mutationFn: async (familyId: string) => {
+      const response = await fetch(`/api/families/${familyId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to delete family");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/families"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      toast({
+        title: "Success",
+        description: "Family deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete family",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteFamily = (familyId: string) => {
+    deleteFamilyMutation.mutate(familyId);
+  };
+
   // Drag and drop handlers
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -1017,7 +1061,7 @@ export default function DepartmentTeamManagement() {
             <DroppableTeamArea teamId="unassigned">
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {families.filter((family: any) => !family.teamId).map((family: any) => (
-                  <DraggableFamilyCard key={family.id} family={family} />
+                  <DraggableFamilyCard key={family.id} family={family} onDelete={handleDeleteFamily} />
                 ))}
               </div>
             </DroppableTeamArea>
@@ -1229,7 +1273,7 @@ export default function DepartmentTeamManagement() {
                                 ) : (
                                   <div className="space-y-2">
                                     {teamFamilies.map((family: any) => (
-                                      <DraggableFamilyCard key={family.id} family={family} />
+                                      <DraggableFamilyCard key={family.id} family={family} onDelete={handleDeleteFamily} />
                                     ))}
                                   </div>
                                 )}

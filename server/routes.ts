@@ -72,6 +72,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Configure multer for CSV file uploads
+  const csvUpload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadDir = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        const extension = path.extname(file.originalname);
+        const filename = `${nanoid()}-${Date.now()}${extension}`;
+        cb(null, filename);
+      }
+    }),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit for CSV files
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedMimes = ['text/csv', 'application/vnd.ms-excel'];
+      const isCSV = allowedMimes.includes(file.mimetype) || file.originalname.endsWith('.csv');
+      if (isCSV) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only CSV files are allowed.'));
+      }
+    }
+  });
+
   // Auth middleware
   const requireAuth = (req: any, res: any, next: any) => {
     if (!req.session?.staffId) {
@@ -781,6 +811,232 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create family" });
+    }
+  });
+
+  // CSV upload endpoint for bulk family creation
+  app.post("/api/families/upload-csv", requireAuth, requireSuperAdminAccess, csvUpload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const fileContent = fs.readFileSync(req.file.path, 'utf-8');
+
+      // Log first 200 chars for debugging
+      console.log('CSV file content (first 200 chars):', fileContent.substring(0, 200));
+      console.log('File length:', fileContent.length);
+
+      // Handle different line endings (Windows \r\n, Unix \n, Mac \r)
+      const lines = fileContent.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+
+      console.log('Total lines found:', lines.length);
+      console.log('Header line:', lines[0]);
+
+      if (lines.length < 2) {
+        return res.status(400).json({
+          message: "CSV file is empty or has only header row",
+          debug: {
+            totalLines: lines.length,
+            fileSize: fileContent.length,
+            firstChars: fileContent.substring(0, 100)
+          }
+        });
+      }
+
+      // Skip header row
+      const dataLines = lines.slice(1);
+      console.log('Data lines to process:', dataLines.length);
+
+      const results = {
+        success: 0,
+        errors: [] as { row: number; error: string; data: any }[],
+        created: {
+          departments: [] as string[],
+          teams: [] as string[],
+          families: [] as string[]
+        },
+        updated: {
+          families: [] as string[]
+        }
+      };
+
+      for (let i = 0; i < dataLines.length; i++) {
+        const line = dataLines[i].trim();
+        if (!line) continue;
+
+        const rowNum = i + 2; // +2 because we skipped header and arrays are 0-indexed
+        let fields: string[] = [];
+
+        try {
+          // Parse CSV line - split by comma but respect quoted fields
+          // This regex handles: "quoted,field",unquoted,field
+          const regex = /(?:,|\n|^)("(?:(?:"")*[^"]*)*"|[^",\n]*|(?:\n|$))/g;
+          const matches = [];
+          let match;
+
+          // Simple split for basic CSV (most common case)
+          if (!line.includes('"')) {
+            fields = line.split(',').map(f => f.trim());
+          } else {
+            // Handle quoted fields
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let j = 0; j < line.length; j++) {
+              const char = line[j];
+
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            result.push(current.trim());
+            fields = result;
+          }
+
+          if (fields.length < 9) {
+            throw new Error(`Invalid number of columns. Expected 9, got ${fields.length}. Line content: "${line}"`);
+          }
+
+          let [departmentName, teamName, koreanName, englishName, phone, email, address, bizName, bizTitle] = fields;
+
+          // Trim all fields and convert empty strings to undefined
+          departmentName = departmentName?.trim();
+          teamName = teamName?.trim();
+          koreanName = koreanName?.trim();
+          englishName = englishName?.trim() || undefined;
+          phone = phone?.trim();
+          email = email?.trim() || undefined;
+          address = address?.trim();
+          bizName = bizName?.trim() || undefined;
+          bizTitle = bizTitle?.trim() || undefined;
+
+          if (!departmentName || !teamName || !koreanName) {
+            throw new Error("Department, Team, and Korean Name are required");
+          }
+
+          // Find or create department
+          let allDepartments = await storage.getDepartments();
+          let department = allDepartments.find(d => d.name.toLowerCase() === departmentName.toLowerCase());
+
+          if (!department) {
+            const newDept = await storage.createDepartment({ name: departmentName });
+            department = { ...newDept, teams: [] };
+            results.created.departments.push(departmentName);
+          }
+
+          // Find or create team
+          let team = department.teams.find(t => t.name.toLowerCase() === teamName.toLowerCase());
+
+          if (!team) {
+            team = await storage.createTeam({
+              name: teamName,
+              departmentId: department.id,
+              description: `Auto-created from CSV upload`,
+              assignedStaff: []
+            });
+            results.created.teams.push(teamName);
+          }
+
+          // Parse address (assume format: "street, city, state zip" or full address)
+          const addressParts = address.split(',').map(p => p.trim());
+          let street = address;
+          let city = "Frisco";
+          let state = "TX";
+          let zipCode = "";
+
+          if (addressParts.length >= 2) {
+            street = addressParts[0];
+            const lastPart = addressParts[addressParts.length - 1];
+            const stateZipMatch = lastPart.match(/([A-Z]{2})\s*(\d{5})/);
+
+            if (stateZipMatch) {
+              state = stateZipMatch[1];
+              zipCode = stateZipMatch[2];
+              if (addressParts.length >= 3) {
+                city = addressParts[addressParts.length - 2];
+              }
+            } else if (addressParts.length >= 2) {
+              city = addressParts[1];
+            }
+          }
+
+          // Use the full Korean name as the family name
+          const familyName = koreanName;
+
+          // Check if family already exists in this team
+          const existingTeamFamilies = await storage.getTeamFamilies(team.id);
+          const existingFamily = existingTeamFamilies.find(f =>
+            f.familyName.toLowerCase() === familyName.toLowerCase()
+          );
+
+          const familyData = {
+            familyName: familyName,
+            fullAddress: address,
+            visitedDate: new Date().toISOString().split('T')[0],
+            memberStatus: 'member' as const,
+            phoneNumber: phone,
+            email: email,
+            address: street,
+            city,
+            state,
+            zipCode,
+            teamId: team.id,
+            bizName: bizName,
+            bizTitle: bizTitle
+          };
+
+          console.log('CSV Row:', rowNum, 'Parsed fields:', {
+            familyName,
+            bizName: `"${bizName}"`,
+            bizTitle: `"${bizTitle}"`,
+            bizNameType: typeof bizName,
+            bizTitleType: typeof bizTitle
+          });
+
+          const members = [{
+            relationship: 'husband' as const,
+            koreanName,
+            englishName: englishName || undefined,
+            phoneNumber: phone || undefined,
+            email: email || undefined,
+            courses: []
+          }];
+
+          if (existingFamily) {
+            // Update existing family
+            await storage.updateFamily(existingFamily.id, familyData, members);
+            results.updated.families.push(familyName);
+            results.success++;
+          } else {
+            // Create new family
+            const family = await storage.createFamily(familyData, members);
+            results.created.families.push(family.familyName);
+            results.success++;
+          }
+
+        } catch (error: any) {
+          results.errors.push({
+            row: rowNum,
+            error: error.message || 'Unknown error',
+            data: fields
+          });
+        }
+      }
+
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      res.json(results);
+    } catch (error: any) {
+      console.error("CSV upload error:", error);
+      res.status(500).json({ message: error.message || "Failed to process CSV" });
     }
   });
 

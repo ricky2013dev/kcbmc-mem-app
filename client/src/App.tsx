@@ -18,6 +18,7 @@ import TeamManagementPage from "@/pages/management/team-management";
 import TeamDashboardPage from "@/pages/dashboards/team-dashboard";
 import FamilyTeamDashboardPage from "@/pages/dashboards/family-team-dashboard";
 import DonationListPage from "@/pages/donations/donation-list";
+import CsvUploadPage from "@/pages/management/csv-upload";
 import NotFound from "@/pages/public/not-found";
 
 function Router() {
@@ -58,6 +59,7 @@ function Router() {
             <Route path="/team-dashboard" component={TeamDashboardPage} />
             <Route path="/family-dashboard" component={FamilyTeamDashboardPage} />
             <Route path="/donations" component={DonationListPage} />
+            <Route path="/csv-upload" component={CsvUploadPage} />
           </>
         )}
         <Route component={NotFound} />
