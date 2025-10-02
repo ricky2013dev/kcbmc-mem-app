@@ -111,13 +111,6 @@ export function Header({
       icon: Calendar,
       className: 'text-purple-700 hover:text-primary-foreground/80',
       testId: 'button-events'
-    },
-    {
-      label: 'Upload CSV',
-      path: '/csv-upload',
-      icon: Upload,
-      className: 'text-pink-700 hover:text-primary-foreground/80',
-      testId: 'button-csv-upload'
     }
   ];
 
@@ -248,6 +241,20 @@ export function Header({
               </div>
             )}
 
+            {/* CSV Upload for ADM and MGM */}
+            {(user?.group === 'ADM' || user?.group === 'MGM') && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setLocation('/csv-upload')}
+                data-testid="button-csv-upload"
+                className="text-pink-700 hover:text-primary-foreground/80"
+                title="Upload CSV"
+              >
+                <Upload className="w-4 h-4" /> Upload CSV
+              </Button>
+            )}
+
             <span className={styles.userName} data-testid="text-current-user">
               {user?.group === 'ADM' ? user?.group : `${user?.fullName} (${user?.group})`}
             </span>
@@ -306,6 +313,17 @@ export function Header({
                     <DropdownMenuItem onClick={() => setLocation('/teams')}>
                       <UserCheck className="w-4 h-4 mr-2" />
                       Teams
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {/* CSV Upload for ADM and MGM - Mobile */}
+                {(user?.group === 'ADM' || user?.group === 'MGM') && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setLocation('/csv-upload')}>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload CSV
                     </DropdownMenuItem>
                   </>
                 )}

@@ -32,7 +32,7 @@ export default function CsvUploadPage() {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<UploadResult | null>(null);
 
-  if (user?.group !== 'ADM') {
+  if (user?.group !== 'ADM' && user?.group !== 'MGM') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <Header />
@@ -40,7 +40,7 @@ export default function CsvUploadPage() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Admin access required to upload CSV files.
+              Admin or Management access required to upload CSV files.
             </AlertDescription>
           </Alert>
         </div>
@@ -177,30 +177,11 @@ export default function CsvUploadPage() {
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="font-semibold mb-2">Required Columns (in order):</h3>
               <ol className="list-decimal list-inside space-y-1 text-sm">
-                <li><strong>Department</strong> - Department name (will be created if doesn't exist)</li>
-                <li><strong>Team</strong> - Team name (will be created if doesn't exist)</li>
-                <li><strong>Korean Name</strong> - Korean name of the family member</li>
-                <li><strong>English Name</strong> - English name (optional)</li>
-                <li><strong>Phone</strong> - Phone number (10 digits)</li>
-                <li><strong>Email</strong> - Email address (optional)</li>
-                <li><strong>Address</strong> - Full address including city, state, and zip</li>
-                <li><strong>Business Name</strong> - Company/Business name (optional)</li>
-                <li><strong>Business Title</strong> - Job title/position (optional)</li>
+
               </ol>
             </div>
 
-            <div className="bg-yellow-50 p-4 rounded-lg">
-              <h3 className="font-semibold mb-2 flex items-center">
-                <AlertCircle className="w-4 h-4 mr-2 text-yellow-600" />
-                Important Notes:
-              </h3>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>First row must contain headers (will be skipped)</li>
-                <li>Department and Team will be auto-created if they don't exist</li>
-                <li>Phone number should be 10 digits (will be auto-formatted)</li>
-                <li>Address can include full address with city, state, and zip in one field</li>
-              </ul>
-            </div>
+
 
             <Button
               variant="outline"
