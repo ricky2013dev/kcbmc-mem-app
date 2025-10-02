@@ -1760,7 +1760,7 @@ export default function FamilyFormPage({
                               <FormControl>
                                 <Input
                                   {...field}
-                                  placeholder="사업장주소"
+                                  placeholder="주소"
                                   data-testid="input-address"
                                 />
                               </FormControl>

@@ -118,9 +118,9 @@ export default function CsvUploadPage() {
 
   const handleDownloadSample = () => {
     const csvContent = `Department,Team,Korean Name,English Name,Phone,Email,Address,Business Name,Business Title
-남부연합회,Plano-y 지회,김철수,Kim Chulsoo,2145551234,kim@example.com,"123 Main St, Frisco, TX 75034",ABC Company,CEO
-남부연합회,Plano-y 지회,이영희,Lee Younghee,4695555678,lee@example.com,"456 Oak Ave, Plano, TX 75023",XYZ Corp,Marketing Director
-남부연합회,캐롤톤 지회,박민수,Park Minsoo,9725559012,park@example.com,"789 Elm Blvd, McKinney, TX 75069",Tech Solutions,Senior Engineer`;
+남부 연합회,Plano-y 지회,김철수,Kim Chulsoo,2145551234,kim@example.com,"123 Main St, Frisco, TX 75034",ABC Company,CEO
+남부 연합회,Plano-y 지회,이영희,Lee Younghee,4695555678,lee@example.com,"456 Oak Ave, Plano, TX 75023",XYZ Corp,Marketing Director
+남부 연합회,캐롤톤 지회,박민수,Park Minsoo,9725559012,park@example.com,"789 Elm Blvd, McKinney, TX 75069",Tech Solutions,Senior Engineer`;
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
